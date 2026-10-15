@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
@@ -51,7 +50,6 @@ import kotlinx.coroutines.launch
 @Composable
 fun ServersScreen(
     repo: LabRepository,
-    onBack: () -> Unit,
     onAdd: () -> Unit,
     onWall: () -> Unit,
     onHomeApp: (Boolean) -> Unit,
@@ -68,8 +66,7 @@ fun ServersScreen(
         topBar = {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Lab.bg),
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } },
-                title = { Text("Servers and settings") },
+                title = { Text("Settings") },
             )
         },
     ) { pad ->

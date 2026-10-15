@@ -44,4 +44,11 @@ class PairingTest {
         } catch (_: CertificateException) {
         }
     }
+
+    @Test fun typedAddress() {
+        assertEquals("http://10.10.10.3:8095", Pairing.address("10.10.10.3:8095"))
+        assertEquals("https://wall.example:8443", Pairing.address(" https://wall.example:8443/ "))
+        assertNull(Pairing.address("ftp://wall.example"))
+        assertNull(Pairing.address(""))
+    }
 }

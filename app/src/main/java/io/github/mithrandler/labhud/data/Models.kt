@@ -14,6 +14,7 @@ data class Info(
     val actions: Boolean = false,
     @SerialName("maintenance_buttons") val maintenanceButtons: Boolean = false,
     val pairing: Boolean = false,
+    val admin: Boolean = false,
     val trends: List<String> = emptyList(),
 )
 

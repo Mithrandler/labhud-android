@@ -21,14 +21,15 @@ import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Timeline
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.PrimaryScrollableTabRow
 import androidx.compose.material3.Scaffold
@@ -67,7 +68,6 @@ import java.util.Date
 fun HomeScreen(
     repo: LabRepository,
     onCard: (String) -> Unit,
-    onToday: () -> Unit,
     onServers: () -> Unit,
     onWall: () -> Unit,
     onLock: () -> Unit,
@@ -78,6 +78,7 @@ fun HomeScreen(
     val servers by repo.store.servers.collectAsState(initial = emptyList())
     val scope = rememberCoroutineScope()
     var page by rememberSaveable { mutableStateOf(0) }
+    var menu by remember { mutableStateOf(false) }
 
     Scaffold(
         containerColor = Lab.bg,
@@ -88,10 +89,13 @@ fun HomeScreen(
                     ServerPicker(server, servers, onPick = { scope.launch { repo.store.select(it.id) } }, onManage = onServers)
                 },
                 actions = {
-                    IconButton(onClick = onToday) { Icon(Icons.Default.Timeline, "Today") }
-                    IconButton(onClick = onWall) { Icon(Icons.Default.Fullscreen, "Wall") }
-                    IconButton(onClick = onLock) { Icon(Icons.Default.Lock, "Lock") }
-                    IconButton(onClick = onServers) { Icon(Icons.Default.Settings, "Servers and settings") }
+                    IconButton(onClick = { menu = true }) { Icon(Icons.Default.MoreVert, "More") }
+                    DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+                        DropdownMenuItem(text = { Text("Wall mode") }, leadingIcon = { Icon(Icons.Default.Fullscreen, null) },
+                            onClick = { menu = false; onWall() })
+                        DropdownMenuItem(text = { Text("Lock now") }, leadingIcon = { Icon(Icons.Default.Lock, null) },
+                            onClick = { menu = false; onLock() })
+                    }
                 },
             )
         },

@@ -14,10 +14,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -43,7 +41,7 @@ import java.util.Locale
 /** The timeline: every event labhud kept, newest first, under a heading per day. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TodayScreen(repo: LabRepository, onBack: () -> Unit, onCard: (String) -> Unit) {
+fun TodayScreen(repo: LabRepository, onCard: (String) -> Unit) {
     var events by remember { mutableStateOf<List<Event>?>(null) }
     var error by remember { mutableStateOf("") }
     LaunchedEffect(Unit) {
@@ -58,7 +56,6 @@ fun TodayScreen(repo: LabRepository, onBack: () -> Unit, onCard: (String) -> Uni
         topBar = {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Lab.bg),
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } },
                 title = { Text("Timeline") },
             )
         },

@@ -17,7 +17,20 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Timeline
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.Scaffold
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.compose.currentBackStackEntryAsState
+import io.github.mithrandler.labhud.ui.ActionsScreen
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -113,28 +126,46 @@ class MainActivity : FragmentActivity() {
             }
             onLinkUsed()
         }
-        NavHost(nav, startDestination = "home", modifier = Modifier.background(Lab.bg)) {
-            composable("home") {
-                HomeScreen(
-                    repo,
-                    onCard = { nav.navigate("card/$it") },
-                    onToday = { nav.navigate("today") },
-                    onServers = { nav.navigate("servers") },
-                    onWall = { startActivity(Intent(this@MainActivity, WallActivity::class.java)) },
-                    onLock = { AppLock.lockNow() },
-                )
-            }
-            composable("card/{id}") { CardScreen(repo, it.arguments?.getString("id").orEmpty(), onBack = { nav.popBackStack() }) }
-            composable("today") { TodayScreen(repo, onBack = { nav.popBackStack() }, onCard = { id -> nav.navigate("card/$id") }) }
-            composable("servers") {
-                ServersScreen(
-                    repo, onBack = { nav.popBackStack() }, onAdd = { pairLink = null; nav.navigate("add") },
-                    onWall = { startActivity(Intent(this@MainActivity, WallActivity::class.java)) },
-                    onHomeApp = ::setHomeApp,
-                )
-            }
-            composable("add") {
-                AddServerScreen(repo, pairLink, onBack = { nav.popBackStack() }, onDone = { pairLink = null; nav.back(to = "home") })
+        val route = nav.currentBackStackEntryAsState().value?.destination?.route
+        Scaffold(
+            containerColor = Lab.bg,
+            contentWindowInsets = WindowInsets(0),
+            bottomBar = {
+                if (TABS.any { it.route == route }) NavigationBar(containerColor = Lab.card) {
+                    TABS.forEach { t ->
+                        NavigationBarItem(
+                            selected = route == t.route,
+                            onClick = { nav.tab(t.route) },
+                            icon = { Icon(t.icon, null) },
+                            label = { Text(t.label) },
+                        )
+                    }
+                }
+            },
+        ) { pad ->
+            NavHost(nav, startDestination = "home", modifier = Modifier.background(Lab.bg).padding(pad).consumeWindowInsets(pad)) {
+                composable("home") {
+                    HomeScreen(
+                        repo,
+                        onCard = { nav.navigate("card/$it") },
+                        onServers = { nav.tab("servers") },
+                        onWall = { startActivity(Intent(this@MainActivity, WallActivity::class.java)) },
+                        onLock = { AppLock.lockNow() },
+                    )
+                }
+                composable("card/{id}") { CardScreen(repo, it.arguments?.getString("id").orEmpty(), onBack = { nav.popBackStack() }) }
+                composable("today") { TodayScreen(repo, onCard = { id -> nav.navigate("card/$id") }) }
+                composable("actions") { ActionsScreen(repo, onCard = { id -> nav.navigate("card/$id") }) }
+                composable("servers") {
+                    ServersScreen(
+                        repo, onAdd = { pairLink = null; nav.navigate("add") },
+                        onWall = { startActivity(Intent(this@MainActivity, WallActivity::class.java)) },
+                        onHomeApp = ::setHomeApp,
+                    )
+                }
+                composable("add") {
+                    AddServerScreen(repo, pairLink, onBack = { nav.popBackStack() }, onDone = { pairLink = null; nav.back(to = "home") })
+                }
             }
         }
     }
@@ -148,6 +179,23 @@ class MainActivity : FragmentActivity() {
         )
         if (on) runCatching { startActivity(Intent(android.provider.Settings.ACTION_HOME_SETTINGS)) }
     }
+}
+
+/** The four places of the bottom bar; a card or "add a server" opens over them, without the bar. */
+private class Tab(val route: String, val label: String, val icon: ImageVector)
+
+private val TABS = listOf(
+    Tab("home", "Home", Icons.Default.Home),
+    Tab("today", "Today", Icons.Default.Timeline),
+    Tab("actions", "Actions", Icons.Default.Bolt),
+    Tab("servers", "Settings", Icons.Default.Settings),
+)
+
+/** Switches tab the usual way: one copy of each, Back from any tab goes Home, each keeps its scroll. */
+private fun NavHostController.tab(route: String) = navigate(route) {
+    popUpTo(graph.findStartDestination().id) { saveState = true }
+    launchSingleTop = true
+    restoreState = true
 }
 
 private fun NavHostController.back(to: String) {

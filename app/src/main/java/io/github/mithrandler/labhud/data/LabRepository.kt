@@ -38,6 +38,9 @@ class LabRepository(private val context: Context, val store: ServerStore) {
     val state: StateFlow<LabState?> = _state.asStateFlow()
     val conn: StateFlow<Conn> = _conn.asStateFlow()
     val server: StateFlow<Server?> = _server.asStateFlow()
+    private val _info = MutableStateFlow<Info?>(null)
+    /** What the current server said about itself when the stream (re)started. */
+    val info: StateFlow<Info?> = _info.asStateFlow()
     private var job: Job? = null
     /** run() was asked for (app in front and unlocked); a new or other server restarts it. */
     private var wanted = false
@@ -70,7 +73,7 @@ class LabRepository(private val context: Context, val store: ServerStore) {
             while (true) {
                 _conn.value = Conn.Connecting
                 try {
-                    api.info()
+                    _info.value = api.info()
                     api.stream().collect { st ->
                         _conn.value = Conn.Live
                         wait = 2_000L

@@ -28,14 +28,31 @@ object Pairing {
     }
 
     /** Pairs and keeps the server (with its encrypted token) as the one shown. */
-    suspend fun pair(link: PairLink, deviceName: String, store: ServerStore): Server {
-        val answer = LabApi(link.url, null, link.fingerprint).pair(link.code, deviceName)
+    suspend fun pair(link: PairLink, deviceName: String, store: ServerStore): Server =
+        keep(LabApi(link.url, null, link.fingerprint).pair(link.code, deviceName), link.url, link.fingerprint, store)
+
+    /** Pairs by signing in as the admin: the address as typed ("10.0.0.5:8095" gets http://). */
+    suspend fun signIn(address: String, user: String, password: String, code: String, deviceName: String, store: ServerStore): Server {
+        val url = address(address) ?: throw ApiException("Type the address as on the wall, like http://192.168.1.20:8095.")
+        return keep(LabApi(url, null).loginPair(user, password, code, deviceName), url, "", store)
+    }
+
+    /** "host:port" or a full http(s) address, without the trailing slash; null when it is not one. */
+    fun address(text: String): String? {
+        val t = text.trim().trimEnd('/')
+        val url = if ("://" in t) t else "http://$t"
+        val uri = runCatching { URI(url) }.getOrNull() ?: return null
+        if (uri.scheme !in listOf("http", "https") || uri.host.isNullOrEmpty()) return null
+        return url
+    }
+
+    private suspend fun keep(answer: PairResponse, url: String, fingerprint: String, store: ServerStore): Server {
         if (!answer.ok || answer.token.isBlank()) throw ApiException(answer.error.ifBlank { "LabHUD refused the code." })
         val server = Server(
             id = UUID.randomUUID().toString(),
             name = answer.info.title.ifBlank { "LabHUD" },
-            url = link.url,
-            fingerprint = link.fingerprint,
+            url = url,
+            fingerprint = fingerprint,
             deviceName = answer.name,
         )
         store.add(server, answer.token)

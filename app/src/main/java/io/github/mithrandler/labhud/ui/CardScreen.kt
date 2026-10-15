@@ -91,12 +91,7 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit) {
         if (range > 0 && long == null) repo.api()?.let { api -> runCatching { api.history(true) }.onSuccess { long = it } }
     }
 
-    fun send(name: String, label: String) = scope.launch {
-        val api = repo.api() ?: return@launch
-        val r = api.action(name)
-        api.actionLog(name, if (r.ok) "accepted" else "refused", 0)
-        snack.showSnackbar(if (r.ok) "$label: sent" else "$label: ${r.error.ifBlank { "refused" }}")
-    }
+    fun send(name: String, label: String) = scope.launch { snack.showSnackbar(sendAction(repo, name, label)) }
 
     Scaffold(
         containerColor = Lab.bg,
@@ -178,23 +173,7 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit) {
         }
     }
 
-    ask?.let { a ->
-        AlertDialog(
-            onDismissRequest = { ask = null },
-            title = { Text(a.label) },
-            text = { Text(a.confirm) },
-            confirmButton = {
-                if (a.choices.isEmpty()) {
-                    TextButton(onClick = { ask = null; send(a.name, a.label) }) { Text("Yes", color = if (a.danger) Lab.red else Lab.accent) }
-                } else Column(horizontalAlignment = Alignment.End) {
-                    a.choices.forEach { ch ->
-                        TextButton(onClick = { ask = null; send(ch.action, ch.label) }) { Text(ch.label, color = if (ch.danger) Lab.red else Lab.accent) }
-                    }
-                }
-            },
-            dismissButton = { TextButton(onClick = { ask = null }) { Text("Cancel") } },
-        )
-    }
+    ask?.let { a -> ActionDialog(a, onSend = { name, label -> send(name, label) }, onDismiss = { ask = null }) }
     if (askMaint) {
         val options = listOf("30 minutes" to 30, "1 hour" to 60, "2 hours" to 120, "1 day" to 1440) +
             if (live?.maintenanceUntil != null) listOf("End now" to 0) else emptyList()

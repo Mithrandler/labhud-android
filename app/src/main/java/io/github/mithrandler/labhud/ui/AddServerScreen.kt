@@ -33,7 +33,13 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.TextButton
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -99,23 +105,41 @@ fun AddServerScreen(repo: LabRepository, initialLink: String?, onBack: (() -> Un
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf("") }
 
-    fun tryPair(text: String) {
-        if (busy) return
-        val link = Pairing.parse(text) ?: run { error = "That is not a LabHUD pairing link."; return }
+    var signIn by remember { mutableStateOf(false) }
+    var address by remember { mutableStateOf("") }
+    var user by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    var code by remember { mutableStateOf("") }
+
+    /** Runs one pairing attempt; a network failure names the address it could not reach. */
+    fun attempt(url: String, run: suspend () -> Unit) {
         busy = true
         error = ""
         scope.launch {
-            runCatching { Pairing.pair(link, Build.MODEL ?: "phone", repo.store) }
+            runCatching { run() }
                 .onSuccess { busy = false; onDone() }
                 .onFailure {
                     busy = false
                     error = when {
                         it is java.net.UnknownHostException || it is java.net.ConnectException || it is java.net.SocketTimeoutException ->
-                            "Cannot reach ${link.url}. Is this phone on your home network or VPN?"
+                            "Cannot reach $url. Is this phone on your home network or VPN?"
                         else -> it.message ?: "Pairing failed."
                     }
                 }
         }
+    }
+
+    fun tryPair(text: String) {
+        if (busy) return
+        val link = Pairing.parse(text) ?: run { error = "That is not a LabHUD pairing link."; return }
+        attempt(link.url) { Pairing.pair(link, Build.MODEL ?: "phone", repo.store) }
+    }
+
+    fun trySignIn() {
+        if (busy) return
+        val (a, u, p, c) = listOf(address, user, password, code)
+        code = ""   // a code works once: the next try needs the next one
+        attempt(a) { Pairing.signIn(a, u, p, c, Build.MODEL ?: "phone", repo.store) }
     }
     LaunchedEffect(initialLink) { if (!initialLink.isNullOrBlank()) tryPair(initialLink) }
 
@@ -133,7 +157,7 @@ fun AddServerScreen(repo: LabRepository, initialLink: String?, onBack: (() -> Un
             Modifier.padding(pad).fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Text("On your LabHUD display, open ⚙ > Phone app > Pair a phone, or run init.py pair on the server, then scan the code.",
+            Text("On your LabHUD display, open ⚙ > Phones > Pair a phone, or run init.py pair on the server, then scan the code.",
                 color = Lab.sub, fontSize = 14.sp)
             Box(
                 Modifier.fillMaxWidth().aspectRatio(1f).clip(CardShape).border(BorderStroke(1.dp, Lab.border), CardShape),
@@ -161,6 +185,29 @@ fun AddServerScreen(repo: LabRepository, initialLink: String?, onBack: (() -> Un
             OutlinedTextField(pasted, { pasted = it.trim() }, modifier = Modifier.fillMaxWidth(), singleLine = true,
                 placeholder = { Text("labhud://pair?…") })
             OutlinedButton(onClick = { tryPair(pasted) }, enabled = pasted.isNotBlank() && !busy) { Text("Pair") }
+            HorizontalDivider(color = Lab.line, modifier = Modifier.padding(vertical = 4.dp))
+            if (!signIn) {
+                TextButton(onClick = { signIn = true }) { Text("No code at hand? Sign in as the admin") }
+            } else {
+                Text("SIGN IN AS THE ADMIN", style = Heading)
+                Text("The account made with init.py admin: its password and the code from your authenticator app.",
+                    color = Lab.muted, fontSize = 13.sp)
+                OutlinedTextField(address, { address = it.trim() }, modifier = Modifier.fillMaxWidth(), singleLine = true,
+                    label = { Text("Address") }, placeholder = { Text("http://192.168.1.20:8095") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Next))
+                OutlinedTextField(user, { user = it.trim() }, modifier = Modifier.fillMaxWidth(), singleLine = true,
+                    label = { Text("User") }, keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next))
+                OutlinedTextField(password, { password = it }, modifier = Modifier.fillMaxWidth(), singleLine = true,
+                    label = { Text("Password") }, visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Next))
+                OutlinedTextField(code, { v -> code = v.filter { it.isDigit() }.take(8) }, modifier = Modifier.fillMaxWidth(), singleLine = true,
+                    label = { Text("Authenticator code") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword, imeAction = ImeAction.Done))
+                Button(
+                    onClick = { trySignIn() },
+                    enabled = !busy && address.isNotBlank() && user.isNotBlank() && password.isNotEmpty() && code.length >= 6,
+                ) { Text("Sign in and pair") }
+            }
             Text("The phone talks to LabHUD directly: at home on Wi-Fi, or from outside through your VPN (WireGuard, Tailscale).",
                 color = Lab.muted, fontSize = 12.sp)
         }

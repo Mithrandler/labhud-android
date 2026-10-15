@@ -89,6 +89,22 @@ class LabApi(val baseUrl: String, private val token: String?, fingerprint: Strin
         return LabJson.decodeFromString(text)
     }
 
+    /** Pairs by signing in as labhud's admin (password + authenticator code), without a QR code. */
+    suspend fun loginPair(user: String, password: String, code: String, name: String): PairResponse {
+        val body = buildJsonObject { put("user", user); put("password", password); put("code", code); put("name", name) }.toString()
+        val text = try {
+            post("/api/v1/login-pair", body)
+        } catch (e: ApiException) {
+            throw when (e.code) {
+                403 -> ApiException("Wrong user, password or code, or this LabHUD has no admin. Wait a few seconds between tries.", 403)
+                404 -> ApiException("This LabHUD is too old to sign in from the app: update it, or pair with a QR code.", 404)
+                409 -> ApiException("LabHUD has as many phones as it takes: remove one in ⚙ > Phones.", 409)
+                else -> e
+            }
+        }
+        return LabJson.decodeFromString(text)
+    }
+
     suspend fun action(name: String): ActionAnswer =
         runCatching { LabJson.decodeFromString<ActionAnswer>(post("/action/$name", "{}")) }
             .getOrElse { ActionAnswer(false, it.message ?: "could not reach LabHUD") }
