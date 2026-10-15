@@ -16,6 +16,8 @@ data class Info(
     val pairing: Boolean = false,
     val admin: Boolean = false,
     val trends: List<String> = emptyList(),
+    /** labhud 0.2.15+: GET /api/v1/uptime answers. */
+    val uptime: Boolean = false,
 )
 
 /** Response from POST /api/v1/pair. */
@@ -53,6 +55,8 @@ data class Metric(
     val value: String = "",
     val sev: String = "",
     val trend: Boolean = false,
+    /** labhud 0.2.15+: percent, celsius, bytes, count…; "" from an older server. */
+    val format: String = "",
 )
 
 /** A choice within an action. */
@@ -173,6 +177,17 @@ data class Events(
 data class History(
     val step: Int = 0,
     val series: Map<String, List<Double?>> = emptyMap(),
+)
+
+/**
+ * Response from GET /api/v1/uptime: per card, one value per [step] seconds, oldest first: the
+ * share of the time it was up (0..1), -1 off on purpose, null not known. [percent] over the range.
+ */
+@Serializable
+data class Uptime(
+    val step: Int = 0,
+    val cards: Map<String, List<Double?>> = emptyMap(),
+    val percent: Map<String, Double> = emptyMap(),
 )
 
 /** A generic action endpoint answer. */

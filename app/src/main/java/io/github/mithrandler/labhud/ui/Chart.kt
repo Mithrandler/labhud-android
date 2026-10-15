@@ -67,3 +67,32 @@ fun LineChart(raw: List<Double?>, color: Color = Lab.accent, modifier: Modifier 
         }
     }
 }
+
+/** The bucket averages [LineChart] draws, kept apart so a small chart can use them too. */
+fun buckets(raw: List<Double?>, n: Int): List<Double?> {
+    val per = ((raw.size + n - 1) / n).coerceAtLeast(1)
+    return raw.chunked(per).map { b -> b.filterNotNull().takeIf { it.isNotEmpty() }?.average() }
+}
+
+/** A small line for a tile: no grid, no fill below, its own scale (or [lo]..[hi] when given). */
+@Composable
+fun Sparkline(raw: List<Double?>, color: Color, modifier: Modifier = Modifier, lo: Double? = null, hi: Double? = null) {
+    val points = buckets(raw, 36)
+    Canvas(modifier) {
+        val values = points.filterNotNull()
+        if (values.size < 2) return@Canvas
+        var a = lo ?: values.min()
+        var b = hi ?: values.max()
+        if (b - a < 1e-9) { a -= 1; b += 1 }
+        val stepX = size.width / (points.size - 1).coerceAtLeast(1)
+        val inset = 1.5.dp.toPx()
+        fun y(v: Double) = (inset + (size.height - 2 * inset) * (1 - (v.coerceIn(a, b) - a) / (b - a))).toFloat()
+        val line = Path()
+        var open = false
+        points.forEachIndexed { i, v ->
+            if (v == null) open = false
+            else if (!open) { line.moveTo(i * stepX, y(v)); open = true } else line.lineTo(i * stepX, y(v))
+        }
+        drawPath(line, color, style = Stroke(width = 1.5.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
+    }
+}

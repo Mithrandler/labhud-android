@@ -6,6 +6,26 @@ All notable changes to LabHUD for Android. The format follows
 
 ## [Unreleased]
 
+### Added
+- **Overview** as the first page of Home: problems, then **resources** (CPU, RAM, GPU,
+  temperatures, storage) per host with the last hours as small lines, **uptime** per card as
+  status-page bars over 24 hours or 7 days, and the **latest events**.
+- **A host's history**: tap its tile for big charts over 6 hours, 24 hours or 7 days; a finger on a
+  chart reads the value and the time, with min / average / max under it.
+- **Swipe between pages** on Home, as on the wall; the tabs follow.
+- **Actions** shown as round buttons with icons (start, wake, reboot, shut down, update…), a
+  filter per page, and each press followed in its card: sending, starting…, done or failed.
+
+### Changed
+- **The lock is a choice**, in Settings: none (the default), the phone's PIN / pattern / password,
+  or a fingerprint (with the screen lock as the way out). Changing it asks once. Coming from 0.1.1:
+  the lock stays on (screen lock) only if you had switched it on yourself; the old default becomes none.
+- The big "All good" card is gone: a dot and the time of the data sit in the top bar, and a thin
+  red line names the problems only while there are some.
+
+Needs labhud 0.2.15 for uptime and for telling a temperature from a share; with an older server
+those parts are simply not shown.
+
 ## [0.1.1] - 2026-10-15
 
 ### Added

@@ -54,6 +54,7 @@ import io.github.mithrandler.labhud.lock.AppLock
 import io.github.mithrandler.labhud.ui.AddServerScreen
 import io.github.mithrandler.labhud.ui.CardScreen
 import io.github.mithrandler.labhud.ui.HomeScreen
+import io.github.mithrandler.labhud.ui.HostHistoryScreen
 import io.github.mithrandler.labhud.ui.Lab
 import io.github.mithrandler.labhud.ui.LabTheme
 import io.github.mithrandler.labhud.ui.ServersScreen
@@ -77,9 +78,13 @@ class MainActivity : FragmentActivity() {
             LabTheme {
                 val unlocked by AppLock.unlocked.collectAsState()
                 val servers by repo.store.servers.collectAsState(initial = null)
+                val settings by repo.store.settings.collectAsState(initial = null)
                 val pending by link.collectAsState()
+                // the lock follows the stored choice before anything is shown, and asks by itself
+                settings?.let { AppLock.mode = it.lockMode }
+                LaunchedEffect(unlocked, settings?.lockMode) { if (settings != null && !unlocked) AppLock.prompt(this@MainActivity) {} }
                 when {
-                    servers == null -> Column(Modifier.fillMaxSize().background(Lab.bg)) {}
+                    servers == null || settings == null -> Column(Modifier.fillMaxSize().background(Lab.bg)) {}
                     !unlocked -> LockScreen()
                     servers!!.isEmpty() -> AddServerScreen(repo, pending?.takeIf { it.host == "pair" }?.toString(), onBack = null,
                         onDone = { link.value = null })
@@ -92,11 +97,6 @@ class MainActivity : FragmentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         link.value = intent.data
-    }
-
-    override fun onResume() {
-        super.onResume()
-        if (!AppLock.unlocked.value) AppLock.prompt(this) {}
     }
 
     @Composable
@@ -148,12 +148,18 @@ class MainActivity : FragmentActivity() {
                     HomeScreen(
                         repo,
                         onCard = { nav.navigate("card/$it") },
+                        onHost = { nav.navigate("host/$it") },
+                        onToday = { nav.tab("today") },
                         onServers = { nav.tab("servers") },
                         onWall = { startActivity(Intent(this@MainActivity, WallActivity::class.java)) },
-                        onLock = { AppLock.lockNow() },
+                        onLock = if (AppLock.on) ({ AppLock.lockNow() }) else null,
                     )
                 }
                 composable("card/{id}") { CardScreen(repo, it.arguments?.getString("id").orEmpty(), onBack = { nav.popBackStack() }) }
+                composable("host/{id}") {
+                    HostHistoryScreen(repo, it.arguments?.getString("id").orEmpty(), onBack = { nav.popBackStack() },
+                        onCard = { id -> nav.navigate("card/$id") })
+                }
                 composable("today") { TodayScreen(repo, onCard = { id -> nav.navigate("card/$id") }) }
                 composable("actions") { ActionsScreen(repo, onCard = { id -> nav.navigate("card/$id") }) }
                 composable("servers") {

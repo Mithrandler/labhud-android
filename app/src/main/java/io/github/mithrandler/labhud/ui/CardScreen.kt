@@ -116,13 +116,7 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit) {
             item { StatusHeader(c) }
             if (c.actions.isNotEmpty() || c.maintenanceButton || c.url.isNotEmpty() || c.links.isNotEmpty()) item {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    c.actions.forEach { a ->
-                        Button(
-                            onClick = { ask = a },
-                            colors = if (a.danger) ButtonDefaults.buttonColors(containerColor = Lab.red, contentColor = Lab.text)
-                            else ButtonDefaults.buttonColors(),
-                        ) { Text(a.label) }
-                    }
+                    c.actions.forEach { a -> ActionButton(a) { ask = a } }
                     if (c.maintenanceButton) {
                         OutlinedButton(onClick = { askMaint = true }) { Text(if (c.maintenanceUntil != null) "Maintenance ✓" else "Maintenance") }
                     }

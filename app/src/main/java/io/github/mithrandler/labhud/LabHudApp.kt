@@ -50,7 +50,7 @@ class LabHudApp : Application() {
                 foreground.value = false
             }
         })
-        scope.launch { store.settings.collect { AppLock.required = it.requireUnlock } }
+        scope.launch { store.settings.collect { AppLock.mode = it.lockMode } }
         scope.launch {
             combine(foreground, AppLock.unlocked) { fg, open -> fg && open }.collect { run ->
                 if (run) repo.run() else repo.stop()

@@ -7,9 +7,12 @@ battery: it talks to your labhud only while it is open.
 
 - **Pairs with a QR code.** On the display: ⚙ > Phones > Pair a phone; or on the server
   `init.py pair`. Each phone gets a token of its own; `init.py unpair` ends it.
-- **Fingerprint or PIN when it opens**, then no more questions, actions included, until it has
-  spent 5 minutes in the background.
-- **Problems first**, then labhud's pages as tabs, live through one stream while the app is open.
+- **A lock if you want one**: none, the phone's PIN, or a fingerprint, asked when it opens and
+  again after 5 minutes in the background, never per button.
+- **Overview first**: problems, each host's CPU / RAM / GPU / temperature / storage with its
+  history, uptime bars per card, the latest events. Then labhud's pages, swiped like on the wall,
+  live through one stream while the app is open.
+- **Actions** as buttons with icons, each press followed until the card shows it done.
 - **A home screen widget**: all good, or what is red.
 - **Wall mode**: the wall page full screen and kept on, for an old phone or tablet. It can be the
   home screen app, so it comes back after a reboot.

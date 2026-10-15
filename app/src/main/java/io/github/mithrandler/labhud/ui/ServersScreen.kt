@@ -42,6 +42,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.mithrandler.labhud.BuildConfig
 import io.github.mithrandler.labhud.data.AppSettings
+import io.github.mithrandler.labhud.data.LockMode
+import io.github.mithrandler.labhud.lock.AppLock
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.material3.RadioButton
+import androidx.activity.compose.LocalActivity
+import androidx.compose.ui.semantics.Role
+import androidx.fragment.app.FragmentActivity
 import io.github.mithrandler.labhud.data.LabRepository
 import io.github.mithrandler.labhud.data.Server
 import kotlinx.coroutines.launch
@@ -100,11 +107,7 @@ fun ServersScreen(
                 }
             }
             item { Text("THIS PHONE", style = Heading, modifier = Modifier.padding(top = 16.dp)) }
-            item {
-                Setting("Ask for fingerprint or PIN", "When the app opens, and again after 5 minutes in the background.", settings.requireUnlock) {
-                    scope.launch { repo.store.setRequireUnlock(it) }
-                }
-            }
+            item { LockChoice(settings.lockMode) { scope.launch { repo.store.setLockMode(it) } } }
             item { Text("WALL MODE", style = Heading, modifier = Modifier.padding(top = 16.dp)) }
             item {
                 Panel("") {
@@ -146,6 +149,50 @@ fun ServersScreen(
             confirmButton = { TextButton(onClick = { renaming = null; scope.launch { repo.store.rename(s.id, name.ifBlank { s.name }) } }) { Text("Save") } },
             dismissButton = { TextButton(onClick = { renaming = null }) { Text("Cancel") } },
         )
+    }
+}
+
+/**
+ * None, the screen lock or a fingerprint. Any change is confirmed with the lock it turns on (or,
+ * when turning it off, the one it had), so a wrong choice never shuts you out of the app.
+ */
+@Composable
+private fun LockChoice(current: LockMode, set: (LockMode) -> Unit) {
+    val activity = LocalActivity.current as FragmentActivity
+    var error by remember { mutableStateOf("") }
+    val options = listOf(
+        Triple(LockMode.None, "None", "The app opens straight away."),
+        Triple(LockMode.ScreenLock, "Phone PIN, pattern or password", "The phone's own screen lock."),
+        Triple(LockMode.Fingerprint, "Fingerprint", "With the screen lock as the way out when it fails."),
+    )
+    Surface(shape = CardShape, color = Lab.card, border = BorderStroke(1.dp, Lab.line)) {
+        Column(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+            Text("Lock", fontWeight = FontWeight.Medium, modifier = Modifier.padding(start = 14.dp, top = 8.dp))
+            Text("Asked when the app opens and after 5 minutes in the background, never per button.",
+                fontSize = 12.sp, color = Lab.muted, modifier = Modifier.padding(start = 14.dp, end = 14.dp, bottom = 4.dp))
+            options.forEach { (mode, title, hint) ->
+                val usable = AppLock.canUse(activity, mode)
+                Row(
+                    Modifier.fillMaxWidth()
+                        .selectable(selected = mode == current, enabled = usable, role = Role.RadioButton) {
+                            if (mode == current) return@selectable
+                            error = ""
+                            AppLock.ask(activity, if (mode == LockMode.None) current else mode,
+                                onOk = { set(mode) }, onError = { error = it })
+                        }
+                        .padding(horizontal = 6.dp, vertical = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    RadioButton(selected = mode == current, onClick = null, enabled = usable, modifier = Modifier.padding(8.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(title, fontSize = 15.sp, color = if (usable) Lab.text else Lab.muted)
+                        Text(if (usable) hint else if (mode == LockMode.Fingerprint) "No fingerprint set up on this phone." else "This phone has no screen lock.",
+                            fontSize = 12.sp, color = Lab.muted)
+                    }
+                }
+            }
+            if (error.isNotEmpty()) Text(error, fontSize = 12.sp, color = Lab.warn, modifier = Modifier.padding(start = 14.dp, top = 4.dp, bottom = 6.dp))
+        }
     }
 }
 

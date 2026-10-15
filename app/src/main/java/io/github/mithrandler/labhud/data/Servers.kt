@@ -30,9 +30,12 @@ data class Server(
     val deviceName: String = "",
 )
 
+/** How the app is locked: not at all, with the phone's screen lock, or with a fingerprint. */
+enum class LockMode { None, ScreenLock, Fingerprint }
+
 /** Settings of this phone, not of the server. */
 data class AppSettings(
-    val requireUnlock: Boolean = true,
+    val lockMode: LockMode = LockMode.None,
     val wallOnBoot: Boolean = false,
 )
 
@@ -42,7 +45,9 @@ private val Context.store by preferencesDataStore("labhud")
 class ServerStore(private val context: Context) {
     private val serversKey = stringPreferencesKey("servers")
     private val currentKey = stringPreferencesKey("current")
+    /** Before 0.1.2: a switch, on unless turned off. Read once, for those who had turned it on. */
     private val unlockKey = booleanPreferencesKey("require_unlock")
+    private val lockKey = stringPreferencesKey("lock_mode")
     private val wallBootKey = booleanPreferencesKey("wall_on_boot")
     private fun tokenKey(id: String) = stringPreferencesKey("token_$id")
 
@@ -57,7 +62,9 @@ class ServerStore(private val context: Context) {
     }
 
     val settings: Flow<AppSettings> = context.store.data.map { p ->
-        AppSettings(requireUnlock = p[unlockKey] ?: true, wallOnBoot = p[wallBootKey] ?: false)
+        val mode = p[lockKey]?.let { runCatching { LockMode.valueOf(it) }.getOrNull() }
+            ?: if (p[unlockKey] == true) LockMode.ScreenLock else LockMode.None
+        AppSettings(lockMode = mode, wallOnBoot = p[wallBootKey] ?: false)
     }
 
     suspend fun currentNow(): Server? = current.first()
@@ -92,7 +99,7 @@ class ServerStore(private val context: Context) {
     suspend fun token(id: String): String? =
         context.store.data.first()[tokenKey(id)]?.let { runCatching { TokenCrypto.open(it) }.getOrNull() }
 
-    suspend fun setRequireUnlock(on: Boolean) = context.store.edit { it[unlockKey] = on }
+    suspend fun setLockMode(mode: LockMode) = context.store.edit { it[lockKey] = mode.name }
     suspend fun setWallOnBoot(on: Boolean) = context.store.edit { it[wallBootKey] = on }
 }
 

@@ -77,6 +77,7 @@ class LabApi(val baseUrl: String, private val token: String?, fingerprint: Strin
     suspend fun card(id: String): Card = LabJson.decodeFromString(get("/api/v1/card/$id"))
     suspend fun history(long: Boolean): History = LabJson.decodeFromString(get("/api/v1/history" + if (long) "?long" else ""))
     suspend fun events(): Events = LabJson.decodeFromString(get("/api/v1/events"))
+    suspend fun uptime(week: Boolean): Uptime = LabJson.decodeFromString(get("/api/v1/uptime?range=" + if (week) "7d" else "24h"))
 
     suspend fun pair(code: String, name: String): PairResponse {
         val body = buildJsonObject { put("code", code); put("name", name) }.toString()
