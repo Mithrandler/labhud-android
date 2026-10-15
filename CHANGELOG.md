@@ -6,6 +6,8 @@ All notable changes to LabHUD for Android. The format follows
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-10-15
+
 ### Added
 - **Overview** as the first page of Home: problems, then **resources** (CPU, RAM, GPU,
   temperatures, storage) per host with the last hours as small lines, **uptime** per card as
@@ -60,5 +62,7 @@ those parts are simply not shown.
   back after a reboot.
 - `labhud://card/<id>` links (ntfy's Click with `LABHUD_NOTIFY_CLICK=app`) open that card.
 
-[Unreleased]: https://github.com/Mithrandler/labhud-android/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/Mithrandler/labhud-android/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/Mithrandler/labhud-android/compare/v0.1.1...v0.1.2
+[0.1.1]: https://github.com/Mithrandler/labhud-android/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/Mithrandler/labhud-android/releases/tag/v0.1.0
