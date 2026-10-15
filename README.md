@@ -5,7 +5,7 @@ card with its numbers, charts and panel, the day's timeline, the action buttons,
 wall page when you want it. Native (Kotlin, Jetpack Compose, Material 3), small, and quiet on the
 battery: it talks to your labhud only while it is open.
 
-- **Pairs with a QR code.** On the display: ⚙ > Phone app > Pair a phone; or on the server
+- **Pairs with a QR code.** On the display: ⚙ > Phones > Pair a phone; or on the server
   `init.py pair`. Each phone gets a token of its own; `init.py unpair` ends it.
 - **Fingerprint or PIN when it opens**, then no more questions, actions included, until it has
   spent 5 minutes in the background.
