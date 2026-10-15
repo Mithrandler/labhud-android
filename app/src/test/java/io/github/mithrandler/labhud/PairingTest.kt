@@ -14,8 +14,8 @@ class PairingTest {
 
     @Test fun parsesWhatLabhudPrints() {
         // the exact shape of devices.pair_link in labhud
-        val link = Pairing.parse("labhud://pair?u=http%3A%2F%2F192.168.1.210%3A8095&c=$code")!!
-        assertEquals("http://192.168.1.210:8095", link.url)
+        val link = Pairing.parse("labhud://pair?u=http%3A%2F%2F192.0.2.10%3A8095&c=$code")!!
+        assertEquals("http://192.0.2.10:8095", link.url)
         assertEquals(code, link.code)
         assertEquals("", link.fingerprint)
         val fp = "a".repeat(64)
@@ -46,7 +46,7 @@ class PairingTest {
     }
 
     @Test fun typedAddress() {
-        assertEquals("http://10.10.10.3:8095", Pairing.address("10.10.10.3:8095"))
+        assertEquals("http://192.0.2.10:8095", Pairing.address("192.0.2.10:8095"))
         assertEquals("https://wall.example:8443", Pairing.address(" https://wall.example:8443/ "))
         assertNull(Pairing.address("ftp://wall.example"))
         assertNull(Pairing.address(""))
