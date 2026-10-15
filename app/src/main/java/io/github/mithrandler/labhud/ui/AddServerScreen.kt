@@ -1,8 +1,14 @@
 package io.github.mithrandler.labhud.ui
 
 import android.Manifest
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
+import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
@@ -52,7 +58,10 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.BinaryBitmap
 import com.google.zxing.DecodeHintType
@@ -69,10 +78,23 @@ import java.util.concurrent.Executors
 fun AddServerScreen(repo: LabRepository, initialLink: String?, onBack: (() -> Unit)?, onDone: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    var camera by remember {
-        mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED)
+    val owner = LocalLifecycleOwner.current
+    fun granted() = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+    var camera by remember { mutableStateOf(granted()) }
+    var cameraError by remember { mutableStateOf("") }
+    var refused by remember { mutableStateOf(false) }   // "don't ask again": only the system settings can give it now
+    val ask = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { ok ->
+        camera = ok
+        cameraError = ""
+        refused = !ok && context.activity()?.let { !ActivityCompat.shouldShowRequestPermissionRationale(it, Manifest.permission.CAMERA) } == true
     }
-    val ask = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { camera = it }
+    // A one-time grant ends when the app goes to the background, and the permission can be taken
+    // back in the settings: read it again every time the screen comes back.
+    DisposableEffect(owner) {
+        val watch = LifecycleEventObserver { _, e -> if (e == Lifecycle.Event.ON_RESUME) camera = granted() }
+        owner.lifecycle.addObserver(watch)
+        onDispose { owner.lifecycle.removeObserver(watch) }
+    }
     var pasted by remember { mutableStateOf(initialLink ?: "") }
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf("") }
@@ -119,10 +141,14 @@ fun AddServerScreen(repo: LabRepository, initialLink: String?, onBack: (() -> Un
             ) {
                 when {
                     busy -> CircularProgressIndicator()
-                    camera -> QrScanner(onCode = { if (!busy) tryPair(it) })
-                    else -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("The camera reads the QR code.", color = Lab.muted)
-                        Button(onClick = { ask.launch(Manifest.permission.CAMERA) }, modifier = Modifier.padding(top = 10.dp)) { Text("Allow the camera") }
+                    camera && cameraError.isEmpty() -> QrScanner(onCode = { if (!busy) tryPair(it) }, onError = { cameraError = it })
+                    else -> Column(Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(cameraError.ifEmpty { "The camera reads the QR code." }, color = Lab.muted)
+                        when {
+                            cameraError.isNotEmpty() -> OutlinedButton(onClick = { cameraError = "" }, modifier = Modifier.padding(top = 10.dp)) { Text("Try again") }
+                            refused -> Button(onClick = { context.openAppSettings() }, modifier = Modifier.padding(top = 10.dp)) { Text("Open settings") }
+                            else -> Button(onClick = { ask.launch(Manifest.permission.CAMERA) }, modifier = Modifier.padding(top = 10.dp)) { Text("Allow the camera") }
+                        }
                     }
                 }
             }
@@ -141,27 +167,39 @@ fun AddServerScreen(repo: LabRepository, initialLink: String?, onBack: (() -> Un
     }
 }
 
-/** CameraX preview plus a ZXing reader on every frame, until a QR code is read. */
+/** CameraX preview plus a ZXing reader on every frame, until a QR code is read. A camera that
+ * cannot start (no permission any more, the camera switched off in Quick Settings, another app
+ * holding it) ends in [onError], never in a crash. */
 @Composable
-private fun QrScanner(onCode: (String) -> Unit) {
+private fun QrScanner(onCode: (String) -> Unit, onError: (String) -> Unit) {
     val context = LocalContext.current
     val owner = LocalLifecycleOwner.current
     val executor = remember { Executors.newSingleThreadExecutor() }
     val reader = remember { QRCodeReader() }
     val hints = remember { mapOf(DecodeHintType.POSSIBLE_FORMATS to listOf(BarcodeFormat.QR_CODE), DecodeHintType.TRY_HARDER to true) }
-    DisposableEffect(Unit) { onDispose { executor.shutdown() } }
+    var provider by remember { mutableStateOf<ProcessCameraProvider?>(null) }
+    DisposableEffect(Unit) {
+        onDispose {
+            runCatching { provider?.unbindAll() }
+            executor.shutdown()
+        }
+    }
     AndroidView(
         modifier = Modifier.fillMaxSize(),
         factory = { ctx ->
             val view = PreviewView(ctx).apply { scaleType = PreviewView.ScaleType.FILL_CENTER }
             val future = ProcessCameraProvider.getInstance(ctx)
             future.addListener({
-                val provider = future.get()
-                val preview = Preview.Builder().build().also { it.surfaceProvider = view.surfaceProvider }
-                val analysis = ImageAnalysis.Builder().setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST).build()
-                analysis.setAnalyzer(executor) { image -> decode(image, reader, hints)?.let { text -> view.post { onCode(text) } } }
-                provider.unbindAll()
-                provider.bindToLifecycle(owner, CameraSelector.DEFAULT_BACK_CAMERA, preview, analysis)
+                runCatching {
+                    val p = future.get().also { provider = it }
+                    val preview = Preview.Builder().build().also { it.surfaceProvider = view.surfaceProvider }
+                    val analysis = ImageAnalysis.Builder().setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST).build()
+                    analysis.setAnalyzer(executor) { image ->
+                        decode(image, reader, hints)?.let { text -> view.post { onCode(text) } }
+                    }
+                    p.unbindAll()
+                    p.bindToLifecycle(owner, CameraSelector.DEFAULT_BACK_CAMERA, preview, analysis)
+                }.onFailure { onError("The camera did not start. Paste the link instead, or try again.") }
             }, ContextCompat.getMainExecutor(context))
             view
         },
@@ -175,4 +213,15 @@ private fun decode(image: ImageProxy, reader: QRCodeReader, hints: Map<DecodeHin
     val source = PlanarYUVLuminanceSource(data, plane.rowStride, it.height, 0, 0, it.width, it.height, false)
     runCatching { reader.decode(BinaryBitmap(HybridBinarizer(source)), hints).text }.getOrNull()
         .also { reader.reset() }
+}
+
+private tailrec fun Context.activity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.activity()
+    else -> null
+}
+
+private fun Context.openAppSettings() {
+    startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", packageName, null))
+        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
 }
