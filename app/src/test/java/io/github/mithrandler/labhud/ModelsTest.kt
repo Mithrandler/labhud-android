@@ -100,4 +100,15 @@ class ModelsTest {
         assertEquals("2 d 7 h", duration(200000))
         assertEquals("0 min", duration(5))
     }
+
+    /** /api/agents/list as ⚙ and the app's agent screen read it (labels may be null). */
+    @Test fun agents() {
+        val a = LabJson.decodeFromString<io.github.mithrandler.labhud.data.Agents>(read("agents.json"))
+        val n = a.agents.single()
+        assertEquals("192.0.2.5", n.address)
+        assertEquals(listOf("100", "101"), n.targets["pve"])
+        assertEquals("windows", n.labels["pve"]?.get("102"))
+        assertEquals(null, n.labels["pve"]?.get("101"))
+        assertTrue("pve" in a.verbs && "sensors" !in a.verbs)
+    }
 }

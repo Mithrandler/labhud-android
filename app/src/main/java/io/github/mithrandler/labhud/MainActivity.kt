@@ -53,6 +53,7 @@ import io.github.mithrandler.labhud.lock.AppLock
 import io.github.mithrandler.labhud.ui.AddServerScreen
 import io.github.mithrandler.labhud.ui.CardScreen
 import io.github.mithrandler.labhud.ui.ActivityScreen
+import io.github.mithrandler.labhud.ui.AgentScreen
 import io.github.mithrandler.labhud.ui.DevicesScreen
 import io.github.mithrandler.labhud.ui.GameScreen
 import io.github.mithrandler.labhud.ui.ManageScreen
@@ -172,7 +173,12 @@ class MainActivity : FragmentActivity() {
                 composable(SETTINGS) { Settings(nav, signIn = false) }
                 // Settings opened over a card or a game by "Sign in" from a button: Back returns there
                 composable("signin") { Settings(nav, signIn = true) }
-                composable("manage") { ManageScreen(repo, onBack = { nav.popBackStack() }, onSignIn = { nav.navigate("signin") }) }
+                composable("manage") {
+                    ManageScreen(repo, onBack = { nav.popBackStack() }, onSignIn = { nav.navigate("signin") }, onAgent = { nav.navigate("agent/$it") })
+                }
+                composable("agent/{id}") {
+                    AgentScreen(repo, it.arguments?.getString("id").orEmpty(), onBack = { nav.popBackStack() }, onSignIn = { nav.navigate("signin") })
+                }
                 composable("add") {
                     AddServerScreen(repo, pairLink, onBack = { nav.popBackStack() }, onDone = { pairLink = null; nav.back(to = "home") })
                 }

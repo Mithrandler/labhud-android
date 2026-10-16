@@ -1,6 +1,7 @@
 package io.github.mithrandler.labhud.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -59,7 +60,7 @@ private val VIAS = listOf("ntfy" to "ntfy", "app" to "App", "both" to "Both")
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ManageScreen(repo: LabRepository, onBack: () -> Unit, onSignIn: () -> Unit) {
+fun ManageScreen(repo: LabRepository, onBack: () -> Unit, onSignIn: () -> Unit, onAgent: (String) -> Unit = {}) {
     val scope = rememberCoroutineScope()
     val gate = rememberGate(repo)
     var phones by remember { mutableStateOf<List<Phone>?>(null) }
@@ -126,7 +127,7 @@ fun ManageScreen(repo: LabRepository, onBack: () -> Unit, onSignIn: () -> Unit) 
                     Panel("") {
                         if (list.isEmpty()) Text("No agent yet: on the wall, ⚙ > Agents shows the line that installs one.", color = Lab.muted, fontSize = 14.sp)
                         list.forEach { a ->
-                            Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Row(Modifier.fillMaxWidth().clickable { onAgent(a.id) }.padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                                 Box(Modifier.size(8.dp).clip(CircleShape).background(if (a.online) Lab.green else Lab.red))
                                 Spacer(Modifier.width(10.dp))
                                 Column(Modifier.weight(1f)) {

@@ -136,6 +136,14 @@ class LabApi(val baseUrl: String, private val token: String?, fingerprint: Strin
     // --- what ⚙ does, for a phone signed in as the admin (and unlocked) ---
 
     suspend fun agents(): Agents = LabJson.decodeFromString(answer("/api/agents/list", "{}"))
+    /** Ticks capabilities on an agent (all of them, the new list), as ⚙ > Agents does. */
+    suspend fun agentCaps(id: String, caps: List<String>): ActionAnswer = LabJson.decodeFromString(answer("/api/agents/caps",
+        buildJsonObject { put("id", id); put("caps", kotlinx.serialization.json.JsonArray(caps.map { kotlinx.serialization.json.JsonPrimitive(it) })) }.toString()))
+
+    /** The ticked targets of one capability (the new list). */
+    suspend fun agentTargets(id: String, cap: String, targets: List<String>): ActionAnswer = LabJson.decodeFromString(answer("/api/agents/targets",
+        buildJsonObject { put("id", id); put("cap", cap); put("targets", kotlinx.serialization.json.JsonArray(targets.map { kotlinx.serialization.json.JsonPrimitive(it) })) }.toString()))
+
     suspend fun alertSetup(): AlertSetup = LabJson.decodeFromString(answer("/api/setup/alerts", "{}"))
 
     /** Where news goes (ntfy, app, both), the rules sent back as they came. */

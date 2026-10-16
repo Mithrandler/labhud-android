@@ -6,6 +6,14 @@ All notable changes to LabHUD for Android. The format follows
 
 ## [Unreleased]
 
+### Added
+- **An agent's ticks in the app**: Server management > an agent shows each capability it found
+  with a switch, and the containers, guests, services or machines it may act on, each with a
+  tick, as ⚙ > Agents does (the wall's PIN or the fingerprint first).
+
+### Fixed
+- The notification permission is checked before a notification is shown (Android 13+).
+
 ## [0.3.11] - 2026-10-16
 
 ### Added

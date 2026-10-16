@@ -301,10 +301,22 @@ data class AgentRow(
     @SerialName("addr") val address: String = "",
     val found: List<String> = emptyList(),
     val caps: List<String> = emptyList(),
+    /** What is ticked per capability (containers, guests, units, MACs…). */
+    val targets: Map<String, List<String>> = emptyMap(),
+    /** What the agent found and could be ticked, per capability. */
+    val choices: Map<String, List<String>> = emptyMap(),
+    /** A friendlier name for a target (a guest's name, a MAC's address), per capability. */
+    val labels: Map<String, Map<String, String?>> = emptyMap(),
 )
 
 @Serializable
-data class Agents(val agents: List<AgentRow> = emptyList())
+data class Agents(
+    val agents: List<AgentRow> = emptyList(),
+    /** Every capability an agent can have, in labhud's order. */
+    val caps: List<String> = emptyList(),
+    /** The capabilities that have targets, with their verbs. */
+    val verbs: Map<String, List<String>> = emptyMap(),
+)
 
 /** /api/setup/alerts (admin): the rules as labhud keeps them (sent back as they are), and where news goes. */
 @Serializable
