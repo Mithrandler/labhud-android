@@ -104,7 +104,10 @@ object Push {
             .setAutoCancel(true)
             .setPriority(if (bad) NotificationCompat.PRIORITY_HIGH else NotificationCompat.PRIORITY_DEFAULT)
             .build()
-        runCatching { NotificationManagerCompat.from(context).notify(tag, id, n) }   // no permission: nothing shown
+        // Android 13+: nothing is shown until the permission is given (asked when Instant is chosen)
+        if (android.os.Build.VERSION.SDK_INT >= 33 && androidx.core.content.ContextCompat.checkSelfPermission(
+                context, android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) return
+        runCatching { NotificationManagerCompat.from(context).notify(tag, id, n) }
     }
 }
 
