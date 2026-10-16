@@ -6,7 +6,7 @@ All notable changes to LabHUD for Android. The format follows
 
 ## [Unreleased]
 
-## [0.3.0] - unreleased
+## [0.3.0] - 2026-10-16
 
 Needs labhud 0.3.0: the same version for the server, the agent and the app.
 
