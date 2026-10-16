@@ -18,6 +18,11 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyGridScope
@@ -153,15 +158,25 @@ fun StatusScreen(
             val byId = st.byId
             val problems = st.problems.mapNotNull { byId[it] }
             if (problems.isNotEmpty()) ProblemsBar(problems) { bell = true }
-            val page = st.pages.firstOrNull { it.id == pageId } ?: st.pages.firstOrNull()
-            if (st.pages.size > 1) Row(
-                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 4.dp),
+            val pages = st.pages
+            val start = pages.indexOfFirst { it.id == pageId }.coerceAtLeast(0)
+            val pager = rememberPagerState(initialPage = start) { pages.size }
+            val chips = rememberLazyListState()
+            // the chip row follows a swipe; the remembered page follows the pager
+            LaunchedEffect(pager.currentPage, pages.size) {
+                pages.getOrNull(pager.currentPage)?.let { pageId = it.id }
+                if (pages.size > 1) chips.animateScrollToItem(pager.currentPage.coerceAtMost(pages.size - 1))
+            }
+            if (pages.size > 1) LazyRow(
+                state = chips,
+                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                st.pages.forEach { p ->
+                itemsIndexed(pages, key = { _, p -> p.id }) { i, p ->
                     val bad = p.groups.any { g -> g.cards.any { byId[it]?.bad == true } }
                     FilterChip(
-                        selected = p.id == page?.id, onClick = { pageId = p.id },
+                        selected = i == pager.currentPage, onClick = { scope.launch { pager.animateScrollToPage(i) } },
                         label = { Text(p.title.lowercase().replaceFirstChar(Char::uppercase)) },
                         trailingIcon = if (bad) ({ Box(Modifier.size(6.dp).clip(CircleShape).background(Lab.red)) }) else null,
                         colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Lab.accent.copy(alpha = 0.2f), selectedLabelColor = Lab.title),
@@ -169,15 +184,19 @@ fun StatusScreen(
                 }
             }
             PullToRefreshBox(isRefreshing = conn == Conn.Connecting, onRefresh = { repo.retry() }, modifier = Modifier.fillMaxSize()) {
-                LazyVerticalGrid(
-                    GridCells.Adaptive(158.dp),
-                    Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    if (page == null) return@LazyVerticalGrid
-                    if (page.games) games(page, onGame) else groups(page, byId, uptime, onCard)
+                // swipe left and right between the wall's pages, as on the wall itself
+                HorizontalPager(pager, Modifier.fillMaxSize(), key = { pages.getOrNull(it)?.id ?: it }) { index ->
+                    val page = pages.getOrNull(index)
+                    LazyVerticalGrid(
+                        GridCells.Adaptive(158.dp),
+                        Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        if (page == null) return@LazyVerticalGrid
+                        if (page.games) games(page, onGame) else groups(page, byId, uptime, onCard)
+                    }
                 }
             }
         }
