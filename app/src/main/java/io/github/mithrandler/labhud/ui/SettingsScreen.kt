@@ -55,12 +55,16 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ServersScreen(
+fun SettingsScreen(
     repo: LabRepository,
     onAdd: () -> Unit,
     onWall: () -> Unit,
     onHomeApp: (Boolean) -> Unit,
+    onManage: () -> Unit,
+    signInFirst: Boolean = false,
 ) {
+    val rights by repo.rights.collectAsState()
+    var signingIn by remember { mutableStateOf(signInFirst) }
     val servers by repo.store.servers.collectAsState(initial = emptyList())
     val current by repo.server.collectAsState()
     val settings by repo.store.settings.collectAsState(initial = AppSettings())
@@ -82,7 +86,26 @@ fun ServersScreen(
             contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            item { Text("SERVERS", style = Heading) }
+            item { Text("ACCOUNT", style = Heading) }
+            item {
+                Panel("") {
+                    Text(if (rights.admin) "Signed in as the admin" else "Only looking", fontWeight = FontWeight.Medium)
+                    Text(
+                        if (rights.admin) "The buttons work here" + (if (rights.pin) ", after the wall's PIN (or your fingerprint)." else ".")
+                        else "Sign in as LabHUD's admin (user, password and the authenticator code) for the buttons and Server management.",
+                        fontSize = 12.sp, color = Lab.muted,
+                    )
+                    Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (rights.admin) {
+                            OutlinedButton(onClick = onManage) { Text("Server management") }
+                            TextButton(onClick = { scope.launch { repo.signOut() } }) { Text("Sign out", color = Lab.red) }
+                        } else Button(onClick = { signingIn = true }) { Text("Sign in") }
+                    }
+                }
+            }
+            item { Text("NOTIFICATIONS", style = Heading, modifier = Modifier.padding(top = 16.dp)) }
+            item { NotifyChoice(repo, settings.notify, rights.admin) }
+            item { Text("SERVERS", style = Heading, modifier = Modifier.padding(top = 16.dp)) }
             items(servers, key = { it.id }) { s ->
                 Surface(
                     onClick = { scope.launch { repo.store.select(s.id) } },
@@ -129,6 +152,7 @@ fun ServersScreen(
         }
     }
 
+    if (signingIn) SignInDialog(repo, onDone = { signingIn = false })
     removing?.let { s ->
         AlertDialog(
             onDismissRequest = { removing = null },
@@ -205,6 +229,109 @@ private fun Setting(title: String, hint: String, on: Boolean, set: (Boolean) -> 
                 Text(hint, fontSize = 12.sp, color = Lab.muted)
             }
             Switch(checked = on, onCheckedChange = set)
+        }
+    }
+}
+
+/** User, password and the authenticator code: this phone becomes the admin's (POST /api/v1/admin-login). */
+@Composable
+private fun SignInDialog(repo: LabRepository, onDone: () -> Unit) {
+    val scope = rememberCoroutineScope()
+    var user by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    var code by remember { mutableStateOf("") }
+    var error by remember { mutableStateOf("") }
+    var busy by remember { mutableStateOf(false) }
+    AlertDialog(
+        onDismissRequest = onDone,
+        title = { Text("Sign in as the admin") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(user, { user = it.take(64) }, singleLine = true, label = { Text("User") })
+                OutlinedTextField(password, { password = it.take(256) }, singleLine = true, label = { Text("Password") },
+                    visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation())
+                OutlinedTextField(code, { code = it.filter(Char::isDigit).take(8) }, singleLine = true, label = { Text("Authenticator code") },
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.NumberPassword))
+                if (error.isNotEmpty()) Text(error, color = Lab.warn, fontSize = 13.sp)
+            }
+        },
+        confirmButton = {
+            TextButton(enabled = !busy && user.isNotBlank() && password.isNotEmpty() && code.length >= 6, onClick = {
+                busy = true
+                scope.launch {
+                    val e = repo.signIn(user.trim(), password, code)
+                    busy = false
+                    if (e == null) onDone() else { error = e; code = "" }
+                }
+            }) { Text(if (busy) "…" else "Sign in") }
+        },
+        dismissButton = { TextButton(onClick = onDone) { Text("Cancel") } },
+    )
+}
+
+/**
+ * Instant (UnifiedPush through the ntfy app: labhud wakes this app, which reads the news itself),
+ * ntfy only (the ntfy app shows labhud's own messages), or off. labhud's own `via` decides whether
+ * the app is woken at all; the admin can change it here.
+ */
+@Composable
+private fun NotifyChoice(repo: LabRepository, mode: io.github.mithrandler.labhud.data.NotifyMode, admin: Boolean) {
+    val activity = LocalActivity.current as FragmentActivity
+    val scope = rememberCoroutineScope()
+    var via by remember { mutableStateOf<String?>(null) }
+    var note by remember { mutableStateOf("") }
+    androidx.compose.runtime.LaunchedEffect(mode) {
+        via = runCatching { repo.api()?.notes(Long.MAX_VALUE / 2)?.via }.getOrNull()
+    }
+    val ask = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestPermission()) { }
+    fun pick(m: io.github.mithrandler.labhud.data.NotifyMode) {
+        note = ""
+        scope.launch {
+            repo.store.setNotify(m)
+            if (m == io.github.mithrandler.labhud.data.NotifyMode.Instant) {
+                io.github.mithrandler.labhud.push.Push.channels(activity)
+                if (android.os.Build.VERSION.SDK_INT >= 33) ask.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                io.github.mithrandler.labhud.push.Push.enable(activity) { ok ->
+                    if (!ok) note = "No UnifiedPush app on this phone. Install ntfy (Play Store or F-Droid), open it once, then choose Instant again."
+                    else io.github.mithrandler.labhud.push.Push.fetch(activity)
+                }
+            } else io.github.mithrandler.labhud.push.Push.disable(activity)
+        }
+    }
+    val options = listOf(
+        Triple(io.github.mithrandler.labhud.data.NotifyMode.Instant, "Instant",
+            "Through the ntfy app (UnifiedPush). LabHUD only knocks; this app reads the news itself, at home or on the VPN."),
+        Triple(io.github.mithrandler.labhud.data.NotifyMode.Ntfy, "ntfy only", "The ntfy app shows LabHUD's own messages, if a topic is set on the wall."),
+        Triple(io.github.mithrandler.labhud.data.NotifyMode.Off, "Off", "Nothing on this phone."),
+    )
+    Surface(shape = CardShape, color = Lab.card, border = BorderStroke(1.dp, Lab.line)) {
+        Column(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+            options.forEach { (m, title, hint) ->
+                Row(
+                    Modifier.fillMaxWidth().selectable(selected = m == mode, role = Role.RadioButton) { if (m != mode) pick(m) }
+                        .padding(horizontal = 6.dp, vertical = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    RadioButton(selected = m == mode, onClick = null, modifier = Modifier.padding(8.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(title, fontSize = 15.sp)
+                        Text(hint, fontSize = 12.sp, color = Lab.muted)
+                    }
+                }
+            }
+            if (note.isNotEmpty()) Text(note, fontSize = 12.sp, color = Lab.warn, modifier = Modifier.padding(horizontal = 14.dp, vertical = 4.dp))
+            if (mode == io.github.mithrandler.labhud.data.NotifyMode.Instant && via == "ntfy") {
+                Text("LabHUD sends its news only to ntfy now, so this app is not woken.", fontSize = 12.sp, color = Lab.warn,
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 4.dp))
+                if (admin) TextButton(onClick = {
+                    scope.launch {
+                        val api = repo.api() ?: return@launch
+                        val r = runCatching { api.saveNotify(api.alertSetup(), "both") }.getOrNull()
+                        if (r?.ok == true) via = "both" else note = r?.error?.ifBlank { null } ?: "Not saved (unlock with the PIN first?)"
+                    }
+                }, modifier = Modifier.padding(horizontal = 6.dp)) { Text("Send to the app too") }
+            }
         }
     }
 }

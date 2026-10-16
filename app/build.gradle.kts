@@ -98,6 +98,7 @@ dependencies {
     implementation(libs.camera.lifecycle)
     implementation(libs.camera.view)
     implementation(libs.zxing.core)
+    implementation(libs.unifiedpush)
     debugImplementation(libs.compose.ui.tooling)
 
     testImplementation(libs.junit)

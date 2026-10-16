@@ -37,12 +37,13 @@ private val JSON = "application/json".toMediaType()
  * exact certificate is accepted: labhud's own is usually self-signed, so the system's trust would
  * refuse it, and accepting any certificate would hand the token to whoever sits in between.
  */
-class LabApi(val baseUrl: String, private val token: String?, fingerprint: String = "") {
+class LabApi(val baseUrl: String, private val token: String?, fingerprint: String = "", private val ticket: String? = null) {
     private val base = baseUrl.trimEnd('/')
     val client: OkHttpClient = clientFor(fingerprint)
 
     private fun request(path: String) = Request.Builder().url(base + path).apply {
         if (token != null) header("Authorization", "Bearer $token")
+        if (ticket != null) header("X-Labhud-Unlock", ticket)
     }
 
     private suspend fun call(req: Request): String = withContext(Dispatchers.IO) {
@@ -62,6 +63,15 @@ class LabApi(val baseUrl: String, private val token: String?, fingerprint: Strin
             )
         }
         return text
+    }
+
+    /** For the routes whose 403/409 carries labhud's own words ({ok:false, error}): the answer, never thrown. */
+    private suspend fun answer(path: String, json: String): String = withContext(Dispatchers.IO) {
+        client.newCall(request(path).post(json.toRequestBody(JSON)).build()).execute().use { r ->
+            val text = r.body.string()
+            if (r.code in listOf(200, 400, 403, 404, 409, 502) && text.startsWith("{")) text
+            else body(r)
+        }
     }
 
     private suspend fun get(path: String) = call(request(path).get().build())
@@ -106,8 +116,49 @@ class LabApi(val baseUrl: String, private val token: String?, fingerprint: Strin
         return LabJson.decodeFromString(text)
     }
 
+    suspend fun game(id: String): GameServer = LabJson.decodeFromString(get("/api/v1/game/$id"))
+    suspend fun notes(after: Long): Notes = LabJson.decodeFromString(get("/api/v1/notifications?after=$after"))
+    suspend fun phones(): Phones = LabJson.decodeFromString(get("/api/v1/devices"))
+
+    suspend fun adminLogin(user: String, password: String, code: String): AdminAnswer =
+        LabJson.decodeFromString(answer("/api/v1/admin-login", buildJsonObject { put("user", user); put("password", password); put("code", code) }.toString()))
+
+    suspend fun adminLogout(): AdminAnswer = LabJson.decodeFromString(answer("/api/v1/admin-logout", "{}"))
+
+    /** The display's PIN for a ticket that lets the buttons through for [AdminAnswer.idle] seconds. */
+    suspend fun unlock(pin: String): AdminAnswer =
+        LabJson.decodeFromString(answer("/api/v1/unlock", buildJsonObject { put("pin", pin) }.toString()))
+
+    /** This phone's UnifiedPush endpoint, "" to forget it. */
+    suspend fun push(endpoint: String): ActionAnswer =
+        LabJson.decodeFromString(answer("/api/v1/push", buildJsonObject { put("endpoint", endpoint) }.toString()))
+
+    // --- what ⚙ does, for a phone signed in as the admin (and unlocked) ---
+
+    suspend fun agents(): Agents = LabJson.decodeFromString(answer("/api/agents/list", "{}"))
+    suspend fun alertSetup(): AlertSetup = LabJson.decodeFromString(answer("/api/setup/alerts", "{}"))
+
+    /** Where news goes (ntfy, app, both), the rules sent back as they came. */
+    suspend fun saveNotify(setup: AlertSetup, via: String): ActionAnswer {
+        val body = buildJsonObject {
+            put("rules", kotlinx.serialization.json.JsonArray(setup.rules))
+            put("notify", buildJsonObject {
+                put("via", via)
+                put("quiet", kotlinx.serialization.json.JsonArray((setup.notify.quiet ?: listOf(0, 0)).map { kotlinx.serialization.json.JsonPrimitive(it) }))
+            })
+        }
+        return LabJson.decodeFromString(answer("/api/setup/alerts-save", body.toString()))
+    }
+
+    suspend fun notifyTest(): ActionAnswer = LabJson.decodeFromString(answer("/api/setup/notify-test", "{}"))
+    suspend fun unpair(name: String): ActionAnswer =
+        LabJson.decodeFromString(answer("/api/v1/unpair", buildJsonObject { put("name", name) }.toString()))
+
+    suspend fun logs(agent: String, container: String): LogsAnswer =
+        LabJson.decodeFromString(answer("/api/setup/logs", buildJsonObject { put("agent", agent); put("target", container) }.toString()))
+
     suspend fun action(name: String): ActionAnswer =
-        runCatching { LabJson.decodeFromString<ActionAnswer>(post("/action/$name", "{}")) }
+        runCatching { LabJson.decodeFromString<ActionAnswer>(answer("/action/$name", "{}")) }
             .getOrElse { ActionAnswer(false, it.message ?: "could not reach LabHUD") }
 
     suspend fun actionLog(name: String, result: String, took: Long) {
@@ -115,7 +166,7 @@ class LabApi(val baseUrl: String, private val token: String?, fingerprint: Strin
     }
 
     suspend fun maintenance(card: String, minutes: Int): ActionAnswer =
-        runCatching { LabJson.decodeFromString<ActionAnswer>(post("/api/maintenance/$card", buildJsonObject { put("minutes", minutes) }.toString())) }
+        runCatching { LabJson.decodeFromString<ActionAnswer>(answer("/api/maintenance/$card", buildJsonObject { put("minutes", minutes) }.toString())) }
             .getOrElse { ActionAnswer(false, it.message ?: "could not reach LabHUD") }
 
     /** The live state: one value per `event: state`, until the flow is cancelled or fails. */
@@ -156,6 +207,26 @@ class LabApi(val baseUrl: String, private val token: String?, fingerprint: Strin
                 b.hostnameVerifier { _, _ -> true }
             }
             return b.build()
+        }
+
+        /**
+         * The SHA-256 of the certificate [url] presents, read once without trusting it: for signing
+         * in without a QR code (which would carry it). From then on only that certificate is accepted.
+         */
+        suspend fun firstFingerprint(url: String): String = withContext(Dispatchers.IO) {
+            var seen = ""
+            val tm = object : X509TrustManager {
+                override fun checkServerTrusted(chain: Array<out X509Certificate>?, authType: String?) {
+                    seen = chain?.firstOrNull()?.let { sha256(it.encoded) } ?: throw CertificateException("no certificate")
+                }
+                override fun checkClientTrusted(chain: Array<out X509Certificate>?, authType: String?) = throw CertificateException("not a server")
+                override fun getAcceptedIssuers(): Array<X509Certificate> = emptyArray()
+            }
+            val ssl = SSLContext.getInstance("TLS").apply { init(null, arrayOf<TrustManager>(tm), null) }
+            val c = OkHttpClient.Builder().connectTimeout(8, TimeUnit.SECONDS).callTimeout(15, TimeUnit.SECONDS)
+                .sslSocketFactory(ssl.socketFactory, tm).hostnameVerifier { _, _ -> true }.build()
+            c.newCall(Request.Builder().url(url.trimEnd('/') + "/api/v1/info").build()).execute().close()
+            seen.ifEmpty { throw IOException("no certificate from $url") }
         }
 
         fun sha256(der: ByteArray): String =

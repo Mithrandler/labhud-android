@@ -17,8 +17,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Bolt
-import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Dashboard
+import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Timeline
@@ -30,7 +30,6 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.currentBackStackEntryAsState
-import io.github.mithrandler.labhud.ui.ActionsScreen
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -53,12 +52,15 @@ import androidx.navigation.compose.rememberNavController
 import io.github.mithrandler.labhud.lock.AppLock
 import io.github.mithrandler.labhud.ui.AddServerScreen
 import io.github.mithrandler.labhud.ui.CardScreen
-import io.github.mithrandler.labhud.ui.HomeScreen
+import io.github.mithrandler.labhud.ui.ActivityScreen
+import io.github.mithrandler.labhud.ui.DevicesScreen
+import io.github.mithrandler.labhud.ui.GameScreen
+import io.github.mithrandler.labhud.ui.ManageScreen
+import io.github.mithrandler.labhud.ui.SettingsScreen
+import io.github.mithrandler.labhud.ui.StatusScreen
 import io.github.mithrandler.labhud.ui.HostHistoryScreen
 import io.github.mithrandler.labhud.ui.Lab
 import io.github.mithrandler.labhud.ui.LabTheme
-import io.github.mithrandler.labhud.ui.ServersScreen
-import io.github.mithrandler.labhud.ui.TodayScreen
 import io.github.mithrandler.labhud.wall.WallActivity
 import kotlinx.coroutines.flow.MutableStateFlow
 
@@ -145,35 +147,49 @@ class MainActivity : FragmentActivity() {
         ) { pad ->
             NavHost(nav, startDestination = "home", modifier = Modifier.background(Lab.bg).padding(pad).consumeWindowInsets(pad)) {
                 composable("home") {
-                    HomeScreen(
+                    StatusScreen(
                         repo,
                         onCard = { nav.navigate("card/$it") },
-                        onHost = { nav.navigate("host/$it") },
-                        onToday = { nav.tab("today") },
-                        onServers = { nav.tab("servers") },
+                        onGame = { nav.navigate("game/$it") },
+                        onServers = { nav.tab(SETTINGS) },
                         onWall = { startActivity(Intent(this@MainActivity, WallActivity::class.java)) },
                         onLock = if (AppLock.on) ({ AppLock.lockNow() }) else null,
                     )
                 }
-                composable("card/{id}") { CardScreen(repo, it.arguments?.getString("id").orEmpty(), onBack = { nav.popBackStack() }) }
+                composable("card/{id}") {
+                    CardScreen(repo, it.arguments?.getString("id").orEmpty(), onBack = { nav.popBackStack() },
+                        onHistory = { id -> nav.navigate("host/$id") }, onSignIn = { nav.navigate("signin") })
+                }
+                composable("game/{id}") {
+                    GameScreen(repo, it.arguments?.getString("id").orEmpty(), onBack = { nav.popBackStack() }, onSignIn = { nav.navigate("signin") })
+                }
                 composable("host/{id}") {
                     HostHistoryScreen(repo, it.arguments?.getString("id").orEmpty(), onBack = { nav.popBackStack() },
                         onCard = { id -> nav.navigate("card/$id") })
                 }
-                composable("today") { TodayScreen(repo, onCard = { id -> nav.navigate("card/$id") }) }
-                composable("actions") { ActionsScreen(repo, onCard = { id -> nav.navigate("card/$id") }) }
-                composable("servers") {
-                    ServersScreen(
-                        repo, onAdd = { pairLink = null; nav.navigate("add") },
-                        onWall = { startActivity(Intent(this@MainActivity, WallActivity::class.java)) },
-                        onHomeApp = ::setHomeApp,
-                    )
-                }
+                composable("devices") { DevicesScreen(repo, onCard = { id -> nav.navigate("card/$id") }) }
+                composable("activity") { ActivityScreen(repo, onCard = { id -> nav.navigate("card/$id") }) }
+                composable(SETTINGS) { Settings(nav, signIn = false) }
+                // Settings opened over a card or a game by "Sign in" from a button: Back returns there
+                composable("signin") { Settings(nav, signIn = true) }
+                composable("manage") { ManageScreen(repo, onBack = { nav.popBackStack() }, onSignIn = { nav.navigate("signin") }) }
                 composable("add") {
                     AddServerScreen(repo, pairLink, onBack = { nav.popBackStack() }, onDone = { pairLink = null; nav.back(to = "home") })
                 }
             }
         }
+    }
+
+    @Composable
+    private fun Settings(nav: NavHostController, signIn: Boolean) {
+        val repo = (application as LabHudApp).repo
+        SettingsScreen(
+            repo, onAdd = { nav.navigate("add") },
+            onWall = { startActivity(Intent(this@MainActivity, WallActivity::class.java)) },
+            onHomeApp = ::setHomeApp,
+            onManage = { nav.navigate("manage") },
+            signInFirst = signIn,
+        )
     }
 
     /** Turns the wall's home screen entry on or off; Android then asks which home app to use. */
@@ -190,11 +206,13 @@ class MainActivity : FragmentActivity() {
 /** The four places of the bottom bar; a card or "add a server" opens over them, without the bar. */
 private class Tab(val route: String, val label: String, val icon: ImageVector)
 
+private const val SETTINGS = "settings"
+
 private val TABS = listOf(
-    Tab("home", "Home", Icons.Default.Home),
-    Tab("today", "Today", Icons.Default.Timeline),
-    Tab("actions", "Actions", Icons.Default.Bolt),
-    Tab("servers", "Settings", Icons.Default.Settings),
+    Tab("home", "Status", Icons.Default.Dashboard),
+    Tab("devices", "Devices", Icons.Default.Dns),
+    Tab("activity", "Activity", Icons.Default.Timeline),
+    Tab(SETTINGS, "Settings", Icons.Default.Settings),
 )
 
 /** Switches tab the usual way: one copy of each, Back from any tab goes Home, each keeps its scroll. */

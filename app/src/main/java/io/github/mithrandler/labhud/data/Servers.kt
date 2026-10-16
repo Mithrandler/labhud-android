@@ -37,7 +37,14 @@ enum class LockMode { None, ScreenLock, Fingerprint }
 data class AppSettings(
     val lockMode: LockMode = LockMode.None,
     val wallOnBoot: Boolean = false,
+    val notify: NotifyMode = NotifyMode.Off,
 )
+
+/**
+ * How this phone hears news: Instant (UnifiedPush: labhud wakes the app, the app reads the news
+ * itself), Ntfy (the ntfy app shows labhud's own messages; nothing here), or Off.
+ */
+enum class NotifyMode { Instant, Ntfy, Off }
 
 private val Context.store by preferencesDataStore("labhud")
 
@@ -50,6 +57,10 @@ class ServerStore(private val context: Context) {
     private val lockKey = stringPreferencesKey("lock_mode")
     private val wallBootKey = booleanPreferencesKey("wall_on_boot")
     private fun tokenKey(id: String) = stringPreferencesKey("token_$id")
+    private fun pinKey(id: String) = stringPreferencesKey("pin_$id")
+    private fun lastNoteKey(id: String) = androidx.datastore.preferences.core.longPreferencesKey("last_note_$id")
+    private val notifyKey = stringPreferencesKey("notify_mode")
+    private val pushKey = stringPreferencesKey("push_endpoint")
 
     private fun decode(p: Preferences): List<Server> =
         p[serversKey]?.let { runCatching { LabJson.decodeFromString<List<Server>>(it) }.getOrNull() } ?: emptyList()
@@ -64,7 +75,8 @@ class ServerStore(private val context: Context) {
     val settings: Flow<AppSettings> = context.store.data.map { p ->
         val mode = p[lockKey]?.let { runCatching { LockMode.valueOf(it) }.getOrNull() }
             ?: if (p[unlockKey] == true) LockMode.ScreenLock else LockMode.None
-        AppSettings(lockMode = mode, wallOnBoot = p[wallBootKey] ?: false)
+        AppSettings(lockMode = mode, wallOnBoot = p[wallBootKey] ?: false,
+            notify = p[notifyKey]?.let { runCatching { NotifyMode.valueOf(it) }.getOrNull() } ?: NotifyMode.Off)
     }
 
     suspend fun currentNow(): Server? = current.first()
@@ -82,6 +94,8 @@ class ServerStore(private val context: Context) {
         context.store.edit { p ->
             p[serversKey] = LabJson.encodeToString(decode(p).filter { it.id != id })
             p.remove(tokenKey(id))
+            p.remove(pinKey(id))
+            p.remove(lastNoteKey(id))
             if (p[currentKey] == id) p.remove(currentKey)
         }
     }
@@ -98,6 +112,19 @@ class ServerStore(private val context: Context) {
 
     suspend fun token(id: String): String? =
         context.store.data.first()[tokenKey(id)]?.let { runCatching { TokenCrypto.open(it) }.getOrNull() }
+
+    /** The display's PIN sealed behind a fingerprint (lock/PinVault), or null. */
+    suspend fun sealedPin(id: String): String? = context.store.data.first()[pinKey(id)]
+    suspend fun setSealedPin(id: String, sealed: String?) = context.store.edit { if (sealed == null) it.remove(pinKey(id)) else it[pinKey(id)] = sealed }
+
+    /** The id of the newest notification already shown for a server (the outbox's ids rise). */
+    suspend fun lastNote(id: String): Long? = context.store.data.first()[lastNoteKey(id)]
+    suspend fun setLastNote(id: String, last: Long) = context.store.edit { it[lastNoteKey(id)] = last }
+
+    suspend fun setNotify(mode: NotifyMode) = context.store.edit { it[notifyKey] = mode.name }
+    /** The UnifiedPush endpoint this phone has now (one for every server: each gets it). */
+    suspend fun pushEndpoint(): String? = context.store.data.first()[pushKey]
+    suspend fun setPushEndpoint(url: String?) = context.store.edit { if (url == null) it.remove(pushKey) else it[pushKey] = url }
 
     suspend fun setLockMode(mode: LockMode) = context.store.edit { it[lockKey] = mode.name }
     suspend fun setWallOnBoot(on: Boolean) = context.store.edit { it[wallBootKey] = on }

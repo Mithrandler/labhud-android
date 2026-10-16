@@ -2,6 +2,9 @@ package io.github.mithrandler.labhud
 
 import io.github.mithrandler.labhud.data.Card
 import io.github.mithrandler.labhud.data.Events
+import io.github.mithrandler.labhud.data.GameServer
+import io.github.mithrandler.labhud.data.Notes
+import io.github.mithrandler.labhud.ui.duration
 import io.github.mithrandler.labhud.data.History
 import io.github.mithrandler.labhud.data.Info
 import io.github.mithrandler.labhud.data.LabJson
@@ -54,5 +57,47 @@ class ModelsTest {
         assertEquals("", c.rows[0].value)
         assertTrue(c.rows[1].bad && c.rows[1].quiet)
         assertFalse(c.rows[0].bad)
+    }
+
+    /** labhud 0.3: what machine each card is, the games page's servers, the agent's charts. */
+    @Test fun state03() {
+        val st = LabJson.decodeFromString<LabState>(read("state.json"))
+        assertEquals("proxmox", st.byId.getValue("host-pve").type)
+        assertTrue(st.cards.any { it.type == "docker" })
+        assertTrue(st.cards.any { it.type.isEmpty() })
+        val games = st.pages.first { it.games }
+        assertTrue(games.servers.isNotEmpty())
+        assertTrue(st.byId.getValue("vm-pve-100").charts.isNotEmpty())
+    }
+
+    @Test fun containers() {
+        val c = LabJson.decodeFromString<Card>(read("card-vm-pve-100.json"))
+        assertEquals("docker", c.agent)
+        val jf = c.containers.first { it.name == "jellyfin" }
+        assertTrue(jf.update)
+        assertTrue(jf.actions.any { it.name.endsWith("-update") })
+        assertTrue(c.containers.first { it.name == "portainer" }.actions.isEmpty())
+    }
+
+    @Test fun game() {
+        val g = LabJson.decodeFromString<GameServer>(read("game-a1f3.json"))
+        assertEquals(listOf("alex", "sam", "kim"), g.who)
+        assertEquals(20, g.max)
+        assertEquals(null, g.map)
+    }
+
+    @Test fun rights() {
+        val i = LabJson.decodeFromString<Info>("""{"api":1,"device_admin":true,"pin":true,"unlocked":false}""")
+        assertTrue(i.deviceAdmin && i.pin)
+        assertFalse(i.unlocked)
+        val n = LabJson.decodeFromString<Notes>("""{"via":"app","quiet":[23,7],"notifications":[{"id":5,"time":9,"title":"t","text":"x","bad":true,"card":null}]}""")
+        assertEquals("app", n.via)
+        assertEquals(5L, n.notifications.single().id)
+    }
+
+    @Test fun durations() {
+        assertEquals("1 h 2 min", duration(3725))
+        assertEquals("2 d 7 h", duration(200000))
+        assertEquals("0 min", duration(5))
     }
 }

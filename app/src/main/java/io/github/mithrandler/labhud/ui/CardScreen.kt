@@ -3,6 +3,12 @@ package io.github.mithrandler.labhud.ui
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -63,10 +69,14 @@ private val RANGES = listOf("6h" to 6 * 3600, "24h" to 86400, "7d" to 7 * 86400)
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit) {
+fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (String) -> Unit, onSignIn: () -> Unit) {
     val state by repo.state.collectAsState()
     val live = state?.byId?.get(id)
     var sections by remember { mutableStateOf<List<Section>>(emptyList()) }
+    var full by remember { mutableStateOf<Card?>(null) }
+    var logs by remember { mutableStateOf<Pair<String, String>?>(null) }
+    val rights by repo.rights.collectAsState()
+    val gate = rememberGate(repo)
     var history by remember { mutableStateOf<History?>(null) }
     var long by remember { mutableStateOf<History?>(null) }
     var range by remember { mutableStateOf(0) }
@@ -81,8 +91,8 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit) {
         while (true) {
             val api = repo.api()
             if (api != null) {
-                runCatching { api.card(id) }.onSuccess { sections = it.sections }
-                if (live?.metrics?.any { it.trend } == true) runCatching { api.history(false) }.onSuccess { history = it }
+                runCatching { api.card(id) }.onSuccess { sections = it.sections; full = it }
+                if (live?.metrics?.any { it.trend } == true || live?.charts?.isNotEmpty() == true) runCatching { api.history(false) }.onSuccess { history = it }
             }
             delay(30_000)
         }
@@ -114,11 +124,21 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             item { StatusHeader(c) }
-            if (c.actions.isNotEmpty() || c.maintenanceButton || c.url.isNotEmpty() || c.links.isNotEmpty()) item {
+            if ((c.actions.isNotEmpty() || c.maintenanceButton) && !rights.admin) item {
+                Surface(onClick = onSignIn, shape = CardShape, color = Lab.block, border = BorderStroke(1.dp, Lab.line)) {
+                    Text("This phone only looks. Sign in as the admin for the buttons.", fontSize = 13.sp, color = Lab.sub,
+                        modifier = Modifier.fillMaxWidth().padding(12.dp))
+                }
+            }
+            val buttons = rights.admin && (c.actions.isNotEmpty() || c.maintenanceButton)
+            if (c.resources().isNotEmpty()) item {
+                OutlinedButton(onClick = { onHistory(c.id) }) { Text("Resources over time") }
+            }
+            if (buttons || c.url.isNotEmpty() || c.links.isNotEmpty()) item {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    c.actions.forEach { a -> ActionButton(a) { ask = a } }
-                    if (c.maintenanceButton) {
-                        OutlinedButton(onClick = { askMaint = true }) { Text(if (c.maintenanceUntil != null) "Maintenance ✓" else "Maintenance") }
+                    if (rights.admin) c.actions.forEach { a -> ActionButton(a) { gate.press { ask = a } } }
+                    if (rights.admin && c.maintenanceButton) {
+                        OutlinedButton(onClick = { gate.press { askMaint = true } }) { Text(if (c.maintenanceUntil != null) "Maintenance ✓" else "Maintenance") }
                     }
                     (listOfNotNull(c.url.takeIf { it.isNotEmpty() }?.let { "Web UI" to it }) + c.links.map { it.label to it.url }).forEach { (label, url) ->
                         OutlinedButton(onClick = { runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) } }) {
@@ -139,7 +159,27 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit) {
                     }
                 }
             }
-            val trends = c.metrics.filter { it.trend }
+            val labels = c.metrics.filter { it.trend }.map { it.label }.toSet()
+            val trends = c.metrics.filter { it.trend } + c.charts.filter { it.label !in labels }.map {
+                io.github.mithrandler.labhud.data.Metric(key = it.key, label = it.label, value = "", trend = true, format = it.format)
+            }
+            val boxes = full?.containers.orEmpty()
+            if (boxes.isNotEmpty()) item {
+                Panel("Containers") {
+                    boxes.forEach { b ->
+                        ContainerRow(b, admin = rights.admin,
+                            onAction = { a -> gate.press { ask = a } },
+                            onLogs = {
+                                gate.press {
+                                    scope.launch {
+                                        val r = runCatching { repo.api()?.logs(full?.agent.orEmpty(), b.name) }.getOrNull()
+                                        logs = b.name to (if (r?.ok == true) r.output.ifBlank { "(nothing)" } else "✕ " + (r?.error?.ifBlank { null } ?: "refused"))
+                                    }
+                                }
+                            })
+                    }
+                }
+            }
             if (trends.isNotEmpty()) item {
                 Panel("History") {
                     SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
@@ -152,7 +192,7 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit) {
                     trends.forEach { m ->
                         val series = h?.series?.get(m.key).orEmpty()
                         val keep = if (h == null || h.step == 0) series.size else (RANGES[range].second / h.step).coerceAtMost(series.size)
-                        Text("${m.label}  ${m.value}", fontSize = 13.sp, color = Lab.sub, modifier = Modifier.padding(top = 6.dp))
+                        Text(if (m.value.isEmpty()) m.label else "${m.label}  ${m.value}", fontSize = 13.sp, color = Lab.sub, modifier = Modifier.padding(top = 6.dp))
                         if (series.size >= 2) LineChart(series.takeLast(keep), color = Lab.accent)
                         else Text("No history yet", fontSize = 12.sp, color = Lab.muted)
                     }
@@ -168,6 +208,18 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit) {
     }
 
     ask?.let { a -> ActionDialog(a, onSend = { name, label -> send(name, label) }, onDismiss = { ask = null }) }
+    GateDialogs(gate, onSignIn)
+    logs?.let { (name, text) ->
+        AlertDialog(
+            onDismissRequest = { logs = null },
+            title = { Text(name) },
+            text = {
+                Text(text, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace, fontSize = 11.sp, lineHeight = 14.sp,
+                    modifier = Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState()))
+            },
+            confirmButton = { TextButton(onClick = { logs = null }) { Text("Close") } },
+        )
+    }
     if (askMaint) {
         val options = listOf("30 minutes" to 30, "1 hour" to 60, "2 hours" to 120, "1 day" to 1440) +
             if (live?.maintenanceUntil != null) listOf("End now" to 0) else emptyList()
@@ -190,6 +242,29 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit) {
             },
             dismissButton = { TextButton(onClick = { askMaint = false }) { Text("Cancel") } },
         )
+    }
+}
+
+/** A container: its dot, name and state, "update available", its buttons and (admin) LOGS. */
+@Composable
+private fun ContainerRow(b: io.github.mithrandler.labhud.data.Container, admin: Boolean, onAction: (Action) -> Unit, onLogs: () -> Unit) {
+    Column(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            androidx.compose.foundation.layout.Box(Modifier.size(8.dp).clip(androidx.compose.foundation.shape.CircleShape)
+                .background(if (b.up) Lab.green else Lab.red))
+            Spacer(Modifier.width(10.dp))
+            Text(b.name, fontSize = 14.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
+            Text(when { b.updating -> "updating…"; b.update -> "update available"; else -> b.status }, fontSize = 12.sp,
+                color = if (b.update || b.updating) Lab.accent else if (b.up) Lab.muted else Lab.red, maxLines = 1)
+        }
+        if (admin) Row(Modifier.padding(start = 14.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+            b.actions.forEach { a ->
+                TextButton(onClick = { onAction(a) }, enabled = !b.updating) {
+                    Text(niceLabel(a), fontSize = 12.sp, color = if (a.danger) Lab.red else Lab.accent)
+                }
+            }
+            TextButton(onClick = onLogs) { Text("Logs", fontSize = 12.sp) }
+        }
     }
 }
 

@@ -6,6 +6,41 @@ All notable changes to LabHUD for Android. The format follows
 
 ## [Unreleased]
 
+## [0.3.0] - unreleased
+
+Needs labhud 0.3.0: the same version for the server, the agent and the app.
+
+### Added
+- **A new bottom bar: Status, Devices, Activity, Settings.**
+  - **Status**: the wall's pages as chips, each group as a grid of small cards (two to a row on a
+    phone, more on a tablet) with the dot, the name, two numbers and 24 hours of uptime.
+  - **The bell** in the top bar: labhud's alerts (the rules that fired, since when) and the red cards.
+  - **Games** as a page of its own: a tile per game server, then its players, address, RAM,
+    uptime and the start / stop / restart buttons.
+  - **Devices**: every machine (Proxmox, NAS, Docker hosts, VMs, PCs), with All / Running /
+    Stopped / Problems.
+  - **Activity**: the timeline and the notifications labhud sent.
+- **Signing in as the admin** in Settings > Account. A paired phone only looks until then. The
+  buttons are on the card's screen only, and only for the admin; with the wall's PIN they ask for
+  it once (the buttons stay open for 2 minutes), and **a fingerprint can stand in for the PIN**:
+  the PIN is then kept behind a key in the Android Keystore that only the fingerprint opens.
+- **Containers** on a Docker host's card: their state, update available, Update, Restart, Stop,
+  Start, and the last lines of the log (the admin).
+- **The host's own charts** from its agent (CPU, RAM, disk, temperatures, network).
+- **Server management** for the admin: the paired phones (Remove), the agents, and where labhud
+  sends its news (ntfy, the app, both) with a test to ntfy.
+- **Instant notifications** without Google in the app (Settings > Notifications): through
+  UnifiedPush, with the ntfy app as the distributor (its Play version rides on Google's push).
+  labhud only knocks, with no news in the knock; the app then reads the news itself, at home or
+  on the VPN, and shows it. Or **ntfy only**, as before, or **off**.
+- Signing in without a QR code works over HTTPS (labhud's default since 0.3): the certificate
+  seen the first time is the only one accepted from then on. An address typed without
+  http:// or https:// tries HTTPS first.
+
+### Removed
+- **Overview** and **Actions**: what they showed is now in Status, the bell, Devices and each
+  card's screen ("Resources over time" opens a host's history).
+
 ## [0.1.2] - 2026-10-15
 
 ### Added

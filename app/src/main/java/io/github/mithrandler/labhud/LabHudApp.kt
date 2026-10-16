@@ -14,6 +14,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
+import io.github.mithrandler.labhud.data.NotifyMode
+import io.github.mithrandler.labhud.push.Push
 import kotlinx.coroutines.launch
 
 /**
@@ -43,6 +46,8 @@ class LabHudApp : Application() {
             override fun onStart(owner: LifecycleOwner) {
                 AppLock.onShown()
                 foreground.value = true
+                // news missed while no wake-up could come (no network, the distributor asleep)
+                scope.launch { if (store.settings.first().notify == NotifyMode.Instant) Push.fetch(this@LabHudApp) }
             }
 
             override fun onStop(owner: LifecycleOwner) {
@@ -51,6 +56,16 @@ class LabHudApp : Application() {
             }
         })
         scope.launch { store.settings.collect { AppLock.mode = it.lockMode } }
+        Push.channels(this)
+        // a server paired after Instant was chosen gets this phone's push endpoint too
+        scope.launch {
+            var known: Set<String>? = null
+            store.servers.collect { list ->
+                val ids = list.map { it.id }.toSet()
+                known?.let { old -> list.filter { it.id !in old }.forEach { Push.shareWith(this@LabHudApp, it) } }
+                known = ids
+            }
+        }
         scope.launch {
             combine(foreground, AppLock.unlocked) { fg, open -> fg && open }.collect { run ->
                 if (run) repo.run() else repo.stop()

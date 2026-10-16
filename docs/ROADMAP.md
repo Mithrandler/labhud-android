@@ -15,11 +15,15 @@ The lock as a choice (none, screen lock, fingerprint), Overview with resources, 
 events, a host's history with a finger on the chart, swiping between pages, Actions with icons and
 each press followed until done.
 
+## 0.3.0
+
+The same version as labhud and its agent: Status / Devices / Activity / Settings, the bell, Games
+natively, the admin's sign-in with the wall's PIN or a fingerprint, containers with Update and
+logs, the agent's charts, Server management, instant notifications through UnifiedPush.
+
 ## Next
 
 - Tested on real phones and tablets (a Pixel 6a as the wall first), then what that shows.
-- Game servers' page natively (it is in wall mode today).
-- Agents (labhud's own, one per host): their buttons and state in the app, once the server has them.
 - A Quick Settings tile; widget buttons for chosen actions.
 - IzzyOnDroid, then F-Droid (no Google libraries already, so nothing stands in the way).
 - Translations, when someone offers one.

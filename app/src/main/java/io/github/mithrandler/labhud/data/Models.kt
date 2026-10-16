@@ -18,6 +18,23 @@ data class Info(
     val trends: List<String> = emptyList(),
     /** labhud 0.2.15+: GET /api/v1/uptime answers. */
     val uptime: Boolean = false,
+    /** labhud 0.3: this phone is signed in as the admin; the display has a PIN; a live unlock ticket. */
+    @SerialName("device_admin") val deviceAdmin: Boolean = false,
+    val pin: Boolean = false,
+    val unlocked: Boolean = false,
+)
+
+/** Answer of /api/v1/admin-login, admin-logout and unlock. */
+@Serializable
+data class AdminAnswer(
+    val ok: Boolean = false,
+    val error: String = "",
+    @SerialName("device_admin") val deviceAdmin: Boolean = false,
+    val pin: Boolean = false,
+    val unlocked: Boolean = false,
+    val ticket: String? = null,
+    val idle: Int = 120,
+    val wait: Double = 0.0,
 )
 
 /** Response from POST /api/v1/pair. */
@@ -45,6 +62,49 @@ data class Page(
     val title: String = "",
     val groups: List<Group> = emptyList(),
     val games: Boolean = false,
+    /** A games page: its game servers, as the wall's tiles show them. */
+    val servers: List<GameServer> = emptyList(),
+)
+
+/** A game server on a games page (labhud 0.3), or from /api/v1/game/<id> with [who]. */
+@Serializable
+data class GameServer(
+    val id: String = "",
+    val name: String = "",
+    val game: String = "",
+    val state: String = "",
+    val running: Boolean = false,
+    val title: String = "",
+    val line: String = "",
+    val players: Int? = null,
+    val max: Int? = null,
+    val address: String = "",
+    @SerialName("ram_mb") val ramMb: Long = 0,
+    @SerialName("ram_max_mb") val ramMaxMb: Long? = null,
+    val uptime: Long = 0,
+    val map: String? = null,
+    val version: String? = null,
+    val actions: List<Action> = emptyList(),
+    val who: List<String> = emptyList(),
+)
+
+/** One of a host's agent charts (labhud 0.3): a key with history, its label and format. */
+@Serializable
+data class ChartRef(
+    val key: String = "",
+    val label: String = "",
+    val format: String = "",
+)
+
+/** A container on a card whose own agent has Docker (labhud 0.3, /api/v1/card only). */
+@Serializable
+data class Container(
+    val name: String = "",
+    val up: Boolean = false,
+    val status: String = "",
+    val update: Boolean = false,
+    val updating: Boolean = false,
+    val actions: List<Action> = emptyList(),
 )
 
 /** A single metric on a card. */
@@ -132,6 +192,11 @@ data class Card(
     @SerialName("maintenance_button") val maintenanceButton: Boolean = false,
     @SerialName("rows") val rawRows: List<JsonArray> = emptyList(),
     val sections: List<Section> = emptyList(),
+    /** labhud 0.3: proxmox, nas, docker, vm, pc, or "" for a card that is not a machine. */
+    val type: String = "",
+    val charts: List<ChartRef> = emptyList(),
+    val containers: List<Container> = emptyList(),
+    val agent: String = "",
 ) {
     val rows: List<Row> get() = rawRows.map { it.toRow() }
 }
@@ -141,6 +206,9 @@ data class Card(
 data class Alert(
     val id: String = "",
     val text: String = "",
+    /** From an [[alert]] rule: the card it is about and since when (Unix time). */
+    val card: String? = null,
+    val since: Long? = null,
 )
 
 /** The full lab state document. */
@@ -152,6 +220,9 @@ data class LabState(
     val cards: List<Card> = emptyList(),
     val problems: List<String> = emptyList(),
     val alerts: List<Alert> = emptyList(),
+    /** Only in GET /api/v1/state, not in the stream: see [Info]. */
+    @SerialName("device_admin") val deviceAdmin: Boolean? = null,
+    val pin: Boolean? = null,
 ) {
     val byId: Map<String, Card> get() = cards.associateBy { it.id }
 }
@@ -189,6 +260,71 @@ data class Uptime(
     val cards: Map<String, List<Double?>> = emptyMap(),
     val percent: Map<String, Double> = emptyMap(),
 )
+
+/** One message of /api/v1/notifications: what labhud sent, or would send, as a notification. */
+@Serializable
+data class Note(
+    val id: Long = 0,
+    val time: Long = 0,
+    val title: String = "",
+    val text: String = "",
+    val bad: Boolean = false,
+    val card: String? = null,
+)
+
+@Serializable
+data class Notes(
+    val via: String = "both",
+    val notifications: List<Note> = emptyList(),
+)
+
+/** A paired phone, from /api/v1/devices. */
+@Serializable
+data class Phone(
+    val name: String = "",
+    val paired: Long = 0,
+    val seen: Long = 0,
+    val admin: Boolean = false,
+    val push: Boolean = false,
+)
+
+@Serializable
+data class Phones(val devices: List<Phone> = emptyList(), val pairing: Boolean = false)
+
+/** An agent, from /api/agents/list (admin). */
+@Serializable
+data class AgentRow(
+    val id: String = "",
+    val name: String = "",
+    val online: Boolean = false,
+    val version: String = "",
+    @SerialName("addr") val address: String = "",
+    val found: List<String> = emptyList(),
+    val caps: List<String> = emptyList(),
+)
+
+@Serializable
+data class Agents(val agents: List<AgentRow> = emptyList())
+
+/** /api/setup/alerts (admin): the rules as labhud keeps them (sent back as they are), and where news goes. */
+@Serializable
+data class AlertSetup(
+    val rules: List<JsonObject> = emptyList(),
+    val notify: NotifyChoice = NotifyChoice(),
+    val ntfy: NtfyState = NtfyState(),
+    val managed: Boolean = false,
+)
+
+@Serializable
+data class NotifyChoice(val via: String = "both", val quiet: List<Int>? = null)
+
+@Serializable
+data class NtfyState(val set: Boolean = false, val host: String? = null, val sent: Int = 0,
+                     @SerialName("last_error") val lastError: String? = null)
+
+/** POST /api/setup/logs: a container's last lines. */
+@Serializable
+data class LogsAnswer(val ok: Boolean = false, val output: String = "", val error: String = "")
 
 /** A generic action endpoint answer. */
 @Serializable

@@ -31,10 +31,20 @@ object Pairing {
     suspend fun pair(link: PairLink, deviceName: String, store: ServerStore): Server =
         keep(LabApi(link.url, null, link.fingerprint).pair(link.code, deviceName), link.url, link.fingerprint, store)
 
-    /** Pairs by signing in as the admin: the address as typed ("10.0.0.5:8095" gets http://). */
+    /**
+     * Pairs by signing in as the admin: the address as typed. Without http:// or https://, HTTPS is
+     * tried first (labhud's default since 0.3), then HTTP. Over HTTPS the certificate seen now is
+     * the one pinned from then on, as a QR code's fingerprint would be.
+     */
     suspend fun signIn(address: String, user: String, password: String, code: String, deviceName: String, store: ServerStore): Server {
-        val url = address(address) ?: throw ApiException("Type the address as on the wall, like http://192.168.1.20:8095.")
-        return keep(LabApi(url, null).loginPair(user, password, code, deviceName), url, "", store)
+        val typed = address(address) ?: throw ApiException("Type the address as on the wall, like https://192.168.1.20:8095.")
+        val tries = if ("://" in address) listOf(typed) else listOf(typed.replaceFirst("http://", "https://"), typed)
+        var last: Exception? = null
+        for (url in tries) {
+            val fp = if (url.startsWith("https://")) runCatching { LabApi.firstFingerprint(url) }.getOrElse { last = it as? Exception; continue } else ""
+            return keep(LabApi(url, null, fp).loginPair(user, password, code, deviceName), url, fp, store)
+        }
+        throw last ?: ApiException("Cannot reach $typed.")
     }
 
     /** "host:port" or a full http(s) address, without the trailing slash; null when it is not one. */

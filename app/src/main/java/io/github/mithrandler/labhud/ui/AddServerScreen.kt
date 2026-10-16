@@ -193,7 +193,7 @@ fun AddServerScreen(repo: LabRepository, initialLink: String?, onBack: (() -> Un
                 Text("The account made with init.py admin: its password and the code from your authenticator app.",
                     color = Lab.muted, fontSize = 13.sp)
                 OutlinedTextField(address, { address = it.trim() }, modifier = Modifier.fillMaxWidth(), singleLine = true,
-                    label = { Text("Address") }, placeholder = { Text("http://192.168.1.20:8095") },
+                    label = { Text("Address") }, placeholder = { Text("192.168.1.20:8095") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Next))
                 OutlinedTextField(user, { user = it.trim() }, modifier = Modifier.fillMaxWidth(), singleLine = true,
                     label = { Text("User") }, keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next))
