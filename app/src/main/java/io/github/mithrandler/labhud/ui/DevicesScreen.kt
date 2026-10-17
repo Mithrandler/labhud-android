@@ -59,6 +59,8 @@ private fun Card.matches(f: Filter): Boolean = when (f) {
 @Composable
 fun DevicesScreen(repo: LabRepository, onCard: (String) -> Unit) {
     val state by repo.state.collectAsState()
+    val conn by repo.conn.collectAsState()
+    val liveAt by repo.liveAt.collectAsState()
     var filter by rememberSaveable { mutableStateOf(Filter.All) }
 
     val devices = state?.cards.orEmpty().filter { it.type.isNotEmpty() }.distinctBy { it.id }
@@ -74,6 +76,7 @@ fun DevicesScreen(repo: LabRepository, onCard: (String) -> Unit) {
         },
     ) { pad ->
         Column(Modifier.padding(pad).fillMaxSize()) {
+            ConnBanner(conn, liveAt, onRetry = { repo.retry() })
             Row(
                 Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 4.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),

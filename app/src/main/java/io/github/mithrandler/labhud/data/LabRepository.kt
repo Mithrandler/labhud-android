@@ -22,7 +22,11 @@ sealed interface Conn {
     data object Idle : Conn
     data object Connecting : Conn
     data object Live : Conn
-    data class Offline(val message: String, val fatal: Boolean = false) : Conn
+    /**
+     * Not live. [message] says why, in words; [fatal]: retrying will not help (unpaired, too old).
+     * [retryAt] (elapsedRealtime) is when the next try starts, [trying] while one runs.
+     */
+    data class Offline(val message: String, val fatal: Boolean = false, val retryAt: Long = 0, val trying: Boolean = false) : Conn
 }
 
 /** What this phone may do on the shown server: signed in as its admin, and whether it has a PIN. */
@@ -41,6 +45,9 @@ class LabRepository(private val context: Context, val store: ServerStore) {
     val state: StateFlow<LabState?> = _state.asStateFlow()
     val conn: StateFlow<Conn> = _conn.asStateFlow()
     val server: StateFlow<Server?> = _server.asStateFlow()
+    private val _liveAt = MutableStateFlow(0L)
+    /** When the stream last delivered (wall-clock ms), for "last data at…" while offline. */
+    val liveAt: StateFlow<Long> = _liveAt.asStateFlow()
     private val _info = MutableStateFlow<Info?>(null)
     /** What the current server said about itself when the stream (re)started. */
     val info: StateFlow<Info?> = _info.asStateFlow()
@@ -85,17 +92,19 @@ class LabRepository(private val context: Context, val store: ServerStore) {
             val api = api(s) ?: run { _conn.value = Conn.Offline("This phone has no token for ${s.name}: pair it again.", true); return@launch }
             var wait = 2_000L
             while (true) {
-                _conn.value = Conn.Connecting
+                // after a failure the reason stays on screen while the next try runs
+                _conn.value = (_conn.value as? Conn.Offline)?.takeIf { !it.fatal }?.copy(trying = true, retryAt = 0) ?: Conn.Connecting
                 try {
                     api.info().also { _info.value = it; _rights.value = Rights(it.deviceAdmin, it.pin) }
                     api.stream().collect { st ->
                         _conn.value = Conn.Live
+                        _liveAt.value = System.currentTimeMillis()
                         wait = 2_000L
                         _state.value = st
                         keep(s.id, st)
                         onNewState?.invoke(s, st)
                     }
-                    _conn.value = Conn.Offline("The connection ended.")
+                    _conn.value = Conn.Offline("The connection to ${s.name} ended.")
                 } catch (e: TooOldException) {
                     _conn.value = Conn.Offline(e.message ?: "", true)
                     return@launch
@@ -106,6 +115,7 @@ class LabRepository(private val context: Context, val store: ServerStore) {
                 } catch (e: IOException) {
                     _conn.value = Conn.Offline(reach(s, e))
                 }
+                (_conn.value as? Conn.Offline)?.let { _conn.value = it.copy(retryAt = android.os.SystemClock.elapsedRealtime() + wait, trying = false) }
                 delay(wait)
                 wait = (wait * 2).coerceAtMost(30_000L)
             }
@@ -182,12 +192,27 @@ class LabRepository(private val context: Context, val store: ServerStore) {
 
     suspend fun servers(): List<Server> = store.servers.first()
 
-    private fun reach(s: Server, e: IOException): String {
-        val why = e.message.orEmpty()
-        return when {
-            "CLEARTEXT" in why -> "Android refused plain HTTP to ${s.url}."
-            "certificate" in why.lowercase() -> "${s.url} presented a different certificate than when it was paired."
-            else -> "Cannot reach ${s.url}. Are you on your home network or VPN?"
+    private fun reach(s: Server, e: IOException): String = Companion.reach(s.url, e)
+
+    companion object {
+        /** Why [url] could not be reached, in words a person can act on, from the exception's chain. */
+        fun reach(url: String, e: Throwable): String {
+            val chain = generateSequence(e) { it.cause }.take(6).toList()
+            val why = chain.joinToString(" ") { it.message.orEmpty() }
+            fun has(k: Class<*>) = chain.any { k.isInstance(it) }
+            return when {
+                "CLEARTEXT" in why -> "Android refused plain HTTP to $url."
+                "certificate" in why.lowercase() || has(javax.net.ssl.SSLPeerUnverifiedException::class.java) ->
+                    "$url presented a different certificate than when it was paired. If LabHUD got a new one, pair again."
+                has(java.net.UnknownHostException::class.java) -> "The name in $url is not known here: no network, or a name only your home DNS knows."
+                has(java.net.NoRouteToHostException::class.java) -> "No route to $url: this phone is not on your home network or VPN."
+                has(java.net.ConnectException::class.java) && "refused" in why.lowercase() ->
+                    "$url refused the connection: LabHUD is not running there, or not on that port."
+                has(java.net.SocketTimeoutException::class.java) || "timeout" in why.lowercase() ->
+                    "No answer from $url. Either LabHUD is off, or this phone cannot get there (not on your home network or VPN, or a firewall in between)."
+                has(javax.net.ssl.SSLException::class.java) -> "$url does not speak HTTPS the way it did when paired: ${e.message.orEmpty().take(80)}"
+                else -> "Cannot reach $url (${e.message.orEmpty().take(80)}). Are you on your home network or VPN?"
+            }
         }
     }
 

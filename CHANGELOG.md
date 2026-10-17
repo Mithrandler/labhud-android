@@ -7,11 +7,16 @@ All notable changes to LabHUD for Android. The format follows
 ## [Unreleased]
 
 ### Added
+- **A clear "Offline" banner** while LabHUD cannot be reached: why, in words (no answer, refused,
+  unknown name, another certificate), when the data was last live and when the next try is, with
+  Retry now. It stays up through the retries instead of flashing, and the cards are dimmed so
+  the last numbers are not taken for live ones. The top bar says "Offline" too.
 - **An agent's ticks in the app**: Server management > an agent shows each capability it found
   with a switch, and the containers, guests, services or machines it may act on, each with a
   tick, as ⚙ > Agents does (the wall's PIN or the fingerprint first).
 
 ### Fixed
+- A card's numbers were shown twice on its screen (labhud's own "numbers" section).
 - The notification permission is checked before a notification is shown (Android 13+).
 
 ## [0.3.11] - 2026-10-16

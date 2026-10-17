@@ -34,6 +34,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MoreVert
@@ -108,6 +109,7 @@ fun StatusScreen(
     val conn by repo.conn.collectAsState()
     val server by repo.server.collectAsState()
     val info by repo.info.collectAsState()
+    val liveAt by repo.liveAt.collectAsState()
     val servers by repo.store.servers.collectAsState(initial = emptyList())
     val scope = rememberCoroutineScope()
     var menu by remember { mutableStateOf(false) }
@@ -150,9 +152,10 @@ fun StatusScreen(
         },
     ) { pad ->
         Column(Modifier.padding(pad).fillMaxSize()) {
-            ConnBanner(conn, onRetry = { repo.retry() })
+            ConnBanner(conn, liveAt, onRetry = { repo.retry() })
             if (st == null) {
-                Text(if (conn is Conn.Offline) "" else "Connecting…", color = Lab.muted, modifier = Modifier.padding(24.dp))
+                Text(if (conn is Conn.Offline) "Nothing kept from this server yet: the numbers come once it answers." else "Connecting…",
+                    color = Lab.muted, modifier = Modifier.padding(24.dp))
                 return@Column
             }
             val byId = st.byId
@@ -185,7 +188,8 @@ fun StatusScreen(
             }
             PullToRefreshBox(isRefreshing = conn == Conn.Connecting, onRefresh = { repo.retry() }, modifier = Modifier.fillMaxSize()) {
                 // swipe left and right between the wall's pages, as on the wall itself
-                HorizontalPager(pager, Modifier.fillMaxSize(), key = { pages.getOrNull(it)?.id ?: it }) { index ->
+                // offline: the last numbers stay, dimmed, so they are not taken for live ones
+                HorizontalPager(pager, Modifier.fillMaxSize().alpha(if (conn is Conn.Offline) 0.5f else 1f), key = { pages.getOrNull(it)?.id ?: it }) { index ->
                     val page = pages.getOrNull(index)
                     LazyVerticalGrid(
                         GridCells.Adaptive(158.dp),
@@ -343,7 +347,8 @@ private fun LiveMark(st: LabState, conn: Conn) {
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(end = 2.dp)) {
         Box(Modifier.size(8.dp).clip(CircleShape).background(color))
         Spacer(Modifier.width(6.dp))
-        Text(if (conn == Conn.Live) "Live $time" else time, fontSize = 12.sp, color = Lab.sub)
+        Text(when (conn) { Conn.Live -> "Live $time"; is Conn.Offline -> "Offline · $time"; else -> time },
+            fontSize = 12.sp, color = if (conn is Conn.Offline) Lab.warn else Lab.sub)
     }
 }
 
@@ -363,13 +368,38 @@ private fun ProblemsBar(problems: List<Card>, onClick: () -> Unit) {
     }
 }
 
+/**
+ * While LabHUD cannot be reached: why (in words), since when the numbers are not live, and when
+ * the next try is, with a button to try now. It stays up through the retries instead of flashing.
+ */
 @Composable
-fun ConnBanner(conn: Conn, onRetry: () -> Unit) {
+fun ConnBanner(conn: Conn, liveAt: Long, onRetry: () -> Unit) {
     if (conn !is Conn.Offline) return
-    Surface(shape = CardShape, color = Lab.block, border = BorderStroke(1.dp, Lab.border), modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
-        Row(Modifier.fillMaxWidth().padding(start = 14.dp, end = 4.dp, top = 6.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(conn.message, fontSize = 13.sp, color = Lab.sub, modifier = Modifier.weight(1f))
-            if (!conn.fatal) TextButton(onClick = onRetry) { Text("Retry") }
+    var now by remember { mutableStateOf(android.os.SystemClock.elapsedRealtime()) }
+    LaunchedEffect(conn) {
+        while (true) { now = android.os.SystemClock.elapsedRealtime(); delay(1_000) }
+    }
+    val color = if (conn.fatal) Lab.red else Lab.warn
+    Surface(shape = CardShape, color = color.copy(alpha = 0.12f), border = BorderStroke(1.dp, color.copy(alpha = 0.6f)),
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+        Row(Modifier.fillMaxWidth().padding(start = 12.dp, end = 4.dp, top = 8.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(if (conn.fatal) Icons.Default.Warning else Icons.Default.CloudOff, null, tint = color, modifier = Modifier.size(20.dp))
+            Spacer(Modifier.width(10.dp))
+            Column(Modifier.weight(1f)) {
+                Text(if (conn.fatal) "Not connected" else "Offline", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = color)
+                Text(conn.message, fontSize = 13.sp, color = Lab.sub)
+                val parts = listOfNotNull(
+                    liveAt.takeIf { it > 0 }?.let { "Last data " + DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(it)) },
+                    when {
+                        conn.fatal -> null
+                        conn.trying -> "trying again…"
+                        conn.retryAt > now -> "next try in ${(conn.retryAt - now + 999) / 1000} s"
+                        else -> null
+                    },
+                )
+                if (parts.isNotEmpty()) Text(parts.joinToString(" · "), fontSize = 12.sp, color = Lab.muted, modifier = Modifier.padding(top = 2.dp))
+            }
+            if (!conn.fatal) TextButton(onClick = onRetry, enabled = !conn.trying) { Text("Retry now") }
         }
     }
 }

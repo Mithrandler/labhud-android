@@ -198,7 +198,8 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
                     }
                 }
             }
-            sections.forEach { s ->
+            // labhud's own "numbers" section repeats the metrics, already shown above
+            sections.filterNot { it.title.equals("numbers", true) && c.metrics.isNotEmpty() }.forEach { s ->
                 item {
                     Panel(s.title) { s.rows.forEach { ListRow(it) } }
                 }
