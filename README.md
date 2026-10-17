@@ -5,6 +5,10 @@ card with its numbers, charts and panel, the day's timeline, the action buttons,
 wall page when you want it. Native (Kotlin, Jetpack Compose, Material 3), small, and quiet on the
 battery: it talks to your labhud only while it is open.
 
+| | | |
+|---|---|---|
+| <img src="docs/screenshots/status.png" width="240" alt="Status: what is red, then every page's cards"> | <img src="docs/screenshots/devices.png" width="240" alt="Devices: every machine, filtered"> | <img src="docs/screenshots/card.png" width="240" alt="A card: its numbers and history"> |
+
 - **Pairs with a QR code.** On the display: ⚙ > Phones > Pair a phone; or on the server
   `labhud phone pair`. Each phone gets a token of its own and only looks, until you **sign in as
   the admin** (Settings > Account): then the buttons work, after the wall's PIN or your fingerprint.
