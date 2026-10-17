@@ -6,6 +6,8 @@ All notable changes to LabHUD for Android. The format follows
 
 ## [Unreleased]
 
+## [0.3.12] - 2026-10-17
+
 ### Added
 - **A clear "Offline" banner** while LabHUD cannot be reached: why, in words (no answer, refused,
   unknown name, another certificate), when the data was last live and when the next try is, with
