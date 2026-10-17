@@ -6,6 +6,8 @@ All notable changes to LabHUD for Android. The format follows
 
 ## [Unreleased]
 
+## [0.3.14] - 2026-10-17
+
 ### Added
 - **Wake-on-LAN by a typed MAC**: an agent's Wake-on-LAN list has a field for a machine that is
   off (and so not seen on the network), as ⚙ and the `labhud` command have.
