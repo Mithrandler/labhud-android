@@ -6,6 +6,8 @@ All notable changes to LabHUD for Android. The format follows
 
 ## [Unreleased]
 
+## [0.3.15] - 2026-10-17
+
 ### Added
 - **Containers by compose stack**, with **Restart stack** when every running one of it has
   RESTART; each container's CPU and RAM and its latest update or crash under its name; **Details**
