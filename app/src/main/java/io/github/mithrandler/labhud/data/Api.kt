@@ -144,6 +144,10 @@ class LabApi(val baseUrl: String, private val token: String?, fingerprint: Strin
     suspend fun agentTargets(id: String, cap: String, targets: List<String>): ActionAnswer = LabJson.decodeFromString(answer("/api/agents/targets",
         buildJsonObject { put("id", id); put("cap", cap); put("targets", kotlinx.serialization.json.JsonArray(targets.map { kotlinx.serialization.json.JsonPrimitive(it) })) }.toString()))
 
+    /** The agent downloads the release labhud pins, checks it and starts again (labhud 0.3.14+). */
+    suspend fun agentUpdate(id: String): ActionAnswer = LabJson.decodeFromString(answer("/api/agents/update",
+        buildJsonObject { put("id", id) }.toString()))
+
     suspend fun alertSetup(): AlertSetup = LabJson.decodeFromString(answer("/api/setup/alerts", "{}"))
 
     /** Where news goes (ntfy, app, both), the rules sent back as they came. */

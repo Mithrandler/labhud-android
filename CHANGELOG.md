@@ -6,6 +6,12 @@ All notable changes to LabHUD for Android. The format follows
 
 ## [Unreleased]
 
+### Added
+- **Wake-on-LAN by a typed MAC**: an agent's Wake-on-LAN list has a field for a machine that is
+  off (and so not seen on the network), as ⚙ and the `labhud` command have.
+- **Update an agent** from its screen in Server management, when labhud pins a newer release
+  (labhud 0.3.14 or newer); it downloads and checks the release itself and starts again.
+
 ### Changed
 - **The wall's icons and colours.** Thin-line icons, the same as on the wall and in ⚙, instead of
   Android's filled ones; the colours and icons come from labhud's `design/tokens.json`

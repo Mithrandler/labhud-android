@@ -307,6 +307,10 @@ data class AgentRow(
     val choices: Map<String, List<String>> = emptyMap(),
     /** A friendlier name for a target (a guest's name, a MAC's address), per capability. */
     val labels: Map<String, Map<String, String?>> = emptyMap(),
+    /** "service" (it can update itself), "container" (its image does), "" (too old to say). */
+    val install: String = "",
+    /** The release it can update itself to, or "". */
+    val update: String = "",
 )
 
 @Serializable
@@ -316,6 +320,8 @@ data class Agents(
     val caps: List<String> = emptyList(),
     /** The capabilities that have targets, with their verbs. */
     val verbs: Map<String, List<String>> = emptyMap(),
+    /** The agent release labhud pins (labhud 0.3.14+). */
+    val release: String = "",
 )
 
 /** /api/setup/alerts (admin): the rules as labhud keeps them (sent back as they are), and where news goes. */

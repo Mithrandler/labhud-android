@@ -7,14 +7,21 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -29,6 +36,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -61,6 +70,7 @@ fun AgentScreen(repo: LabRepository, id: String, onBack: () -> Unit, onSignIn: (
     var all by remember { mutableStateOf<Agents?>(null) }
     var message by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
+    var confirmUpdate by remember { mutableStateOf(false) }
 
     fun load() = scope.launch {
         runCatching { repo.api()?.agents() }.onSuccess { all = it }.onFailure { message = it.message ?: "" }
@@ -99,6 +109,20 @@ fun AgentScreen(repo: LabRepository, id: String, onBack: () -> Unit, onSignIn: (
                 Text(listOf(if (a.online) "online" else "offline", a.address, a.version).filter { it.isNotEmpty() }.joinToString(" · "),
                     color = if (a.online) Lab.sub else Lab.red, fontSize = 13.sp)
             }
+            if (a.update.isNotEmpty()) item {
+                Panel("") {
+                    Text("v${a.update} is out (this one is v${a.version}).", fontSize = 14.sp)
+                    Text("It downloads the release from GitHub, checks it, and starts again in a few seconds.",
+                        fontSize = 12.sp, color = Lab.muted)
+                    Button(onClick = { confirmUpdate = true }, enabled = !busy && a.online, modifier = Modifier.padding(top = 8.dp)) {
+                        Icon(LabIcons.update, null, Modifier.size(18.dp)); Text("  Update to v${a.update}")
+                    }
+                }
+            } else if (all!!.release.isNotEmpty() && a.version.isNotEmpty() && a.version != all!!.release) item {
+                Text(if (a.install == "container") "In a container the image is the agent: your image updater updates it."
+                    else "v${all!!.release} is out. This agent is too old to update itself: run its install line again.",
+                    fontSize = 12.sp, color = Lab.muted)
+            }
             val caps = all!!.caps.filter { it in a.found }
             if (caps.isEmpty()) item { Text("It found nothing it could do on its host.", color = Lab.muted) }
             caps.forEach { cap ->
@@ -120,7 +144,7 @@ fun AgentScreen(repo: LabRepository, id: String, onBack: () -> Unit, onSignIn: (
                         if (on && cap in all!!.verbs) {
                             val ticked = a.targets[cap].orEmpty()
                             val choices = (a.choices[cap].orEmpty() + ticked).distinct()
-                            if (choices.isEmpty()) Text("Nothing found to tick.", fontSize = 12.sp, color = Lab.muted, modifier = Modifier.padding(top = 6.dp))
+                            if (choices.isEmpty() && cap != "wol") Text("Nothing found to tick.", fontSize = 12.sp, color = Lab.muted, modifier = Modifier.padding(top = 6.dp))
                             choices.forEach { t ->
                                 val label = a.labels[cap]?.get(t)
                                 Row(
@@ -134,11 +158,45 @@ fun AgentScreen(repo: LabRepository, id: String, onBack: () -> Unit, onSignIn: (
                                         overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = 8.dp))
                                 }
                             }
+                            // a machine that is off is not in the ARP table: its MAC is typed in, as in ⚙
+                            if (cap == "wol") MacField(enabled = !busy) { mac ->
+                                if (mac !in ticked) change { api -> api.agentTargets(a.id, cap, ticked + mac) }
+                            }
                         }
                     }
                 }
             }
         }
     }
+    if (confirmUpdate && a != null) AlertDialog(
+        onDismissRequest = { confirmUpdate = false },
+        title = { Text("Update ${a.name}?") },
+        text = { Text("To v${a.update}. It goes offline for a few seconds while it starts again.") },
+        confirmButton = { TextButton(onClick = {
+            confirmUpdate = false
+            change { api -> api.agentUpdate(a.id) }
+        }) { Text("Update") } },
+        dismissButton = { TextButton(onClick = { confirmUpdate = false }) { Text("Cancel") } },
+    )
     GateDialogs(gate, onSignIn)
+}
+
+/** "aa:bb:cc:dd:ee:ff", also typed with dashes or in capitals; null for anything else. */
+internal fun normalMac(text: String): String? =
+    text.trim().lowercase().replace('-', ':').takeIf { Regex("[0-9a-f]{2}(:[0-9a-f]{2}){5}").matches(it) }
+
+@Composable
+private fun MacField(enabled: Boolean, onAdd: (String) -> Unit) {
+    var text by remember { mutableStateOf("") }
+    val mac = normalMac(text)
+    Row(Modifier.fillMaxWidth().padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+        OutlinedTextField(
+            text, { text = it }, Modifier.weight(1f), singleLine = true, enabled = enabled,
+            placeholder = { Text("Add a MAC (aa:bb:cc:dd:ee:ff)") },
+            isError = text.isNotBlank() && mac == null,
+            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.None, autoCorrectEnabled = false, imeAction = ImeAction.Done),
+            keyboardActions = KeyboardActions(onDone = { mac?.let { onAdd(it); text = "" } }),
+        )
+        TextButton(onClick = { mac?.let { onAdd(it); text = "" } }, enabled = enabled && mac != null) { Text("Add") }
+    }
 }
