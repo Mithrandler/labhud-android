@@ -6,6 +6,13 @@ All notable changes to LabHUD for Android. The format follows
 
 ## [Unreleased]
 
+## [0.3.13] - 2026-10-17
+
+### Fixed
+- **"Allow the camera" closed the app** instead of asking for the camera, and so did asking for
+  the notification permission in Settings: the fingerprint library brought an old part of Android
+  that refused the request. The app now asks, and a "Don't allow" leaves it open with the button.
+
 ## [0.3.12] - 2026-10-17
 
 ### Added
