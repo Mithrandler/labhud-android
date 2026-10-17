@@ -30,16 +30,6 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.CloudOff
-import androidx.compose.material.icons.filled.Fullscreen
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.DropdownMenu
@@ -137,14 +127,14 @@ fun StatusScreen(
                     if (st != null) LiveMark(st, conn)
                     IconButton(onClick = { bell = true }) {
                         BadgedBox(badge = { if (count > 0) Badge(containerColor = Lab.red) { Text("$count") } }) {
-                            Icon(Icons.Default.Notifications, "Alerts")
+                            Icon(LabIcons.bell, "Alerts")
                         }
                     }
-                    IconButton(onClick = { menu = true }) { Icon(Icons.Default.MoreVert, "More") }
+                    IconButton(onClick = { menu = true }) { Icon(LabIcons.more, "More") }
                     DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-                        DropdownMenuItem(text = { Text("Wall mode") }, leadingIcon = { Icon(Icons.Default.Fullscreen, null) },
+                        DropdownMenuItem(text = { Text("Wall mode") }, leadingIcon = { Icon(LabIcons.wall, null) },
                             onClick = { menu = false; onWall() })
-                        if (onLock != null) DropdownMenuItem(text = { Text("Lock now") }, leadingIcon = { Icon(Icons.Default.Lock, null) },
+                        if (onLock != null) DropdownMenuItem(text = { Text("Lock now") }, leadingIcon = { Icon(LabIcons.lock, null) },
                             onClick = { menu = false; onLock() })
                     }
                 },
@@ -313,7 +303,7 @@ private fun BellSheet(st: LabState, onDismiss: () -> Unit, onCard: (String) -> U
                     Modifier.fillMaxWidth().clickable(enabled = a.card != null) { a.card?.let(onCard) }.padding(vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Icon(Icons.Default.Warning, null, tint = Lab.warn, modifier = Modifier.size(18.dp))
+                    Icon(LabIcons.warning, null, tint = Lab.warn, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(10.dp))
                     Text(a.text, fontSize = 14.sp, modifier = Modifier.weight(1f))
                     a.since?.let { Text(time.format(Date(it * 1000)), fontSize = 12.sp, color = Lab.muted) }
@@ -363,7 +353,7 @@ private fun ProblemsBar(problems: List<Card>, onClick: () -> Unit) {
                 (if (problems.size == 1) "1 problem" else "${problems.size} problems") + " · " + problems.joinToString(", ") { it.name },
                 fontSize = 13.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f),
             )
-            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = Lab.red, modifier = Modifier.size(18.dp))
+            Icon(LabIcons.chevronRight, null, tint = Lab.red, modifier = Modifier.size(18.dp))
         }
     }
 }
@@ -383,7 +373,7 @@ fun ConnBanner(conn: Conn, liveAt: Long, onRetry: () -> Unit) {
     Surface(shape = CardShape, color = color.copy(alpha = 0.12f), border = BorderStroke(1.dp, color.copy(alpha = 0.6f)),
         modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
         Row(Modifier.fillMaxWidth().padding(start = 12.dp, end = 4.dp, top = 8.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(if (conn.fatal) Icons.Default.Warning else Icons.Default.CloudOff, null, tint = color, modifier = Modifier.size(20.dp))
+            Icon(if (conn.fatal) LabIcons.warning else LabIcons.offline, null, tint = color, modifier = Modifier.size(20.dp))
             Spacer(Modifier.width(10.dp))
             Column(Modifier.weight(1f)) {
                 Text(if (conn.fatal) "Not connected" else "Offline", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = color)
@@ -411,12 +401,12 @@ private fun ServerPicker(server: Server?, servers: List<Server>, onPick: (Server
         TextButton(onClick = { open = true }) {
             Text(server?.name ?: "LabHUD", color = Lab.title, fontSize = 20.sp, fontWeight = FontWeight.SemiBold,
                 maxLines = 1, overflow = TextOverflow.Ellipsis)
-            if (servers.size > 1) Icon(Icons.Default.ArrowDropDown, null, tint = Lab.title)
+            if (servers.size > 1) Icon(LabIcons.chevronDown, null, tint = Lab.title)
         }
         DropdownMenu(expanded = open && servers.size > 1, onDismissRequest = { open = false }) {
             servers.forEach { s ->
                 DropdownMenuItem(text = { Text(s.name) }, onClick = { open = false; onPick(s) },
-                    leadingIcon = { if (s.id == server?.id) Icon(Icons.Default.Check, null) })
+                    leadingIcon = { if (s.id == server?.id) Icon(LabIcons.check, null) })
             }
             DropdownMenuItem(text = { Text("Manage servers…") }, onClick = { open = false; onManage() })
         }

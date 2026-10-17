@@ -18,16 +18,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Bolt
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.PowerSettingsNew
-import androidx.compose.material.icons.filled.RestartAlt
-import androidx.compose.material.icons.filled.Stop
-import androidx.compose.material.icons.filled.SystemUpdateAlt
-import androidx.compose.material.icons.filled.Assessment
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -98,9 +88,9 @@ fun ActionDialog(a: Action, onSend: (name: String, label: String) -> Unit, onDis
 
 /** What an action does, read from its name and label: the icon, and the state that means "done". */
 enum class Kind(val icon: ImageVector, val want: Boolean?) {
-    Start(Icons.Default.PlayArrow, true), Wake(Icons.Default.PowerSettingsNew, true), Restart(Icons.Default.RestartAlt, null),
-    Stop(Icons.Default.Stop, false), Power(Icons.Default.PowerSettingsNew, false), Update(Icons.Default.SystemUpdateAlt, null),
-    Report(Icons.Default.Assessment, null), Other(Icons.Default.Bolt, null),
+    Start(LabIcons.start, true), Wake(LabIcons.power, true), Restart(LabIcons.restart, null),
+    Stop(LabIcons.stop, false), Power(LabIcons.power, false), Update(LabIcons.update, null),
+    Report(LabIcons.report, null), Other(LabIcons.bolt, null),
 }
 
 fun kindOf(name: String, label: String): Kind {

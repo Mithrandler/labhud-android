@@ -1,6 +1,7 @@
 package io.github.mithrandler.labhud
 
 import android.content.ComponentName
+import io.github.mithrandler.labhud.ui.LabIcons
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -16,12 +17,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Dashboard
-import androidx.compose.material.icons.filled.Dns
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Timeline
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
@@ -108,7 +103,7 @@ class MainActivity : FragmentActivity() {
             Modifier.fillMaxSize().background(Lab.bg).padding(32.dp),
             verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Icon(Icons.Default.Lock, null, tint = Lab.title, modifier = Modifier.size(48.dp))
+            Icon(LabIcons.lock, null, tint = Lab.title, modifier = Modifier.size(48.dp))
             Spacer(Modifier.height(16.dp))
             Text("LabHUD is locked", fontSize = 20.sp)
             Spacer(Modifier.height(24.dp))
@@ -215,10 +210,10 @@ private class Tab(val route: String, val label: String, val icon: ImageVector)
 private const val SETTINGS = "settings"
 
 private val TABS = listOf(
-    Tab("home", "Status", Icons.Default.Dashboard),
-    Tab("devices", "Devices", Icons.Default.Dns),
-    Tab("activity", "Activity", Icons.Default.Timeline),
-    Tab(SETTINGS, "Settings", Icons.Default.Settings),
+    Tab("home", "Status", LabIcons.status),
+    Tab("devices", "Devices", LabIcons.devices),
+    Tab("activity", "Activity", LabIcons.activity),
+    Tab(SETTINGS, "Settings", LabIcons.settings),
 )
 
 /** Switches tab the usual way: one copy of each, Back from any tab goes Home, each keeps its scroll. */

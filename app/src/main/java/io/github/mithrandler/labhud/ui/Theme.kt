@@ -9,23 +9,6 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
-/** labhud's own palette (static/app.css): OLED black, quiet greys, status colours that never change. */
-object Lab {
-    val bg = Color(0xFF000000)
-    val card = Color(0xFF121214)
-    val block = Color(0xFF1C1C1F)
-    val line = Color(0xFF2A2A2E)
-    val border = Color(0xFF3A3D44)
-    val text = Color(0xFFFFFFFF)
-    val sub = Color(0xFFB4B8BF)
-    val muted = Color(0xFF7D828A)
-    val accent = Color(0xFF8AB4F8)
-    val title = Color(0xFF7CC4FF)
-    val green = Color(0xFF34C759)
-    val warn = Color(0xFFFF9F0A)
-    val red = Color(0xFFFF453A)
-}
-
 private val scheme = darkColorScheme(
     primary = Lab.accent,
     onPrimary = Color(0xFF001B3D),

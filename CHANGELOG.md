@@ -6,6 +6,11 @@ All notable changes to LabHUD for Android. The format follows
 
 ## [Unreleased]
 
+### Changed
+- **The wall's icons and colours.** Thin-line icons, the same as on the wall and in ⚙, instead of
+  Android's filled ones; the colours and icons come from labhud's `design/tokens.json`
+  (`ui/Tokens.kt` is written by its `design/build.py`, not by hand). The Material icons library is gone.
+
 ## [0.3.13] - 2026-10-17
 
 ### Fixed

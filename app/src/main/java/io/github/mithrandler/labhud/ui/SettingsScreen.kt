@@ -9,11 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -113,20 +108,20 @@ fun SettingsScreen(
                     border = BorderStroke(1.dp, if (s.id == current?.id) Lab.accent.copy(alpha = 0.6f) else Lab.line),
                 ) {
                     Row(Modifier.fillMaxWidth().padding(start = 14.dp, top = 10.dp, bottom = 10.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                        if (s.id == current?.id) Icon(Icons.Default.CheckCircle, null, tint = Lab.accent, modifier = Modifier.padding(end = 10.dp))
+                        if (s.id == current?.id) Icon(LabIcons.checkCircle, null, tint = Lab.accent, modifier = Modifier.padding(end = 10.dp))
                         Column(Modifier.weight(1f)) {
                             Text(s.name, fontWeight = FontWeight.SemiBold)
                             Text(s.url + if (s.fingerprint.isNotEmpty()) " · pinned certificate" else "", fontSize = 12.sp, color = Lab.muted)
                             if (s.deviceName.isNotEmpty()) Text("Paired as \"${s.deviceName}\"", fontSize = 12.sp, color = Lab.muted)
                         }
-                        IconButton(onClick = { renaming = s }) { Icon(Icons.Default.Edit, "Rename") }
-                        IconButton(onClick = { removing = s }) { Icon(Icons.Default.Delete, "Remove") }
+                        IconButton(onClick = { renaming = s }) { Icon(LabIcons.edit, "Rename") }
+                        IconButton(onClick = { removing = s }) { Icon(LabIcons.delete, "Remove") }
                     }
                 }
             }
             item {
                 Button(onClick = onAdd, modifier = Modifier.fillMaxWidth()) {
-                    Icon(Icons.Default.Add, null); Text("  Add a server")
+                    Icon(LabIcons.add, null); Text("  Add a server")
                 }
             }
             item { Text("THIS PHONE", style = Heading, modifier = Modifier.padding(top = 16.dp)) }
