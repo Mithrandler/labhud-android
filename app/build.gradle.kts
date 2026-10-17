@@ -88,6 +88,7 @@ dependencies {
     implementation(libs.glance.material3)
     implementation(libs.work.runtime)
     implementation(libs.biometric)
+    implementation(libs.fragment)
     implementation(libs.datastore.preferences)
     implementation(libs.webkit)
     implementation(libs.okhttp)
