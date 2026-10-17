@@ -1,4 +1,4 @@
-// Written by labhud's design/build.py from its design/tokens.json (c3d8d247bf32): edit there, not here.
+// Written by labhud's design/build.py from its design/tokens.json (4bdeb04c3639): edit there, not here.
 package io.github.mithrandler.labhud.ui
 
 import androidx.compose.ui.graphics.Color
@@ -82,6 +82,9 @@ object LabIcons {
     val update: ImageVector by lazy { icon("update", "M12 4v11M7 10.5l5 5 5-5M5 20h14" to false) }
     val report: ImageVector by lazy { icon("report", "M4 20h16M7 16v-5M12 16V7M17 16v-8" to false) }
     val bolt: ImageVector by lazy { icon("bolt", "M13 3L5 13.5h6L10 21l8-10.5h-6z" to false) }
+    val search: ImageVector by lazy { icon("search", "M5 11a6 6 0 1 0 12 0a6 6 0 1 0 -12 0Z" to false, "M20 20l-4.5-4.5" to false) }
+    val note: ImageVector by lazy { icon("note", "M6 3h9l4 4v14H6z" to false, "M15 3v4h4" to false, "M9 12h7M9 16h5" to false) }
+    val link: ImageVector by lazy { icon("link", "M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1" to false, "M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" to false) }
 
     private fun icon(name: String, vararg paths: Pair<String, Boolean>): ImageVector =
         ImageVector.Builder(name, 24.dp, 24.dp, 24f, 24f).apply {

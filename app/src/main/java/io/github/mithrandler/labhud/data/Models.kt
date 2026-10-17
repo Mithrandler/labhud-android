@@ -105,6 +105,24 @@ data class Container(
     val update: Boolean = false,
     val updating: Boolean = false,
     val actions: List<Action> = emptyList(),
+    /** labhud 0.3.17+: its compose project, "3.1% CPU · 245M", its latest update or crash. */
+    val project: String = "",
+    val usage: String = "",
+    val last: String = "",
+)
+
+/** A [[bookmark]] link (labhud 0.3.17+). */
+@Serializable
+data class Bookmark(val group: String = "", val name: String = "", val url: String = "")
+
+/** A container with a newer image, anywhere in the fleet (`list = "fleet.updates"`, labhud 0.3.17+). */
+@Serializable
+data class FleetUpdate(
+    val name: String = "",
+    val host: String = "",
+    val image: String = "",
+    val updating: Boolean = false,
+    val action: Action? = null,
 )
 
 /** A single metric on a card. */
@@ -197,6 +215,11 @@ data class Card(
     val charts: List<ChartRef> = emptyList(),
     val containers: List<Container> = emptyList(),
     val agent: String = "",
+    /** labhud 0.3.17+: a notes card's text, a bookmarks card's links, the fleet's updates. */
+    val notes: String? = null,
+    val bookmarks: List<Bookmark> = emptyList(),
+    /** null: not the fleet's updates card. */
+    val updates: List<FleetUpdate>? = null,
 ) {
     val rows: List<Row> get() = rawRows.map { it.toRow() }
 }
@@ -311,6 +334,10 @@ data class AgentRow(
     val install: String = "",
     /** The release it can update itself to, or "". */
     val update: String = "",
+    /** labhud 0.3.15+: "images" ticked under Docker, so the unused images can be cleaned. */
+    val prune: Boolean = false,
+    /** labhud 0.3.17+: the containers labhud updates on its own, in the window. */
+    val auto: List<String> = emptyList(),
 )
 
 @Serializable

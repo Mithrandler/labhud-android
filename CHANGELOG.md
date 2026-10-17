@@ -6,6 +6,18 @@ All notable changes to LabHUD for Android. The format follows
 
 ## [Unreleased]
 
+### Added
+- **Containers by compose stack**, with **Restart stack** when every running one of it has
+  RESTART; each container's CPU and RAM and its latest update or crash under its name; **Details**
+  beside Logs (ports, volumes, networks, the environment by name only). labhud 0.3.17 / agent 0.3.14.
+- **Charts over 30 days and a year**, beside 6h, 24h and 7d.
+- **Notes** (a `notes = true` card: read, and written by the admin), **links** (a `bookmarks`
+  card) and **the fleet's updates** (`list = "fleet.updates"`: Update on each, Update all).
+- **Search** in the top bar: every card by its name, line or page.
+- In Server management, under Docker: **Update on their own** (the containers labhud updates by
+  itself) and **Clean unused images**.
+- The new icons (search, note, link) from labhud's design.
+
 ## [0.3.14] - 2026-10-17
 
 ### Added

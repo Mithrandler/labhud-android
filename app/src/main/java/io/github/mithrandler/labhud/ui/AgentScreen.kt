@@ -19,6 +19,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.TextButton
@@ -71,6 +72,7 @@ fun AgentScreen(repo: LabRepository, id: String, onBack: () -> Unit, onSignIn: (
     var message by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
     var confirmUpdate by remember { mutableStateOf(false) }
+    var confirmPrune by remember { mutableStateOf(false) }
 
     fun load() = scope.launch {
         runCatching { repo.api()?.agents() }.onSuccess { all = it }.onFailure { message = it.message ?: "" }
@@ -162,6 +164,9 @@ fun AgentScreen(repo: LabRepository, id: String, onBack: () -> Unit, onSignIn: (
                             if (cap == "wol") MacField(enabled = !busy) { mac ->
                                 if (mac !in ticked) change { api -> api.agentTargets(a.id, cap, ticked + mac) }
                             }
+                            if (cap == "docker") DockerExtras(a, ticked.filter { it != "images" }, busy,
+                                onAuto = { list -> change { api -> api.agentAuto(a.id, list) } },
+                                onPrune = { confirmPrune = true })
                         }
                     }
                 }
@@ -178,7 +183,48 @@ fun AgentScreen(repo: LabRepository, id: String, onBack: () -> Unit, onSignIn: (
         }) { Text("Update") } },
         dismissButton = { TextButton(onClick = { confirmUpdate = false }) { Text("Cancel") } },
     )
+    if (confirmPrune && a != null) AlertDialog(
+        onDismissRequest = { confirmPrune = false },
+        title = { Text("Clean unused images on ${a.name}?") },
+        text = { Text("Images no container uses, unused for a day at least. An image a stopped container uses stays.") },
+        confirmButton = { TextButton(onClick = {
+            confirmPrune = false
+            gate.press {
+                busy = true
+                scope.launch {
+                    val r = runCatching { repo.api()?.prune(a.name) }.getOrNull()
+                    message = if (r?.ok == true) "Cleaned: ${r.output}" else "Not cleaned: " + (r?.error?.ifBlank { null } ?: "refused")
+                    busy = false
+                }
+            }
+        }) { Text("Clean") } },
+        dismissButton = { TextButton(onClick = { confirmPrune = false }) { Text("Cancel") } },
+    )
     GateDialogs(gate, onSignIn)
+}
+
+/** Under Docker: the containers labhud updates on its own (in the window set in ⚙), and the button
+    that cleans the unused images when "images" is ticked. */
+@Composable
+private fun DockerExtras(a: AgentRow, containers: List<String>, busy: Boolean, onAuto: (List<String>) -> Unit, onPrune: () -> Unit) {
+    if (containers.isNotEmpty()) {
+        Text("Update on their own", fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 12.dp))
+        Text("When their image has a newer one, in the window set in ⚙ on the wall.", fontSize = 12.sp, color = Lab.muted)
+        containers.forEach { t ->
+            Row(
+                Modifier.fillMaxWidth().toggleable(value = t in a.auto, enabled = !busy, role = Role.Checkbox) { want ->
+                    onAuto(if (want) a.auto + t else a.auto - t)
+                }.padding(vertical = 2.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Checkbox(checked = t in a.auto, onCheckedChange = null, enabled = !busy)
+                Text(t, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = 8.dp))
+            }
+        }
+    }
+    if (a.prune) OutlinedButton(onClick = onPrune, enabled = !busy && a.online, modifier = Modifier.padding(top = 10.dp)) {
+        Text("Clean unused images")
+    }
 }
 
 /** "aa:bb:cc:dd:ee:ff", also typed with dashes or in capitals; null for anything else. */

@@ -104,6 +104,7 @@ fun StatusScreen(
     val scope = rememberCoroutineScope()
     var menu by remember { mutableStateOf(false) }
     var bell by remember { mutableStateOf(false) }
+    var search by remember { mutableStateOf(false) }
     var pageId by rememberSaveable { mutableStateOf<String?>(null) }
     var uptime by remember { mutableStateOf<Uptime?>(null) }
 
@@ -125,6 +126,7 @@ fun StatusScreen(
                 title = { ServerPicker(server, servers, onPick = { scope.launch { repo.store.select(it.id) } }, onManage = onServers) },
                 actions = {
                     if (st != null) LiveMark(st, conn)
+                    IconButton(onClick = { search = true }) { Icon(LabIcons.search, "Search") }
                     IconButton(onClick = { bell = true }) {
                         BadgedBox(badge = { if (count > 0) Badge(containerColor = Lab.red) { Text("$count") } }) {
                             Icon(LabIcons.bell, "Alerts")
@@ -196,6 +198,7 @@ fun StatusScreen(
         }
     }
     if (bell && st != null) BellSheet(st, onDismiss = { bell = false }, onCard = { bell = false; onCard(it) })
+    if (search && st != null) SearchSheet(st, onDismiss = { search = false }, onCard = { search = false; onCard(it) })
 }
 
 private fun LazyGridScope.groups(page: Page, byId: Map<String, Card>, uptime: Uptime?, onCard: (String) -> Unit) {
@@ -285,6 +288,32 @@ fun UptimeBar(values: List<Double?>, modifier: Modifier, slices: Int = 48) {
         val offset = n - parts.size   // a young history fills from the right
         parts.forEachIndexed { i, v ->
             drawRoundRect(uptimeColor(v), Offset((offset + i) * (w + gap), 0f), Size(w, size.height), CornerRadius(1.5.dp.toPx()))
+        }
+    }
+}
+
+/** Search: every card by its name, its line or its page, as the wall's 🔍 does. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SearchSheet(st: LabState, onDismiss: () -> Unit, onCard: (String) -> Unit) {
+    var q by remember { mutableStateOf("") }
+    val words = q.trim().lowercase().split(Regex("\\s+")).filter { it.isNotEmpty() }
+    val hits = if (words.isEmpty()) emptyList() else st.byId.values.filter { c ->
+        val text = listOf(c.name, c.subtitle, c.page.orEmpty(), c.group.orEmpty(), c.url).joinToString(" ").lowercase()
+        words.all { it in text }
+    }.sortedBy { it.name.lowercase() }.take(20)
+    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Lab.card) {
+        Column(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 32.dp)) {
+            androidx.compose.material3.OutlinedTextField(q, { q = it }, Modifier.fillMaxWidth(), singleLine = true,
+                placeholder = { Text("Search the cards") }, leadingIcon = { Icon(LabIcons.search, null) })
+            hits.forEach { c ->
+                Row(Modifier.fillMaxWidth().clickable { onCard(c.id) }.padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                    if (c.status != null) { StatusDot(c); Spacer(Modifier.width(10.dp)) }
+                    Text(c.name, fontSize = 14.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
+                    Text(listOfNotNull(c.page, c.group).joinToString(" · "), fontSize = 12.sp, color = Lab.muted, maxLines = 1)
+                }
+            }
+            if (words.isNotEmpty() && hits.isEmpty()) Text("Nothing matches.", color = Lab.muted, fontSize = 14.sp, modifier = Modifier.padding(top = 10.dp))
         }
     }
 }

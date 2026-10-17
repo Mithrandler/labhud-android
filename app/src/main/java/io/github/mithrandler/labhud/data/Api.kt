@@ -86,6 +86,8 @@ class LabApi(val baseUrl: String, private val token: String?, fingerprint: Strin
     suspend fun state(): LabState = LabJson.decodeFromString(get("/api/v1/state"))
     suspend fun card(id: String): Card = LabJson.decodeFromString(get("/api/v1/card/$id"))
     suspend fun history(long: Boolean): History = LabJson.decodeFromString(get("/api/v1/history" + if (long) "?long" else ""))
+    /** A year of 2-hour points (labhud 0.3.15+), for 30 days and 1 year. */
+    suspend fun historyYear(): History = LabJson.decodeFromString(get("/api/v1/history?year"))
     suspend fun events(): Events = LabJson.decodeFromString(get("/api/v1/events"))
     suspend fun uptime(week: Boolean): Uptime = LabJson.decodeFromString(get("/api/v1/uptime?range=" + if (week) "7d" else "24h"))
 
@@ -165,6 +167,22 @@ class LabApi(val baseUrl: String, private val token: String?, fingerprint: Strin
     suspend fun notifyTest(): ActionAnswer = LabJson.decodeFromString(answer("/api/setup/notify-test", "{}"))
     suspend fun unpair(name: String): ActionAnswer =
         LabJson.decodeFromString(answer("/api/v1/unpair", buildJsonObject { put("name", name) }.toString()))
+
+    /** How a container is made (labhud 0.3.17+, agent 0.3.14+): JSON text in `output`. */
+    suspend fun inspect(agent: String, container: String): LogsAnswer =
+        LabJson.decodeFromString(answer("/api/setup/inspect", buildJsonObject { put("agent", agent); put("target", container) }.toString()))
+
+    /** The unused images of an agent's host (labhud 0.3.15+): what was freed, in `output`. */
+    suspend fun prune(agent: String): LogsAnswer =
+        LabJson.decodeFromString(answer("/api/setup/prune", buildJsonObject { put("agent", agent) }.toString()))
+
+    /** The notes card's text (labhud 0.3.17+). */
+    suspend fun saveNotes(text: String): ActionAnswer =
+        LabJson.decodeFromString(answer("/api/setup/notes", buildJsonObject { put("text", text) }.toString()))
+
+    /** The containers labhud updates on its own (labhud 0.3.17+). */
+    suspend fun agentAuto(id: String, targets: List<String>): ActionAnswer = LabJson.decodeFromString(answer("/api/agents/autoupdate",
+        buildJsonObject { put("id", id); put("targets", kotlinx.serialization.json.JsonArray(targets.map { kotlinx.serialization.json.JsonPrimitive(it) })) }.toString()))
 
     suspend fun logs(agent: String, container: String): LogsAnswer =
         LabJson.decodeFromString(answer("/api/setup/logs", buildJsonObject { put("agent", agent); put("target", container) }.toString()))
