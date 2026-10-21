@@ -1,6 +1,7 @@
 package io.github.mithrandler.labhud.ui
 
 import android.annotation.SuppressLint
+import android.webkit.RenderProcessGoneDetail
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -19,6 +20,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -31,7 +33,6 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
-import java.util.Locale
 
 /* The small widgets a card can be (labhud 0.1.x, X): drawn here without any data from the server, so they cost no polling. */
 
@@ -43,11 +44,12 @@ fun zoneOf(name: String): ZoneId = runCatching { if (name.isEmpty()) ZoneId.syst
 fun ClockWidget(timezone: String) {
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(Unit) { while (true) { now = System.currentTimeMillis(); delay(1000) } }
+    val locale = LocalConfiguration.current.locales[0]
     val zone = zoneOf(timezone)
     val at = Instant.ofEpochMilli(now).atZone(zone)
     Column(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Text(at.format(DateTimeFormatter.ofPattern("HH:mm")), fontSize = 34.sp, fontWeight = FontWeight.Light, color = Lab.text)
-        Text(at.format(DateTimeFormatter.ofPattern("EEEE d MMMM", Locale.getDefault())), fontSize = 12.sp, color = Lab.muted)
+        Text(at.format(DateTimeFormatter.ofPattern("EEEE d MMMM", locale)), fontSize = 12.sp, color = Lab.muted)
         if (timezone.isNotEmpty()) Text(zone.id, fontSize = 11.sp, color = Lab.muted)
     }
 }
@@ -62,12 +64,13 @@ fun monthWeeks(first: LocalDate): List<List<Int?>> {
 /** This month, today marked. */
 @Composable
 fun CalendarWidget() {
+    val locale = LocalConfiguration.current.locales[0]
     val today = LocalDate.now()
     val weeks = remember(today) { monthWeeks(today.withDayOfMonth(1)) }
     Column(Modifier.fillMaxWidth().padding(top = 4.dp)) {
-        Text(today.month.getDisplayName(TextStyle.FULL, Locale.getDefault()) + " " + today.year, fontSize = 12.sp, color = Lab.accent, fontWeight = FontWeight.SemiBold)
+        Text(today.month.getDisplayName(TextStyle.FULL, locale) + " " + today.year, fontSize = 12.sp, color = Lab.accent, fontWeight = FontWeight.SemiBold)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            DayOfWeek.entries.forEach { Text(it.getDisplayName(TextStyle.NARROW, Locale.getDefault()), Modifier.weight(1f), fontSize = 10.sp, color = Lab.muted, textAlign = TextAlign.Center) }
+            DayOfWeek.entries.forEach { Text(it.getDisplayName(TextStyle.NARROW, locale), Modifier.weight(1f), fontSize = 10.sp, color = Lab.muted, textAlign = TextAlign.Center) }
         }
         weeks.forEach { week ->
             Row(Modifier.fillMaxWidth()) {
@@ -108,6 +111,12 @@ fun FrameWidget(url: String, height: Int) {
                 webViewClient = object : WebViewClient() {
                     override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean =
                         request.url.host != host   // a link to another host is not followed
+                    // the page's renderer died: drop this view rather than the whole app
+                    override fun onRenderProcessGone(view: WebView, detail: RenderProcessGoneDetail): Boolean {
+                        (view.parent as? android.view.ViewGroup)?.removeView(view)
+                        view.destroy()
+                        return true
+                    }
                 }
                 loadUrl(url)
             }

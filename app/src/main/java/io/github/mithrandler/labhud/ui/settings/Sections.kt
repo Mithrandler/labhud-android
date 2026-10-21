@@ -49,14 +49,12 @@ val SECTIONS: List<Section> = listOf(
     Section("look", "display", "Look", "Theme, font, density, night and calm", { LabIcons.look },
         keywords = "theme colour font text size night calm density") { r, n -> LookSection(r, n) },
     Section("dashboard", "display", "Dashboard", "Pages, groups and cards, rotation", { LabIcons.pages },
-        keywords = "pages rotation groups cards layout hide icon size") { r, n -> DashboardSection(r, n) },
+        keywords = "pages rotation groups cards layout hide icon size discover new guests containers services approve dismiss") { r, n -> DashboardSection(r, n) },
 
     Section("hosts", "infra", "Hosts and agents", "Agents, what they may do, updates", { LabIcons.devices },
         keywords = "agents capabilities targets wol update host") { r, n -> HostsSection(r, n) },
     Section("containers", "infra", "Containers", "Update on their own, clean unused images", { LabIcons.container },
         keywords = "docker auto update prune images registries scan cve") { r, n -> ContainersSection(r, n) },
-    Section("discovered", "infra", "Discovered", "What LabHUD found and has no card for", { LabIcons.pages },
-        keywords = "discover new guests containers services approve dismiss cards") { r, n -> DiscoveredSection(r, n) },
     Section("integrations", "infra", "Integrations", "Sources and the network scan", { LabIcons.sources },
         keywords = "sources scan network catalog proxmox") { r, n -> IntegrationsSection(r, n) },
 

@@ -12,15 +12,6 @@ fun LookSection(repo: LabRepository, nav: SettingsNav) {
     }
 }
 
-/** Dashboard layout is edited on the wall's ⚙ screen. */
-@Suppress("UNUSED_PARAMETER")
-@Composable
-fun DashboardSection(repo: LabRepository, nav: SettingsNav) {
-    SettingsPage(section("dashboard")!!, nav) {
-        item { WallOnly("⚙ > Dashboard", listOf("Pages and their rotation", "Groups and cards, dragged into place", "Which cards the screen shows", "Icon and size per card and per page")) }
-    }
-}
-
 /** Integrations and the network scan are managed on the wall. */
 @Suppress("UNUSED_PARAMETER")
 @Composable

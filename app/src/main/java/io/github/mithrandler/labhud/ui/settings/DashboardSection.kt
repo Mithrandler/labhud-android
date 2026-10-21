@@ -39,11 +39,11 @@ import io.github.mithrandler.labhud.ui.rememberGate
 import kotlinx.coroutines.launch
 
 /**
- * What LabHUD sees and has no card for (Proxmox guests, containers, services a network scan found):
+ * Layout is edited on the wall's ⚙ screen; here, as on the wall, what LabHUD sees and has no card for (Proxmox guests, containers, services a network scan found):
  * tick some and add them as cards, or stop offering them. Behind the gate, as every ⚙ change.
  */
 @Composable
-fun DiscoveredSection(repo: LabRepository, nav: SettingsNav) {
+fun DashboardSection(repo: LabRepository, nav: SettingsNav) {
     val scope = rememberCoroutineScope()
     val gate = rememberGate(repo)
     var list by remember { mutableStateOf<DiscoverList?>(null) }
@@ -71,12 +71,13 @@ fun DiscoveredSection(repo: LabRepository, nav: SettingsNav) {
     }
     LaunchedEffect(Unit) { gate.press { load() } }
 
-    SettingsPage(section("discovered")!!, nav) {
+    SettingsPage(section("dashboard")!!, nav) {
+        item { WallOnly("⚙ > Dashboard", listOf("Pages and their rotation", "Groups and cards, dragged into place", "Which cards the screen shows", "Icon and size per card and per page")) }
         if (list == null) item { Unlock { gate.press { load() } } }
         if (message.isNotEmpty()) item { Text(message, color = Lab.warn, fontSize = 13.sp) }
         list?.let { l ->
             item {
-                Panel("") {
+                Panel("Discovered · to approve") {
                     Text("Found, with no card yet. A card added here lands on the page \"discovered\"; move it from the wall's ⚙ > Dashboard.",
                         fontSize = 13.sp, color = Lab.sub)
                     if (l.items.isEmpty()) Text("Nothing new.", color = Lab.muted, fontSize = 14.sp, modifier = Modifier.padding(top = 8.dp))
