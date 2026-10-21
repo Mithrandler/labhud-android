@@ -33,11 +33,15 @@ data class Server(
 /** How the app is locked: not at all, with the phone's screen lock, or with a fingerprint. */
 enum class LockMode { None, ScreenLock, Fingerprint }
 
+/** The app's look: the phone's (System), dark, light, or the wall's own black HUD. Wall mode is always HUD. */
+enum class ThemeMode { System, Dark, Light, Hud }
+
 /** Settings of this phone, not of the server. */
 data class AppSettings(
     val lockMode: LockMode = LockMode.None,
     val wallOnBoot: Boolean = false,
     val notify: NotifyMode = NotifyMode.Off,
+    val theme: ThemeMode = ThemeMode.Hud,
 )
 
 /**
@@ -56,6 +60,7 @@ class ServerStore(private val context: Context) {
     private val unlockKey = booleanPreferencesKey("require_unlock")
     private val lockKey = stringPreferencesKey("lock_mode")
     private val wallBootKey = booleanPreferencesKey("wall_on_boot")
+    private val themeKey = stringPreferencesKey("theme_mode")
     private fun tokenKey(id: String) = stringPreferencesKey("token_$id")
     private fun pinKey(id: String) = stringPreferencesKey("pin_$id")
     private fun lastNoteKey(id: String) = androidx.datastore.preferences.core.longPreferencesKey("last_note_$id")
@@ -76,7 +81,8 @@ class ServerStore(private val context: Context) {
         val mode = p[lockKey]?.let { runCatching { LockMode.valueOf(it) }.getOrNull() }
             ?: if (p[unlockKey] == true) LockMode.ScreenLock else LockMode.None
         AppSettings(lockMode = mode, wallOnBoot = p[wallBootKey] ?: false,
-            notify = p[notifyKey]?.let { runCatching { NotifyMode.valueOf(it) }.getOrNull() } ?: NotifyMode.Off)
+            notify = p[notifyKey]?.let { runCatching { NotifyMode.valueOf(it) }.getOrNull() } ?: NotifyMode.Off,
+            theme = p[themeKey]?.let { runCatching { ThemeMode.valueOf(it) }.getOrNull() } ?: ThemeMode.Hud)
     }
 
     suspend fun currentNow(): Server? = current.first()
@@ -127,6 +133,7 @@ class ServerStore(private val context: Context) {
     suspend fun setPushEndpoint(url: String?) = context.store.edit { if (url == null) it.remove(pushKey) else it[pushKey] = url }
 
     suspend fun setLockMode(mode: LockMode) = context.store.edit { it[lockKey] = mode.name }
+    suspend fun setTheme(mode: ThemeMode) = context.store.edit { it[themeKey] = mode.name }
     suspend fun setWallOnBoot(on: Boolean) = context.store.edit { it[wallBootKey] = on }
 }
 

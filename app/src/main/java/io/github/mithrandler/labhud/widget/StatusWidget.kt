@@ -34,7 +34,7 @@ import androidx.glance.unit.ColorProvider
 import io.github.mithrandler.labhud.LabHudApp
 import io.github.mithrandler.labhud.MainActivity
 import io.github.mithrandler.labhud.data.LabState
-import io.github.mithrandler.labhud.ui.Lab
+import io.github.mithrandler.labhud.ui.Hud
 import java.text.DateFormat
 import java.util.Date
 
@@ -56,16 +56,16 @@ class StatusWidget : GlanceAppWidget() {
     @Composable
     private fun Content(name: String, st: LabState?) {
         val n = st?.problems?.size ?: -1
-        val color = when { n < 0 -> Lab.border; n == 0 -> Lab.green; else -> Lab.red }
+        val color = when { n < 0 -> Hud.border; n == 0 -> Hud.green; else -> Hud.red }
         val big = LocalSize.current.height >= 100.dp
         Column(
-            GlanceModifier.fillMaxSize().background(Lab.card).cornerRadius(16.dp).padding(12.dp)
+            GlanceModifier.fillMaxSize().background(Hud.card).cornerRadius(16.dp).padding(12.dp)
                 .clickable(actionStartActivity<MainActivity>()),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(GlanceModifier.size(10.dp).background(color).cornerRadius(5.dp)) {}
                 Spacer(GlanceModifier.width(8.dp))
-                Text(name, style = TextStyle(color = ColorProvider(Lab.title), fontSize = 12.sp, fontWeight = FontWeight.Medium), maxLines = 1)
+                Text(name, style = TextStyle(color = ColorProvider(Hud.title), fontSize = 12.sp, fontWeight = FontWeight.Medium), maxLines = 1)
             }
             Spacer(GlanceModifier.height(4.dp))
             Text(
@@ -75,11 +75,11 @@ class StatusWidget : GlanceAppWidget() {
             if (big && st != null) {
                 val byId = st.byId
                 st.problems.take(3).mapNotNull { byId[it] }.forEach {
-                    Text("· " + it.name, style = TextStyle(color = ColorProvider(Lab.red), fontSize = 13.sp), maxLines = 1)
+                    Text("· " + it.name, style = TextStyle(color = ColorProvider(Hud.red), fontSize = 13.sp), maxLines = 1)
                 }
                 Spacer(GlanceModifier.defaultWeight())
                 Text("as of " + DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(st.now * 1000)),
-                    style = TextStyle(color = ColorProvider(Lab.muted), fontSize = 11.sp))
+                    style = TextStyle(color = ColorProvider(Hud.muted), fontSize = 11.sp))
             }
         }
     }

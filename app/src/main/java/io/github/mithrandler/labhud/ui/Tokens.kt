@@ -10,8 +10,8 @@ import androidx.compose.ui.graphics.vector.addPathNodes
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-/** The colours of the wall and ⚙. */
-object Lab {
+/** The colours of the wall and ⚙: the HUD theme. The app's `Lab` (Theme.kt) is these or, in another theme, others. */
+object Hud {
     /** the background: pure black, the wall is an OLED screen that stays on */
     val bg = Color(0xFF000000)
     /** a card */

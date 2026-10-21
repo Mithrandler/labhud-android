@@ -1,35 +1,121 @@
 package io.github.mithrandler.labhud.ui
 
+import android.os.Build
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.dynamicDarkColorScheme
+import androidx.compose.material3.dynamicLightColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import io.github.mithrandler.labhud.data.ThemeMode
 
-private val scheme = darkColorScheme(
-    primary = Lab.accent,
+/** The colours the screens use, by role. [Hud] is one set of them; the other themes derive theirs from a Material scheme. */
+class LabPalette(
+    val bg: Color, val card: Color, val block: Color, val line: Color, val border: Color,
+    val text: Color, val sub: Color, val muted: Color, val accent: Color, val title: Color, val onTitle: Color,
+    val green: Color, val warn: Color, val red: Color, val redBg: Color, val redText: Color, val infoBg: Color,
+)
+
+private val hudPalette = LabPalette(
+    Hud.bg, Hud.card, Hud.block, Hud.line, Hud.border, Hud.text, Hud.sub, Hud.muted, Hud.accent, Hud.title, Hud.onTitle,
+    Hud.green, Hud.warn, Hud.red, Hud.redBg, Hud.redText, Hud.infoBg,
+)
+
+/** The palette now in force: one snapshot state, so a change of theme redraws whatever read [Lab]. */
+private object Current {
+    var palette by mutableStateOf(hudPalette)
+}
+
+/**
+ * The colours of the app, by role (the names of the wall's tokens). They follow the chosen theme:
+ * the HUD one is [Hud] (black, as the wall), the others come from the Material scheme (the wallpaper's
+ * on Android 12+). Status colours stay green, orange and red in every theme.
+ */
+object Lab {
+    val bg: Color get() = Current.palette.bg
+    val card: Color get() = Current.palette.card
+    val block: Color get() = Current.palette.block
+    val line: Color get() = Current.palette.line
+    val border: Color get() = Current.palette.border
+    val text: Color get() = Current.palette.text
+    val sub: Color get() = Current.palette.sub
+    val muted: Color get() = Current.palette.muted
+    val accent: Color get() = Current.palette.accent
+    val title: Color get() = Current.palette.title
+    val onTitle: Color get() = Current.palette.onTitle
+    val green: Color get() = Current.palette.green
+    val warn: Color get() = Current.palette.warn
+    val red: Color get() = Current.palette.red
+    val redBg: Color get() = Current.palette.redBg
+    val redText: Color get() = Current.palette.redText
+    val infoBg: Color get() = Current.palette.infoBg
+}
+
+private val hudScheme = darkColorScheme(
+    primary = Hud.accent,
     onPrimary = Color(0xFF001B3D),
     primaryContainer = Color(0xFF1B2B45),
-    onPrimaryContainer = Lab.title,
-    secondary = Lab.title,
-    background = Lab.bg,
-    onBackground = Lab.text,
-    surface = Lab.bg,
-    onSurface = Lab.text,
-    surfaceVariant = Lab.card,
-    onSurfaceVariant = Lab.sub,
-    surfaceContainerLowest = Lab.bg,
-    surfaceContainerLow = Lab.card,
-    surfaceContainer = Lab.card,
-    surfaceContainerHigh = Lab.block,
-    surfaceContainerHighest = Lab.line,
-    outline = Lab.border,
-    outlineVariant = Lab.line,
-    error = Lab.red,
+    onPrimaryContainer = Hud.title,
+    secondary = Hud.title,
+    background = Hud.bg,
+    onBackground = Hud.text,
+    surface = Hud.bg,
+    onSurface = Hud.text,
+    surfaceVariant = Hud.card,
+    onSurfaceVariant = Hud.sub,
+    surfaceContainerLowest = Hud.bg,
+    surfaceContainerLow = Hud.card,
+    surfaceContainer = Hud.card,
+    surfaceContainerHigh = Hud.block,
+    surfaceContainerHighest = Hud.line,
+    outline = Hud.border,
+    outlineVariant = Hud.line,
+    error = Hud.red,
     onError = Color.Black,
+)
+
+/** Dark and light without a wallpaper to take colours from (before Android 12): labhud's blue on neutral greys. */
+private val fallbackDark = darkColorScheme(
+    primary = Hud.accent, onPrimary = Color(0xFF00315F), primaryContainer = Color(0xFF1B2B45), onPrimaryContainer = Hud.title,
+    secondary = Hud.title,
+    background = Color(0xFF111317), onBackground = Color(0xFFE2E2E9), surface = Color(0xFF111317), onSurface = Color(0xFFE2E2E9),
+    surfaceVariant = Color(0xFF43474E), onSurfaceVariant = Color(0xFFC3C6CF),
+    surfaceContainerLowest = Color(0xFF0C0E11), surfaceContainerLow = Color(0xFF191C20), surfaceContainer = Color(0xFF1D2024),
+    surfaceContainerHigh = Color(0xFF282A2F), surfaceContainerHighest = Color(0xFF33353A),
+    outline = Color(0xFF8D9099), outlineVariant = Color(0xFF43474E),
+)
+
+private val fallbackLight = lightColorScheme(
+    primary = Color(0xFF0B57D0), onPrimary = Color.White, primaryContainer = Color(0xFFD8E2FF), onPrimaryContainer = Color(0xFF001A41),
+    secondary = Color(0xFF565F71),
+    background = Color(0xFFF9F9FF), onBackground = Color(0xFF1A1C20), surface = Color(0xFFF9F9FF), onSurface = Color(0xFF1A1C20),
+    surfaceVariant = Color(0xFFE0E2EC), onSurfaceVariant = Color(0xFF44474E),
+    surfaceContainerLowest = Color.White, surfaceContainerLow = Color(0xFFF3F3FA), surfaceContainer = Color(0xFFEDEDF4),
+    surfaceContainerHigh = Color(0xFFE7E8EE), surfaceContainerHighest = Color(0xFFE2E2E9),
+    outline = Color(0xFF74777F), outlineVariant = Color(0xFFC4C6D0),
+)
+
+/** The roles from a Material scheme; the status colours are labhud's own, darker on a light ground. */
+private fun paletteOf(cs: ColorScheme, dark: Boolean) = LabPalette(
+    bg = cs.background, card = cs.surfaceContainerLow, block = cs.surfaceContainerHigh, line = cs.outlineVariant, border = cs.outline,
+    text = cs.onSurface, sub = cs.onSurfaceVariant, muted = cs.onSurfaceVariant.copy(alpha = 0.75f),
+    accent = cs.primary, title = cs.primary, onTitle = cs.onPrimary,
+    green = if (dark) Hud.green else Color(0xFF1E8E3E), warn = if (dark) Hud.warn else Color(0xFFB45309),
+    red = if (dark) Hud.red else Color(0xFFD93025),
+    redBg = if (dark) Hud.redBg else Color(0xFFFDE7EA), redText = if (dark) Hud.redText else Color(0xFF7A1020),
+    infoBg = cs.surfaceContainer,
 )
 
 private val type = Typography().let { t ->
@@ -40,10 +126,30 @@ private val type = Typography().let { t ->
 }
 
 /** Section headings, like the wall's group titles: small capitals in the accent. */
-val Heading = TextStyle(fontSize = LabScale.textXs, fontWeight = FontWeight.SemiBold, letterSpacing = 1.sp, color = Lab.title)
+val Heading: TextStyle get() = TextStyle(fontSize = LabScale.textXs, fontWeight = FontWeight.SemiBold, letterSpacing = 1.sp, color = Lab.title)
+
+/** Whether [mode] is a dark theme now (System follows the phone). */
+@Composable
+fun isDarkTheme(mode: ThemeMode): Boolean = when (mode) {
+    ThemeMode.Dark, ThemeMode.Hud -> true
+    ThemeMode.Light -> false
+    ThemeMode.System -> isSystemInDarkTheme()
+}
 
 @Composable
-fun LabTheme(content: @Composable () -> Unit) {
+fun LabTheme(mode: ThemeMode = ThemeMode.Hud, content: @Composable () -> Unit) {
+    val dark = isDarkTheme(mode)
+    val context = LocalContext.current
+    val (scheme, palette) = remember(mode, dark, context) {
+        val cs = when {
+            mode == ThemeMode.Hud -> hudScheme
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> if (dark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+            dark -> fallbackDark
+            else -> fallbackLight
+        }
+        cs to (if (mode == ThemeMode.Hud) hudPalette else paletteOf(cs, dark))
+    }
+    if (Current.palette !== palette) Current.palette = palette
     MaterialTheme(colorScheme = scheme, typography = type, content = content)
 }
 

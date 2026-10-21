@@ -19,7 +19,7 @@ class SectionsTest {
                 "infra" to listOf("hosts", "containers", "integrations"),
                 "monitor" to listOf("alerts", "notifications"),
                 "system" to listOf("security", "phones", "api", "system"),
-                "phone" to listOf("servers", "lock", "wall"),
+                "phone" to listOf("servers", "theme", "lock", "wall"),
             ),
             SECTIONS.groupBy({ it.group }, { it.id }),
         )
@@ -30,7 +30,7 @@ class SectionsTest {
 
     @Test
     fun `not signed in shows only what is not the admin's`() =
-        assertEquals(listOf("notifications", "security", "servers", "lock", "wall"), visibleSections(admin = false).map { it.id })
+        assertEquals(listOf("notifications", "security", "servers", "theme", "lock", "wall"), visibleSections(admin = false).map { it.id })
 
     @Test
     fun `the admin sees everything`() =

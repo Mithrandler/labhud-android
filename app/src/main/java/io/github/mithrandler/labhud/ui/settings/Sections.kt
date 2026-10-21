@@ -74,6 +74,8 @@ val SECTIONS: List<Section> = listOf(
 
     Section("servers", "phone", "Servers", "The LabHUDs this phone knows", { LabIcons.server },
         admin = false, keywords = "add pair rename remove certificate") { r, n -> ServersSection(r, n) },
+    Section("theme", "phone", "Appearance", "System, dark, light or the HUD", { LabIcons.look },
+        admin = false, keywords = "theme dark light colour wallpaper material hud") { r, n -> ThemeSection(r, n) },
     Section("lock", "phone", "App lock", "Phone PIN or fingerprint when it opens", { LabIcons.lock },
         admin = false, keywords = "biometric fingerprint pin pattern") { r, n -> LockSection(r, n) },
     Section("wall", "phone", "Wall mode", "The wall page on this screen, kept on", { LabIcons.wall },

@@ -61,6 +61,9 @@ import io.github.mithrandler.labhud.ui.StatusScreen
 import io.github.mithrandler.labhud.ui.HostHistoryScreen
 import io.github.mithrandler.labhud.ui.Lab
 import io.github.mithrandler.labhud.ui.LabTheme
+import io.github.mithrandler.labhud.ui.isDarkTheme
+import io.github.mithrandler.labhud.data.AppSettings
+import androidx.compose.runtime.DisposableEffect
 import io.github.mithrandler.labhud.wall.WallActivity
 import kotlinx.coroutines.flow.MutableStateFlow
 import android.widget.Toast
@@ -73,14 +76,19 @@ class MainActivity : FragmentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
-            navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
-        )
         link.value = intent?.data
         val repo = (application as LabHudApp).repo
         setContent {
-            LabTheme {
+            val look by repo.store.settings.collectAsStateWithLifecycle(initialValue = AppSettings())
+            val darkBars = isDarkTheme(look.theme)
+            DisposableEffect(darkBars) {
+                enableEdgeToEdge(
+                    statusBarStyle = if (darkBars) SystemBarStyle.dark(android.graphics.Color.TRANSPARENT) else SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT),
+                    navigationBarStyle = if (darkBars) SystemBarStyle.dark(android.graphics.Color.TRANSPARENT) else SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT),
+                )
+                onDispose {}
+            }
+            LabTheme(look.theme) {
                 val unlocked by AppLock.unlocked.collectAsStateWithLifecycle()
                 val servers by repo.store.servers.collectAsStateWithLifecycle(initialValue = null)
                 val settings by repo.store.settings.collectAsStateWithLifecycle(initialValue = null)

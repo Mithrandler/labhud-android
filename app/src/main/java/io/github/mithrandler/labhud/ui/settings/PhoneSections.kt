@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.fragment.app.FragmentActivity
 import io.github.mithrandler.labhud.data.AppSettings
+import io.github.mithrandler.labhud.data.ThemeMode
 import io.github.mithrandler.labhud.data.LabRepository
 import io.github.mithrandler.labhud.data.LockMode
 import io.github.mithrandler.labhud.data.Server
@@ -99,6 +100,43 @@ fun ServersSection(repo: LabRepository, nav: SettingsNav) {
             confirmButton = { TextButton(onClick = { renaming = null; scope.launch { repo.store.rename(s.id, name.ifBlank { s.name }) } }) { Text("Save") } },
             dismissButton = { TextButton(onClick = { renaming = null }) { Text("Cancel") } },
         )
+    }
+}
+
+/** System, dark, light or HUD: the app's colours (wall mode stays HUD). */
+@Composable
+fun ThemeSection(repo: LabRepository, nav: SettingsNav) {
+    val settings by repo.store.settings.collectAsStateWithLifecycle(initialValue = AppSettings())
+    val scope = rememberCoroutineScope()
+    val options = listOf(
+        Triple(ThemeMode.System, "System", "Follows the phone's dark mode; colours from the wallpaper (Android 12+)."),
+        Triple(ThemeMode.Dark, "Dark", "Always dark, colours from the wallpaper (Android 12+)."),
+        Triple(ThemeMode.Light, "Light", "Always light, colours from the wallpaper (Android 12+)."),
+        Triple(ThemeMode.Hud, "HUD", "Black with LabHUD's blue, as the wall."),
+    )
+    SettingsPage(section("theme")!!, nav) {
+        item {
+            Surface(shape = CardShape, color = Lab.card, border = BorderStroke(1.dp, Lab.line)) {
+                Column(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+                    options.forEach { (mode, title, hint) ->
+                        Row(
+                            Modifier.fillMaxWidth().selectable(selected = mode == settings.theme, role = Role.RadioButton) {
+                                scope.launch { repo.store.setTheme(mode) }
+                            }.padding(horizontal = 6.dp, vertical = 2.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            RadioButton(selected = mode == settings.theme, onClick = null, modifier = Modifier.padding(8.dp))
+                            Column(Modifier.weight(1f)) {
+                                Text(title, fontSize = 15.sp, color = Lab.text)
+                                Text(hint, fontSize = 12.sp, color = Lab.muted)
+                            }
+                        }
+                    }
+                    Text("Wall mode is always the HUD. Status colours stay green, orange and red.", fontSize = 12.sp, color = Lab.muted,
+                        modifier = Modifier.padding(start = 14.dp, end = 14.dp, top = 4.dp, bottom = 6.dp))
+                }
+            }
+        }
     }
 }
 
