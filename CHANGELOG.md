@@ -6,6 +6,10 @@ All notable changes to LabHUD for Android. The format follows
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-10-21
+
+Needs labhud 0.1.0.
+
 ### Added
 - A container's CVEs (its image's last scan, critical and high) on its row and on the Updates list.
 
@@ -148,6 +152,7 @@ those parts are simply not shown.
   back in the settings or the camera was switched off in Quick Settings. It now asks again, offers
   the system settings after a permanent refusal, and pasting the link or signing in always works.
 
-[Unreleased]: https://github.com/Mithrandler/labhud-android/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/Mithrandler/labhud-android/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/Mithrandler/labhud-android/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/Mithrandler/labhud-android/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/Mithrandler/labhud-android/releases/tag/v0.1.0
