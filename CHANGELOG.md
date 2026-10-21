@@ -6,15 +6,29 @@ All notable changes to LabHUD for Android. The format follows
 
 ## [Unreleased]
 
-### Added
-- The HUD theme follows the board's theme (labhud 0.1.4: base oled or grey, accent a name or `#rrggbb`),
-  set in the web ⚙ > Dashboard > Theme; the System, Dark and Light themes keep the phone's own colours.
-- The app reads the `role` the server gives and shows the pages that role is allowed (`[roles.*]`, labhud 0.1.4).
+## [0.1.21] - 2026-10-22
 
-## [0.1.3] - 2026-10-21
+Needs labhud 0.1.1 (and labhud-agent 0.1.1 on a host for its Docker panel, stacks and live log).
 
 ### Added
-- Icons: containers, games and the page chips show their icon (from labhud 0.1.1, which serves them).
+- **Command palette**: the search (🔍) finds pages, cards, the cards' buttons (`restart · web`) and the
+  sections of Settings, best match first, without regard to diacritics; `>` looks only among the commands
+  and Enter runs the first hit. The buttons and Settings show only to the admin, and a button opens its
+  card and asks there, behind the PIN, as a press on it does.
+- **The host's Docker**: an agent's screen lists its images, volumes and networks with their sizes and
+  users, and cleans each kind on its own (unused images, untagged layers, unused networks, anonymous volumes).
+- **Stacks**: an agent's compose stacks with Edit, Redeploy, Restart and Down, and a new stack from a
+  compose file and a `.env` (whose values are never read back).
+- **Live log**: a container's log, followed as it is written.
+- **Discovered, to approve**: Settings > Dashboard lists what labhud found with no card (Proxmox guests,
+  containers, services from the scan), to add or dismiss, as on the wall.
+- **Small widgets**: clock (with its own time zone), calendar, and a web page inside a card (it stays on
+  its own host and loads no file).
+- Icons on list rows.
+- The HUD theme follows the board's theme (base oled or grey, accent a name or `#rrggbb`), set in the web
+  ⚙ > Dashboard > Theme; the System, Dark and Light themes keep the phone's own colours.
+- The app reads the `role` the server gives and shows the pages that role is allowed (`[roles.*]`).
+- Icons: containers, games and the page chips show their icon.
 - Settings > About: the version of the app and of the server, and "Update available" when GitHub
   has a newer release of the app, the server or the agent. The app sends `X-Labhud-App` so labhud
   knows which version asks.
@@ -22,6 +36,8 @@ All notable changes to LabHUD for Android. The format follows
 - Activity > Notifications: a Clear button, per phone and per server.
 
 ### Changed
+- In the System, Dark and Light themes: large top bars on Settings, Activity and Devices that fold as
+  the list scrolls, and raised cards without an edge (Material 3). HUD stays as the wall.
 - A faster app: a state that has not changed redraws nothing, the connection banner and the charts
   read what they draw themselves, the line charts build their paths once, a finger on a chart
   redraws only the chart, the sorting and grouping of Devices and Activity are remembered, and
@@ -179,8 +195,8 @@ those parts are simply not shown.
   back in the settings or the camera was switched off in Quick Settings. It now asks again, offers
   the system settings after a permanent refusal, and pasting the link or signing in always works.
 
-[Unreleased]: https://github.com/Mithrandler/labhud-android/compare/v0.1.3...HEAD
-[0.1.3]: https://github.com/Mithrandler/labhud-android/compare/v0.1.2...v0.1.3
+[Unreleased]: https://github.com/Mithrandler/labhud-android/compare/v0.1.21...HEAD
+[0.1.21]: https://github.com/Mithrandler/labhud-android/compare/v0.1.2...v0.1.21
 [0.1.2]: https://github.com/Mithrandler/labhud-android/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/Mithrandler/labhud-android/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/Mithrandler/labhud-android/releases/tag/v0.1.0

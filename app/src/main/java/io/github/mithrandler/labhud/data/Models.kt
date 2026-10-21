@@ -101,7 +101,7 @@ data class Page(
     val icon: String = "",
     /** A games page: its game servers, as the wall's tiles show them. */
     val servers: List<GameServer> = emptyList(),
-    /** At most this many columns of cells (1 to 6), 0 when the server sets none (labhud 0.1.2). */
+    /** At most this many columns of cells (1 to 6), 0 when the server sets none (labhud 0.1.1). */
     val columns: Int = 0,
     /** "compact" or "normal"; "" when the server sets none: the app's own. */
     val density: String = "",
@@ -232,7 +232,7 @@ data class Row(
     val value: String,
     val bad: Boolean,
     val quiet: Boolean = false,
-    /** A service-icon name (labhud 0.1.x, the fifth element), "" when the row has none. */
+    /** A service-icon name (labhud 0.1.1, the fifth element), "" when the row has none. */
     val icon: String = "",
 )
 
@@ -291,7 +291,7 @@ data class Card(
     val icon: String = "",
     /** Its place in the grid: s (1×1), m (2×1), l (2×2), xl (4×2); "" means s. */
     val size: String = "",
-    /** "clock" or "calendar": a card the app draws on its own, without data (labhud 0.1.x); "" for every other. */
+    /** "clock" or "calendar": a card the app draws on its own, without data (labhud 0.1.1); "" for every other. */
     val widget: String = "",
     /** The clock's time zone (an IANA name), "" for the phone's. */
     val timezone: String = "",
@@ -313,7 +313,7 @@ data class Alert(
 )
 
 /**
- * The board's theme (labhud 0.1.4, [display] base and accent): `base` is "oled" or "grey", `accent` a
+ * The board's theme (labhud 0.1.1, [display] base and accent): `base` is "oled" or "grey", `accent` a
  * name from [ACCENTS] or "#rrggbb". The app's HUD look follows it; the Material themes keep the phone's.
  */
 @Serializable
@@ -344,9 +344,9 @@ data class LabState(
     val cards: List<Card> = emptyList(),
     val problems: List<String> = emptyList(),
     val alerts: List<Alert> = emptyList(),
-    /** The board's look (labhud 0.1.4); the default is the wall's own. */
+    /** The board's look (labhud 0.1.1); the default is the wall's own. */
     val theme: BoardTheme = BoardTheme(),
-    /** viewer / operator / admin: what this token or phone is (labhud 0.1.4); `pages` already holds only its pages. */
+    /** viewer / operator / admin: what this token or phone is (labhud 0.1.1); `pages` already holds only its pages. */
     val role: String = "",
     /** Only in GET /api/v1/state, not in the stream: see [Info]. */
     @SerialName("device_admin") val deviceAdmin: Boolean? = null,

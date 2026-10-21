@@ -34,7 +34,7 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 
-/* The small widgets a card can be (labhud 0.1.x, X): drawn here without any data from the server, so they cost no polling. */
+/* The small widgets a card can be (labhud 0.1.1, X): drawn here without any data from the server, so they cost no polling. */
 
 /** The zone an IANA name stands for, the phone's own for "" or a name this phone does not know. */
 fun zoneOf(name: String): ZoneId = runCatching { if (name.isEmpty()) ZoneId.systemDefault() else ZoneId.of(name) }.getOrDefault(ZoneId.systemDefault())
