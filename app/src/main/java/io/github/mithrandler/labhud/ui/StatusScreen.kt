@@ -23,7 +23,6 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -198,12 +197,14 @@ fun StatusScreen(
                 // offline: the last numbers stay, dimmed, so they are not taken for live ones
                 HorizontalPager(pager, Modifier.fillMaxSize().alpha(if (conn is Conn.Offline) 0.5f else 1f), key = { pages.getOrNull(it)?.id ?: it }) { index ->
                     val page = pages.getOrNull(index)
+                    // the page's own columns and density, when the server sets them (⚙ > Dashboard)
+                    val gap = if (page?.compact == true) 6.dp else 10.dp
                     LazyVerticalGrid(
-                        GridCells.Adaptive(158.dp),
+                        CappedAdaptive(158.dp, page?.columns ?: 0),
                         Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        horizontalArrangement = Arrangement.spacedBy(gap),
+                        verticalArrangement = Arrangement.spacedBy(gap),
                     ) {
                         if (page == null) return@LazyVerticalGrid
                         if (page.games) games(page, server, onGame) else groups(page, byId, server, sparks, uptime, onCard)
@@ -227,7 +228,7 @@ private fun LazyGridScope.groups(page: Page, byId: Map<String, Card>, server: Se
         cards.forEach { c ->
             item(key = "c-${g.id}-${c.id}", span = { GridItemSpan(c.span(maxLineSpan)) }) {
                 HudCard(c, server, sparks = sparks, uptime = uptime?.cards?.get(c.id), percent = uptime?.percent?.get(c.id),
-                    coverage = uptime?.coverage?.get(c.id)) { onCard(c.id) }
+                    coverage = uptime?.coverage?.get(c.id), compact = page.compact) { onCard(c.id) }
             }
         }
     }
@@ -295,7 +296,8 @@ private fun BellSheet(st: LabState, onDismiss: () -> Unit, onCard: (String) -> U
             if (st.alerts.isEmpty()) Text("No alert now.", color = Lab.muted, fontSize = 14.sp)
             st.alerts.forEach { a ->
                 Row(
-                    Modifier.fillMaxWidth().clickable(enabled = a.card != null) { a.card?.let(onCard) }.padding(vertical = 8.dp),
+                    // a card the server hides is not in the state: its alert is still shown, but there is nothing to open
+                    Modifier.fillMaxWidth().clickable(enabled = a.card != null && a.card in st.byId) { a.card?.let(onCard) }.padding(vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Icon(LabIcons.warning, null, tint = Lab.warn, modifier = Modifier.size(18.dp))

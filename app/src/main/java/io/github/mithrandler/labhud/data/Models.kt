@@ -101,7 +101,13 @@ data class Page(
     val icon: String = "",
     /** A games page: its game servers, as the wall's tiles show them. */
     val servers: List<GameServer> = emptyList(),
-)
+    /** At most this many columns of cells (1 to 6), 0 when the server sets none (labhud 0.1.2). */
+    val columns: Int = 0,
+    /** "compact" or "normal"; "" when the server sets none: the app's own. */
+    val density: String = "",
+) {
+    val compact: Boolean get() = density == "compact"
+}
 
 /** A game server on a games page (labhud 0.3), or from /api/v1/game/<id> with [who]. */
 @Serializable

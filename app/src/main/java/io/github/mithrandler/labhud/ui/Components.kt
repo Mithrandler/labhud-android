@@ -55,6 +55,23 @@ fun statusWord(card: Card): String = when (card.status) {
     else -> ""
 }
 
+/** How many columns of at least [min] px a grid of [available] px takes, with [spacing] px between
+    them: as many as fit, never more than [cap] (a page's `columns`, 0 for no cap), never fewer than one. */
+fun gridColumns(available: Int, spacing: Int, min: Int, cap: Int): Int {
+    val fit = ((available + spacing) / (min + spacing).coerceAtLeast(1)).coerceAtLeast(1)
+    return if (cap > 0) fit.coerceAtMost(cap) else fit
+}
+
+/** Like GridCells.Adaptive(min), but a page may cap the columns. */
+class CappedAdaptive(private val min: androidx.compose.ui.unit.Dp, private val cap: Int) : androidx.compose.foundation.lazy.grid.GridCells {
+    override fun androidx.compose.ui.unit.Density.calculateCrossAxisCellSizes(availableSize: Int, spacing: Int): List<Int> {
+        val n = gridColumns(availableSize, spacing, min.roundToPx(), cap)
+        val usable = availableSize - spacing * (n - 1)
+        val each = usable / n
+        return List(n) { if (it < usable % n) each + 1 else each }
+    }
+}
+
 /** How many grid cells wide a card is on a phone, from its `size` (s 1, m and l 2, xl the whole row). */
 fun Card.span(maxLine: Int): Int = when {
     size == "xl" -> maxLine
@@ -93,6 +110,7 @@ fun HudCard(
     uptime: List<Double?>? = null,
     percent: Double? = null,
     coverage: Double? = null,
+    compact: Boolean = false,
     onClick: () -> Unit,
 ) {
     val sev = c.severity()
@@ -102,7 +120,8 @@ fun HudCard(
     ) {
         Row(Modifier.height(IntrinsicSize.Min)) {
             if (sev.isNotEmpty()) Box(Modifier.width(3.dp).fillMaxHeight().background(barColor(sev)))
-            Column(Modifier.weight(1f).heightIn(min = 92.dp).padding(horizontal = LabScale.space3, vertical = 10.dp)) {
+            Column(Modifier.weight(1f).heightIn(min = if (compact) 72.dp else 92.dp)
+                .padding(horizontal = LabScale.space3, vertical = if (compact) 6.dp else 10.dp)) {
                 CardHead(c, server)
                 val fade = Modifier.alpha(if (c.frozen) 0.45f else 1f)
                 CardBody(c, fade)
