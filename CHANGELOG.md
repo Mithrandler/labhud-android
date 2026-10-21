@@ -6,6 +6,18 @@ All notable changes to LabHUD for Android. The format follows
 
 ## [Unreleased]
 
+### Changed
+- A faster app: a state that has not changed redraws nothing, the connection banner and the charts
+  read what they draw themselves, the line charts build their paths once, a finger on a chart
+  redraws only the chart, the sorting and grouping of Devices and Activity are remembered, and
+  one HTTP client per server is reused. The state goes to the disk once a minute (and when the
+  app stops), a card asks for the history of its own series only (labhud with `?keys=`), wall mode
+  stops the app's own stream while it is open, and a baseline profile is shipped.
+- A card's containers are one panel per stack.
+
+### Removed
+- Leftovers of the 0.1.x packages (the "soon" badge, unused code and imports).
+
 ## [0.1.2] - 2026-10-21
 
 Needs labhud 0.1.0.
