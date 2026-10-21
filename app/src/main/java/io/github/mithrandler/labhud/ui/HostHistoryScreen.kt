@@ -1,6 +1,8 @@
 package io.github.mithrandler.labhud.ui
 
-import androidx.compose.foundation.Canvas
+import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
@@ -25,12 +27,11 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
@@ -48,7 +49,6 @@ import io.github.mithrandler.labhud.data.History
 import io.github.mithrandler.labhud.data.LabRepository
 import io.github.mithrandler.labhud.data.Metric
 import kotlinx.coroutines.delay
-import java.text.DateFormat
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -60,20 +60,21 @@ private const val POINTS = 96
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HostHistoryScreen(repo: LabRepository, id: String, onBack: () -> Unit, onCard: (String) -> Unit) {
-    val state by repo.state.collectAsState()
+    val state by repo.state.collectAsStateWithLifecycle()
     val card = state?.byId?.get(id)
     var span by rememberSaveable { mutableStateOf(0) }
     var short by remember { mutableStateOf<History?>(null) }
     var long by remember { mutableStateOf<History?>(null) }
 
-    LaunchedEffect(id) {
+    val keys = card?.resources().orEmpty().map { it.key }
+    LaunchedEffect(id, keys) {
         while (true) {
-            repo.api()?.let { api -> runCatching { api.history(false) }.onSuccess { short = it } }
+            repo.api()?.let { api -> runCatching { api.history(false, keys) }.onSuccess { short = it } }
             delay(60_000)
         }
     }
-    LaunchedEffect(span) {
-        if (span > 0) repo.api()?.let { api -> runCatching { api.history(true) }.onSuccess { long = it } }
+    LaunchedEffect(span, keys) {
+        if (span > 0) repo.api()?.let { api -> runCatching { api.history(true, keys) }.onSuccess { long = it } }
     }
 
     Scaffold(
@@ -127,10 +128,11 @@ fun HostHistoryScreen(repo: LabRepository, id: String, onBack: () -> Unit, onCar
  */
 @Composable
 fun ScrubChart(raw: List<Double?>, step: Int, m: Metric, modifier: Modifier = Modifier) {
-    val per = ((raw.size + POINTS - 1) / POINTS).coerceAtLeast(1)
-    val points = buckets(raw, POINTS)
-    val values = points.filterNotNull()
-    var touch by remember { mutableStateOf<Float?>(null) }
+    val per = remember(raw) { ((raw.size + POINTS - 1) / POINTS).coerceAtLeast(1) }
+    val points = remember(raw) { buckets(raw, POINTS) }
+    val values = remember(points) { points.filterNotNull() }
+    // the finger's place (0..1) is read where it is used: the label above, and the draw phase of the canvas
+    val touch = remember { mutableStateOf<Float?>(null) }
     if (values.size < 2) {
         Text("No history yet", fontSize = 12.sp, color = Lab.muted, modifier = modifier)
         return
@@ -138,60 +140,61 @@ fun ScrubChart(raw: List<Double?>, step: Int, m: Metric, modifier: Modifier = Mo
     val lo = if (m.isShare()) 0.0 else values.min() - 2
     val hi = if (m.isShare()) maxOf(100.0, values.max()) else values.max() + 2
     val color = m.color()
-    val now = System.currentTimeMillis()
+    val now = remember(raw) { System.currentTimeMillis() }
     val pointMs = per * step * 1000L
-    val time = if (raw.size * step > 86400) SimpleDateFormat("EEE HH:mm", Locale.ENGLISH) else DateFormat.getTimeInstance(DateFormat.SHORT)
+    val time = if (raw.size * step > 86400) WEEKDAY_TIME else SHORT_TIME
+
+    fun indexOf(f: Float) = ((points.size - 1) * f.coerceIn(0f, 1f) + 0.5f).toInt()
 
     Column(modifier) {
-        val at = touch?.let { x -> x.coerceIn(0f, 1f) }?.let { f -> ((points.size - 1) * f + 0.5f).toInt() }
-        Text(
-            if (at != null) "${m.show(points[at])} · ${time.format(Date(now - (points.size - 1 - at) * pointMs))}" else " ",
-            fontSize = 12.sp, color = Lab.sub,
-        )
+        TouchLabel(touch) { f ->
+            val at = indexOf(f)
+            "${m.show(points[at])} · ${time.format(Date(now - (points.size - 1 - at) * pointMs))}"
+        }
         Box(Modifier.fillMaxWidth().height(140.dp).pointerInput(points.size) {
             awaitEachGesture {
                 val down = awaitFirstDown()
-                touch = down.position.x / size.width
+                touch.value = down.position.x / size.width
                 while (true) {
                     val e = awaitPointerEvent()
                     val p = e.changes.firstOrNull() ?: break
                     if (!p.pressed) break
-                    touch = p.position.x / size.width
+                    touch.value = p.position.x / size.width
                     p.consume()
                 }
-                touch = null
+                touch.value = null
             }
-        }) {
-            Canvas(Modifier.fillMaxSize()) {
-                val stepX = size.width / (points.size - 1)
-                fun y(v: Double) = (size.height * (1 - (v - lo) / (hi - lo))).toFloat()
+        }.drawWithCache {
+            val stepX = size.width / (points.size - 1)
+            fun y(v: Double) = (size.height * (1 - (v - lo) / (hi - lo))).toFloat()
+            val drawn = runsOf(points, stepX, ::y).filter { it.size >= 2 }.map { r ->
+                val line = linePath(r)
+                val fill = Path().apply { addPath(line); lineTo(r.last().x, size.height); lineTo(r.first().x, size.height); close() }
+                line to fill
+            }
+            val shade = Brush.verticalGradient(listOf(color.copy(alpha = 0.28f), Color.Transparent))
+            val stroke = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
+            val dash = PathEffect.dashPathEffect(floatArrayOf(8f, 8f))
+            onDrawBehind {
                 for (i in 0..4) {
                     val gy = size.height * i / 4f
                     drawLine(Lab.line, Offset(0f, gy), Offset(size.width, gy), strokeWidth = 1f)
                 }
                 // where it turns serious, when the metric is a share: 90% dashed
                 if (m.isShare()) drawLine(Lab.red.copy(alpha = 0.5f), Offset(0f, y(90.0)), Offset(size.width, y(90.0)),
-                    strokeWidth = 1.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 8f)))
-                var run = mutableListOf<Offset>()
-                val runs = mutableListOf<List<Offset>>()
-                points.forEachIndexed { i, v ->
-                    if (v == null) { if (run.isNotEmpty()) runs.add(run); run = mutableListOf() } else run.add(Offset(i * stepX, y(v)))
+                    strokeWidth = 1.dp.toPx(), pathEffect = dash)
+                for ((line, fill) in drawn) {
+                    drawPath(fill, shade)
+                    drawPath(line, color, style = stroke)
                 }
-                if (run.isNotEmpty()) runs.add(run)
-                for (r in runs) {
-                    if (r.size < 2) continue
-                    val line = Path().apply { moveTo(r[0].x, r[0].y); r.drop(1).forEach { lineTo(it.x, it.y) } }
-                    val fill = Path().apply { addPath(line); lineTo(r.last().x, size.height); lineTo(r.first().x, size.height); close() }
-                    drawPath(fill, Brush.verticalGradient(listOf(color.copy(alpha = 0.28f), Color.Transparent)))
-                    drawPath(line, color, style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
-                }
-                if (at != null) {
+                touch.value?.let { f ->
+                    val at = indexOf(f)
                     val x = at * stepX
                     drawLine(Lab.sub, Offset(x, 0f), Offset(x, size.height), strokeWidth = 1.dp.toPx())
                     points[at]?.let { drawCircle(color, 4.dp.toPx(), Offset(x, y(it))) }
                 }
             }
-        }
+        })
         Row(Modifier.fillMaxWidth().padding(top = 6.dp)) {
             listOf("min" to values.min(), "avg" to values.average(), "max" to values.max()).forEach { (k, v) ->
                 Text("$k ${m.show(v)}", fontSize = 12.sp, color = Lab.muted, modifier = Modifier.weight(1f))
@@ -199,3 +202,12 @@ fun ScrubChart(raw: List<Double?>, step: Int, m: Metric, modifier: Modifier = Mo
         }
     }
 }
+
+/** The line above a chart: what is under the finger (blank when none). Alone, so a moving finger redraws this and not the chart. */
+@Composable
+private fun TouchLabel(touch: State<Float?>, text: (Float) -> String) {
+    val f = touch.value
+    Text(if (f != null) text(f) else " ", fontSize = 12.sp, color = Lab.sub)
+}
+
+private val WEEKDAY_TIME = SimpleDateFormat("EEE HH:mm", Locale.ENGLISH)

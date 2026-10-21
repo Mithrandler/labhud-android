@@ -1,6 +1,8 @@
 package io.github.mithrandler.labhud.ui.settings
 
 import android.Manifest
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
 import android.os.Build
 import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -21,12 +23,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
@@ -60,8 +60,8 @@ private val VIAS = listOf("ntfy" to "ntfy", "app" to "App", "both" to "Both")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotifySection(repo: LabRepository, nav: SettingsNav) {
-    val rights by repo.rights.collectAsState()
-    val settings by repo.store.settings.collectAsState(initial = AppSettings())
+    val rights by repo.rights.collectAsStateWithLifecycle()
+    val settings by repo.store.settings.collectAsStateWithLifecycle(initialValue = AppSettings())
     val scope = rememberCoroutineScope()
     val gate = rememberGate(repo)
     var alerts by remember { mutableStateOf<AlertSetup?>(null) }
@@ -155,7 +155,7 @@ fun NotifySection(repo: LabRepository, nav: SettingsNav) {
 private fun NotifyChoice(repo: LabRepository, mode: NotifyMode, via: String?) {
     val activity = LocalActivity.current as FragmentActivity
     val scope = rememberCoroutineScope()
-    val rights by repo.rights.collectAsState()
+    val rights by repo.rights.collectAsStateWithLifecycle()
     var asked by remember { mutableStateOf<String?>(null) }
     var note by remember { mutableStateOf("") }
     LaunchedEffect(mode) { asked = runCatching { repo.api()?.notes(Long.MAX_VALUE / 2)?.via }.getOrNull() }

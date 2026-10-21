@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -221,13 +222,15 @@ fun Meter(pct: Double, sev: String, modifier: Modifier = Modifier) {
 @Composable
 fun UptimeBar(values: List<Double?>, modifier: Modifier, slices: Int = 48) {
     val n = slices
-    val per = ((values.size + n - 1) / n).coerceAtLeast(1)
-    val parts = values.chunked(per).map { b ->
-        val known = b.filterNotNull()
-        when {
-            known.isEmpty() -> null
-            known.all { it < 0 } -> -1.0
-            else -> known.filter { it >= 0 }.min()
+    val parts = remember(values, n) {
+        val per = ((values.size + n - 1) / n).coerceAtLeast(1)
+        values.chunked(per).map { b ->
+            val known = b.filterNotNull()
+            when {
+                known.isEmpty() -> null
+                known.all { it < 0 } -> -1.0
+                else -> known.filter { it >= 0 }.min()
+            }
         }
     }
     Canvas(modifier) {

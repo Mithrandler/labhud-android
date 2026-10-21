@@ -21,6 +21,15 @@ val version = System.getenv("LABHUD_VERSION")?.removePrefix("v") ?: "0.1.0-dev"
 val code = Regex("""(\d+)\.(\d+)\.(\d+)""").find(version)?.destructured
     ?.let { (a, b, c) -> 1_000_000 + a.toInt() * 10000 + b.toInt() * 100 + c.toInt() } ?: 1
 
+composeCompiler {
+    stabilityConfigurationFiles.add(layout.projectDirectory.file("compose_compiler_config.conf"))
+    // ./gradlew assembleRelease -PcomposeReports writes build/compose-reports (what is skippable, what is stable).
+    if (providers.gradleProperty("composeReports").isPresent) {
+        reportsDestination = layout.buildDirectory.dir("compose-reports")
+        metricsDestination = layout.buildDirectory.dir("compose-reports")
+    }
+}
+
 android {
     namespace = "io.github.mithrandler.labhud"
     compileSdk = 37
@@ -75,6 +84,7 @@ android {
 
 dependencies {
     implementation(libs.androidx.core)
+    implementation(libs.androidx.profileinstaller)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)

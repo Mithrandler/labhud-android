@@ -50,8 +50,6 @@ object Push {
         }
     }
 
-    fun distributors(context: Context): List<String> = UnifiedPush.getDistributors(context)
-
     /** Ends the registration; the servers forget the endpoint. */
     suspend fun disable(context: Context) {
         runCatching { UnifiedPush.unregister(context) }

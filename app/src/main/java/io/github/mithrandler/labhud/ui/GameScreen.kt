@@ -1,6 +1,8 @@
 package io.github.mithrandler.labhud.ui
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -29,12 +31,10 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -51,7 +51,7 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun GameScreen(repo: LabRepository, id: String, onBack: () -> Unit, onSignIn: () -> Unit) {
-    val state by repo.state.collectAsState()
+    val state by repo.state.collectAsStateWithLifecycle()
     val live = state?.pages?.flatMap { it.servers }?.firstOrNull { it.id == id }
     var detail by remember { mutableStateOf<GameServer?>(null) }
     var ask by remember { mutableStateOf<Action?>(null) }

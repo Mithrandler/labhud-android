@@ -1,6 +1,8 @@
 package io.github.mithrandler.labhud.ui
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -23,13 +25,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -43,7 +43,6 @@ import io.github.mithrandler.labhud.ui.settings.BrandMark
 import io.github.mithrandler.labhud.ui.settings.GROUPS
 import io.github.mithrandler.labhud.ui.settings.Section
 import io.github.mithrandler.labhud.ui.settings.SignInDialog
-import io.github.mithrandler.labhud.ui.settings.SoonBadge
 import io.github.mithrandler.labhud.ui.settings.visibleSections
 import kotlinx.coroutines.launch
 
@@ -55,7 +54,7 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(repo: LabRepository, onOpen: (String) -> Unit, signInFirst: Boolean = false) {
-    val rights by repo.rights.collectAsState()
+    val rights by repo.rights.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     var signingIn by remember { mutableStateOf(signInFirst) }
     var query by rememberSaveable { mutableStateOf("") }
@@ -116,13 +115,12 @@ private fun SectionGroup(rows: List<Section>, onOpen: (String) -> Unit) {
                     Modifier.fillMaxWidth().clickable { onOpen(s.id) }.padding(horizontal = 14.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Icon(s.icon(), null, tint = if (s.soon) Lab.muted else Lab.title, modifier = Modifier.size(24.dp))
+                    Icon(s.icon(), null, tint = Lab.title, modifier = Modifier.size(24.dp))
                     Spacer(Modifier.width(14.dp))
                     Column(Modifier.weight(1f)) {
-                        Text(s.title, fontWeight = FontWeight.Medium, fontSize = 15.sp, color = if (s.soon) Lab.sub else Lab.text)
+                        Text(s.title, fontWeight = FontWeight.Medium, fontSize = 15.sp, color = Lab.text)
                         Text(s.hint, fontSize = 12.sp, color = Lab.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
-                    if (s.soon) SoonBadge()
                     Icon(LabIcons.chevronRight, null, tint = Lab.muted, modifier = Modifier.padding(start = 6.dp).size(20.dp))
                 }
             }

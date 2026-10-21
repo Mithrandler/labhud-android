@@ -45,10 +45,6 @@ class SectionsTest {
     }
 
     @Test
-    fun `no section is all to come any more`() =
-        assertEquals(emptyList<String>(), SECTIONS.filter { it.soon }.map { it.id })
-
-    @Test
     fun `API and audit is the admin's and found by audit`() {
         assertEquals(true, section("api")?.admin)
         assertEquals(listOf("api"), visibleSections(true, "audit").map { it.id })

@@ -1,6 +1,8 @@
 package io.github.mithrandler.labhud
 
 import android.content.ComponentName
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
 import io.github.mithrandler.labhud.ui.LabIcons
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -32,11 +34,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -81,10 +81,10 @@ class MainActivity : FragmentActivity() {
         val repo = (application as LabHudApp).repo
         setContent {
             LabTheme {
-                val unlocked by AppLock.unlocked.collectAsState()
-                val servers by repo.store.servers.collectAsState(initial = null)
-                val settings by repo.store.settings.collectAsState(initial = null)
-                val pending by link.collectAsState()
+                val unlocked by AppLock.unlocked.collectAsStateWithLifecycle()
+                val servers by repo.store.servers.collectAsStateWithLifecycle(initialValue = null)
+                val settings by repo.store.settings.collectAsStateWithLifecycle(initialValue = null)
+                val pending by link.collectAsStateWithLifecycle()
                 // the lock follows the stored choice before anything is shown, and asks by itself
                 settings?.let { AppLock.mode = it.lockMode }
                 LaunchedEffect(unlocked, settings?.lockMode) { if (settings != null && !unlocked) AppLock.prompt(this@MainActivity) {} }
@@ -104,7 +104,7 @@ class MainActivity : FragmentActivity() {
         link.value = intent.data
     }
 
-    /** labhud://oidc?r=… (package F): single sign-on comes back from the browser; Settings › Security shows the result. */
+    /** labhud://oidc?r=… single sign-on comes back from the browser; Settings › Security shows the result. */
     private suspend fun oidcReturn(u: Uri, repo: LabRepository, nav: NavHostController) {
         val said = Sso.finish(u, repo)
         Toast.makeText(this, said, Toast.LENGTH_LONG).show()

@@ -1,9 +1,10 @@
 package io.github.mithrandler.labhud.ui
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,7 +28,6 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
@@ -48,13 +48,11 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -76,6 +74,11 @@ import kotlinx.coroutines.launch
 import java.text.DateFormat
 import java.util.Date
 
+private val WHITESPACE = Regex("\\s+")
+
+/** Built once: a DateFormat costs more to make than to use. Only ever called from the main thread. */
+internal val SHORT_TIME: DateFormat = DateFormat.getTimeInstance(DateFormat.SHORT)
+
 /**
  * Status: the wall's pages as chips, then each group under its title as a grid of [HudCard]s (two
  * cells to a row on a phone, more on a tablet; a card's `size` says how many it takes), each with
@@ -92,12 +95,11 @@ fun StatusScreen(
     onWall: () -> Unit,
     onLock: (() -> Unit)?,
 ) {
-    val state by repo.state.collectAsState()
-    val conn by repo.conn.collectAsState()
-    val server by repo.server.collectAsState()
-    val info by repo.info.collectAsState()
-    val liveAt by repo.liveAt.collectAsState()
-    val servers by repo.store.servers.collectAsState(initial = emptyList())
+    val state by repo.state.collectAsStateWithLifecycle()
+    val conn by repo.conn.collectAsStateWithLifecycle()
+    val server by repo.server.collectAsStateWithLifecycle()
+    val info by repo.info.collectAsStateWithLifecycle()
+    val servers by repo.store.servers.collectAsStateWithLifecycle(initialValue = emptyList())
     val scope = rememberCoroutineScope()
     var menu by remember { mutableStateOf(false) }
     var bell by remember { mutableStateOf(false) }
@@ -156,7 +158,7 @@ fun StatusScreen(
         },
     ) { pad ->
         Column(Modifier.padding(pad).fillMaxSize()) {
-            ConnBanner(conn, liveAt, onRetry = { repo.retry() })
+            ConnBanner(conn, repo.liveAt, onRetry = { repo.retry() })
             if (st == null) {
                 Text(if (conn is Conn.Offline) "Nothing kept from this server yet: the numbers come once it answers." else "Connecting…",
                     color = Lab.muted, modifier = Modifier.padding(24.dp))
@@ -255,11 +257,14 @@ private fun GameTile(g: GameServer, onClick: () -> Unit) {
 @Composable
 private fun SearchSheet(st: LabState, onDismiss: () -> Unit, onCard: (String) -> Unit) {
     var q by remember { mutableStateOf("") }
-    val words = q.trim().lowercase().split(Regex("\\s+")).filter { it.isNotEmpty() }
-    val hits = if (words.isEmpty()) emptyList() else st.byId.values.filter { c ->
-        val text = listOf(c.name, c.subtitle, c.page.orEmpty(), c.group.orEmpty(), c.url).joinToString(" ").lowercase()
-        words.all { it in text }
-    }.sortedBy { it.name.lowercase() }.take(20)
+    val hits = remember(q, st) {
+        val words = q.trim().lowercase().split(WHITESPACE).filter { it.isNotEmpty() }
+        if (words.isEmpty()) emptyList() else st.byId.values.filter { c ->
+            val text = listOf(c.name, c.subtitle, c.page.orEmpty(), c.group.orEmpty(), c.url).joinToString(" ").lowercase()
+            words.all { it in text }
+        }.sortedBy { it.name.lowercase() }.take(20)
+    }
+    val searching = q.isNotBlank()
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Lab.card) {
         Column(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 32.dp)) {
             androidx.compose.material3.OutlinedTextField(q, { q = it }, Modifier.fillMaxWidth(), singleLine = true,
@@ -271,7 +276,7 @@ private fun SearchSheet(st: LabState, onDismiss: () -> Unit, onCard: (String) ->
                     Text(listOfNotNull(c.page, c.group).joinToString(" · "), fontSize = 12.sp, color = Lab.muted, maxLines = 1)
                 }
             }
-            if (words.isNotEmpty() && hits.isEmpty()) Text("Nothing matches.", color = Lab.muted, fontSize = 14.sp, modifier = Modifier.padding(top = 10.dp))
+            if (searching && hits.isEmpty()) Text("Nothing matches.", color = Lab.muted, fontSize = 14.sp, modifier = Modifier.padding(top = 10.dp))
         }
     }
 }
@@ -280,7 +285,7 @@ private fun SearchSheet(st: LabState, onDismiss: () -> Unit, onCard: (String) ->
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun BellSheet(st: LabState, onDismiss: () -> Unit, onCard: (String) -> Unit) {
-    val time = DateFormat.getTimeInstance(DateFormat.SHORT)
+    val time = SHORT_TIME
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Lab.card) {
         Column(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 32.dp)) {
             Text("ALERTS", style = Heading, modifier = Modifier.padding(bottom = 6.dp))
@@ -320,7 +325,7 @@ private fun LiveMark(st: LabState, conn: Conn) {
         st.problems.isEmpty() -> Lab.green
         else -> Lab.red
     }
-    val time = DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(st.now * 1000))
+    val time = SHORT_TIME.format(Date(st.now * 1000))
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(end = 2.dp)) {
         Box(Modifier.size(8.dp).clip(CircleShape).background(color))
         Spacer(Modifier.width(6.dp))
@@ -350,8 +355,10 @@ private fun ProblemsBar(problems: List<Card>, onClick: () -> Unit) {
  * the next try is, with a button to try now. It stays up through the retries instead of flashing.
  */
 @Composable
-fun ConnBanner(conn: Conn, liveAt: Long, onRetry: () -> Unit) {
+fun ConnBanner(conn: Conn, liveAtFlow: kotlinx.coroutines.flow.StateFlow<Long>, onRetry: () -> Unit) {
     if (conn !is Conn.Offline) return
+    // read here, not by the screen: the stream's every message would redraw the whole screen
+    val liveAt by liveAtFlow.collectAsStateWithLifecycle()
     var now by remember { mutableStateOf(android.os.SystemClock.elapsedRealtime()) }
     LaunchedEffect(conn) {
         while (true) { now = android.os.SystemClock.elapsedRealtime(); delay(1_000) }
@@ -366,7 +373,7 @@ fun ConnBanner(conn: Conn, liveAt: Long, onRetry: () -> Unit) {
                 Text(if (conn.fatal) "Not connected" else "Offline", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = color)
                 Text(conn.message, fontSize = 13.sp, color = Lab.sub)
                 val parts = listOfNotNull(
-                    liveAt.takeIf { it > 0 }?.let { "Last data " + DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(it)) },
+                    liveAt.takeIf { it > 0 }?.let { "Last data " + SHORT_TIME.format(Date(it)) },
                     when {
                         conn.fatal -> null
                         conn.trying -> "trying again…"

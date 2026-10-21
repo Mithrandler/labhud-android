@@ -1,6 +1,8 @@
 package io.github.mithrandler.labhud.ui.settings
 
 import androidx.activity.compose.LocalActivity
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -20,12 +22,10 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
@@ -47,8 +47,8 @@ import kotlinx.coroutines.launch
 /** The saved servers list: select, rename, remove, add. */
 @Composable
 fun ServersSection(repo: LabRepository, nav: SettingsNav) {
-    val servers by repo.store.servers.collectAsState(initial = emptyList())
-    val current by repo.server.collectAsState()
+    val servers by repo.store.servers.collectAsStateWithLifecycle(initialValue = emptyList())
+    val current by repo.server.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     var removing by remember { mutableStateOf<Server?>(null) }
     var renaming by remember { mutableStateOf<Server?>(null) }
@@ -105,7 +105,7 @@ fun ServersSection(repo: LabRepository, nav: SettingsNav) {
 /** None, the screen lock or a fingerprint. Any change is confirmed with the lock it turns on (or, when turning it off, the one it had), so a wrong choice never shuts you out of the app. */
 @Composable
 fun LockSection(repo: LabRepository, nav: SettingsNav) {
-    val settings by repo.store.settings.collectAsState(initial = AppSettings())
+    val settings by repo.store.settings.collectAsStateWithLifecycle(initialValue = AppSettings())
     val scope = rememberCoroutineScope()
 
     SettingsPage(section("lock")!!, nav) {
@@ -116,7 +116,7 @@ fun LockSection(repo: LabRepository, nav: SettingsNav) {
 /** The whole wall page on this screen, kept on, for an old phone or tablet on the wall, plus the "start in wall mode" boot switch. */
 @Composable
 fun WallSection(repo: LabRepository, nav: SettingsNav) {
-    val settings by repo.store.settings.collectAsState(initial = AppSettings())
+    val settings by repo.store.settings.collectAsStateWithLifecycle(initialValue = AppSettings())
     val scope = rememberCoroutineScope()
 
     SettingsPage(section("wall")!!, nav) {

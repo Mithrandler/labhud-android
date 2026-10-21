@@ -21,7 +21,7 @@ class RefreshWorker(context: Context, params: WorkerParameters) : CoroutineWorke
         val repo = (ctx as LabHudApp).repo
         val server = repo.store.currentNow() ?: return Result.success()
         val api = repo.api(server) ?: return Result.success()
-        runCatching { api.state() }.onSuccess { repo.keep(server.id, it) }
+        runCatching { api.state() }.onSuccess { repo.keep(server.id, it, now = true) }
         StatusWidget().updateAll(ctx)
         return Result.success()   // unreachable now is fine: the next run tries again
     }

@@ -1,6 +1,8 @@
 package io.github.mithrandler.labhud.ui
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.draw.alpha
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -29,11 +31,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -62,17 +63,31 @@ private fun Card.matches(f: Filter): Boolean = when (f) {
     Filter.Problems -> bad == true
 }
 
+private val TYPE_ORDER = listOf(
+    "proxmox" to "Proxmox",
+    "nas" to "NAS & backup",
+    "docker" to "Docker hosts",
+    "vm" to "VMs & LXC",
+    "pc" to "PCs & other",
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DevicesScreen(repo: LabRepository, onCard: (String) -> Unit) {
-    val state by repo.state.collectAsState()
-    val conn by repo.conn.collectAsState()
-    val liveAt by repo.liveAt.collectAsState()
-    val server by repo.server.collectAsState()
+    val state by repo.state.collectAsStateWithLifecycle()
+    val conn by repo.conn.collectAsStateWithLifecycle()
+    val server by repo.server.collectAsStateWithLifecycle()
     var filter by rememberSaveable { mutableStateOf(Filter.All) }
 
-    val devices = state?.cards.orEmpty().filter { it.type.isNotEmpty() }.distinctBy { it.id }
-    val filtered = devices.filter { it.matches(filter) }
+    val devices = remember(state) { state?.cards.orEmpty().filter { it.type.isNotEmpty() }.distinctBy { it.id } }
+    val filtered = remember(devices, filter) { devices.filter { it.matches(filter) } }
+    // sorted once per change of the state, not on every redraw: the red ones first, then by name
+    val grouped = remember(filtered) {
+        TYPE_ORDER.map { (type, title) ->
+            Triple(type, title, filtered.filter { it.type == type }.sortedWith(compareBy({ it.bad != true }, { it.name.lowercase() })))
+        }.filter { it.third.isNotEmpty() }
+    }
+    val counts = remember(devices) { Filter.entries.associateWith { f -> devices.count { it.matches(f) } } }
 
     Scaffold(
         containerColor = Lab.bg,
@@ -84,7 +99,7 @@ fun DevicesScreen(repo: LabRepository, onCard: (String) -> Unit) {
         },
     ) { pad ->
         Column(Modifier.padding(pad).fillMaxSize()) {
-            ConnBanner(conn, liveAt, onRetry = { repo.retry() })
+            ConnBanner(conn, repo.liveAt, onRetry = { repo.retry() })
             Row(
                 Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 4.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -93,7 +108,7 @@ fun DevicesScreen(repo: LabRepository, onCard: (String) -> Unit) {
                     FilterChip(
                         selected = filter == f,
                         onClick = { filter = f },
-                        label = { Text("${f.label} ${devices.count { it.matches(f) }}") },
+                        label = { Text("${f.label} ${counts[f]}") },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = Lab.accent.copy(alpha = 0.2f),
                             selectedLabelColor = Lab.title,
@@ -111,23 +126,12 @@ fun DevicesScreen(repo: LabRepository, onCard: (String) -> Unit) {
                 } else if (filtered.isEmpty()) {
                     item { Text("Nothing here.", color = Lab.muted) }
                 } else {
-                    val typeOrder = listOf(
-                        "proxmox" to "Proxmox",
-                        "nas" to "NAS & backup",
-                        "docker" to "Docker hosts",
-                        "vm" to "VMs & LXC",
-                        "pc" to "PCs & other",
-                    )
-                    typeOrder.forEach { (type, title) ->
-                        val group = filtered.filter { it.type == type }
-                            .sortedWith(compareBy({ it.bad != true }, { it.name.lowercase() }))
-                        if (group.isNotEmpty()) {
-                            item(key = "h-$type") {
-                                SectionTitle(title, bad = group.any { it.bad == true })
-                            }
-                            items(group, key = { "d-" + it.id }) { c ->
-                                DeviceRow(c, server) { onCard(c.id) }
-                            }
+                    grouped.forEach { (type, title, group) ->
+                        item(key = "h-$type") {
+                            SectionTitle(title, bad = group.any { it.bad == true })
+                        }
+                        items(group, key = { "d-" + it.id }) { c ->
+                            DeviceRow(c, server) { onCard(c.id) }
                         }
                     }
                 }

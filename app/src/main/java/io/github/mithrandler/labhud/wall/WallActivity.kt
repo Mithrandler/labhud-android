@@ -56,11 +56,13 @@ class WallActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        (application as LabHudApp).wallShown.value = true
         web?.onResume()
     }
 
     override fun onPause() {
         web?.onPause()
+        (application as LabHudApp).wallShown.value = false
         super.onPause()
     }
 

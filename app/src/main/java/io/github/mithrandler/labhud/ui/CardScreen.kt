@@ -1,6 +1,7 @@
 package io.github.mithrandler.labhud.ui
 
 import android.content.Intent
+import androidx.compose.runtime.setValue
 import android.net.Uri
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -22,8 +23,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -41,12 +40,11 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -68,12 +66,12 @@ private val RANGES = listOf("6h" to 6 * 3600, "24h" to 86400, "7d" to 7 * 86400,
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (String) -> Unit, onSignIn: () -> Unit) {
-    val state by repo.state.collectAsState()
+    val state by repo.state.collectAsStateWithLifecycle()
     val live = state?.byId?.get(id)
     var sections by remember { mutableStateOf<List<Section>>(emptyList()) }
     var full by remember { mutableStateOf<Card?>(null) }
     var logs by remember { mutableStateOf<Pair<String, String>?>(null) }
-    val rights by repo.rights.collectAsState()
+    val rights by repo.rights.collectAsStateWithLifecycle()
     val gate = rememberGate(repo)
     var history by remember { mutableStateOf<History?>(null) }
     var long by remember { mutableStateOf<History?>(null) }
@@ -83,8 +81,8 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
     var details by remember { mutableStateOf<Pair<String, List<Pair<String, String>>>?>(null) }
     var notesText by remember { mutableStateOf<String?>(null) }
     var range by remember { mutableStateOf(0) }
-    val server by repo.server.collectAsState()
-    val info by repo.info.collectAsState()
+    val server by repo.server.collectAsStateWithLifecycle()
+    val info by repo.info.collectAsStateWithLifecycle()
     var week by remember { mutableStateOf(false) }
     var uptimeDay by remember { mutableStateOf<io.github.mithrandler.labhud.data.Uptime?>(null) }
     var uptimeWeek by remember { mutableStateOf<io.github.mithrandler.labhud.data.Uptime?>(null) }
@@ -94,13 +92,15 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
+    // the series this card draws: only they are asked for, not the whole lab's history
+    val keys = live?.let { c -> c.metrics.filter { it.trend }.map { it.key } + c.charts.map { it.key } }.orEmpty()
     // the panel and the charts: fetched when opened, then every 30 s while it stays open
-    LaunchedEffect(id) {
+    LaunchedEffect(id, keys) {
         while (true) {
             val api = repo.api()
             if (api != null) {
                 runCatching { api.card(id) }.onSuccess { sections = it.sections; full = it }
-                if (live?.metrics?.any { it.trend } == true || live?.charts?.isNotEmpty() == true) runCatching { api.history(false) }.onSuccess { history = it }
+                if (keys.isNotEmpty()) runCatching { api.history(false, keys) }.onSuccess { history = it }
             }
             delay(30_000)
         }
@@ -110,9 +110,9 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
         if (info?.uptime != true) return@LaunchedEffect
         repo.api()?.let { api -> runCatching { api.uptime(week) }.onSuccess { if (week) uptimeWeek = it else uptimeDay = it } }
     }
-    LaunchedEffect(range) {
-        if (range in 1..2 && long == null) repo.api()?.let { api -> runCatching { api.history(true) }.onSuccess { long = it } }
-        if (range >= 3 && year == null) repo.api()?.let { api -> runCatching { api.historyYear() }.onSuccess { year = it } }
+    LaunchedEffect(range, keys) {
+        if (range in 1..2 && long == null) repo.api()?.let { api -> runCatching { api.history(true, keys) }.onSuccess { long = it } }
+        if (range >= 3 && year == null) repo.api()?.let { api -> runCatching { api.historyYear(keys) }.onSuccess { year = it } }
     }
 
     fun send(name: String, label: String) = scope.launch { snack.showSnackbar(sendAction(repo, name, label)) }
@@ -194,11 +194,11 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
                 io.github.mithrandler.labhud.data.Metric(key = it.key, label = it.label, value = "", trend = true, format = it.format)
             }
             val boxes = full?.containers.orEmpty()
-            if (boxes.isNotEmpty()) item {
-                Panel("Containers") {
-                    // grouped by compose project, as on the wall; a project's running containers restart together
-                    val stacks = boxes.groupBy { it.project }.toSortedMap(compareBy { it.ifEmpty { "\uffff" } })
-                    stacks.forEach { (project, members) ->
+            // grouped by compose project, as on the wall; a project's running containers restart together
+            val stacks = if (boxes.isEmpty()) emptyList() else boxes.groupBy { it.project }.toSortedMap(compareBy { it.ifEmpty { "\uffff" } }).entries.toList()
+            stacks.forEachIndexed { n, (project, members) ->
+                item(key = "stack-$project") {
+                    Panel(if (n == 0) "Containers" else "") {
                         if (stacks.size > 1 || project.isNotEmpty()) {
                             val restarts = members.filter { it.up }.map { m -> m.actions.firstOrNull { it.name.endsWith("-restart") } }
                             Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {

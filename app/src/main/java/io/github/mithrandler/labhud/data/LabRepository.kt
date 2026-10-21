@@ -100,7 +100,8 @@ class LabRepository(private val context: Context, val store: ServerStore) {
                         _conn.value = Conn.Live
                         _liveAt.value = System.currentTimeMillis()
                         wait = 2_000L
-                        _state.value = st
+                        // the same document again (nothing changed but the clock) redraws nothing
+                        if (st != _state.value) _state.value = st
                         keep(s.id, st)
                         onNewState?.invoke(s, st)
                     }
@@ -124,6 +125,7 @@ class LabRepository(private val context: Context, val store: ServerStore) {
 
     fun stop() {
         wanted = false
+        flush()
         job?.cancel()
         job = null
         _conn.value = Conn.Idle
@@ -195,6 +197,8 @@ class LabRepository(private val context: Context, val store: ServerStore) {
     private fun reach(s: Server, e: IOException): String = Companion.reach(s.url, e)
 
     companion object {
+        private const val KEEP_EVERY = 60_000L
+
         /** Why [url] could not be reached, in words a person can act on, from the exception's chain. */
         fun reach(url: String, e: Throwable): String {
             val chain = generateSequence(e) { it.cause }.take(6).toList()
@@ -222,7 +226,20 @@ class LabRepository(private val context: Context, val store: ServerStore) {
         runCatching { LabJson.decodeFromString<LabState>(file(id).readText()) }.getOrNull()
     }
 
-    suspend fun keep(id: String, st: LabState) = withContext(Dispatchers.IO) {
+    /** The newest state not on disk yet, and when the last one went there (elapsedRealtime). */
+    private var unsaved: Pair<String, LabState>? = null
+    private var savedAt = 0L
+
+    /** The state arrives up to once a second; the disk gets it once a minute, and at [stop]. */
+    suspend fun keep(id: String, st: LabState, now: Boolean = false) {
+        unsaved = id to st
+        if (now || android.os.SystemClock.elapsedRealtime() - savedAt >= KEEP_EVERY) flushNow()
+    }
+
+    private suspend fun flushNow() = withContext(Dispatchers.IO) {
+        val (id, st) = unsaved ?: return@withContext
+        unsaved = null
+        savedAt = android.os.SystemClock.elapsedRealtime()
         runCatching {
             val tmp = File(context.filesDir, "state-$id.json.tmp")
             tmp.writeText(LabJson.encodeToString(st))
@@ -230,7 +247,13 @@ class LabRepository(private val context: Context, val store: ServerStore) {
         }
     }
 
+    /** Writes what the debounce still holds (the app went to the background or the server changed). */
+    fun flush() {
+        if (unsaved != null) scope.launch { flushNow() }
+    }
+
     fun forget(id: String) {
+        if (unsaved?.first == id) unsaved = null
         file(id).delete()
     }
 }

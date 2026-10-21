@@ -1,6 +1,7 @@
 package io.github.mithrandler.labhud.data
 
 import kotlinx.serialization.SerialName
+import androidx.compose.runtime.getValue
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.*
 
@@ -200,7 +201,7 @@ data class Section(
     val title: String = "",
     @SerialName("rows") val rawRows: List<JsonArray> = emptyList(),
 ) {
-    val rows: List<Row> get() = rawRows.map { it.toRow() }
+    val rows: List<Row> by lazy(LazyThreadSafetyMode.PUBLICATION) { rawRows.map { it.toRow() } }
 }
 
 /** A card in the lab state. */
@@ -242,7 +243,7 @@ data class Card(
     /** Its place in the grid: s (1×1), m (2×1), l (2×2), xl (4×2); "" means s. */
     val size: String = "",
 ) {
-    val rows: List<Row> get() = rawRows.map { it.toRow() }
+    val rows: List<Row> by lazy(LazyThreadSafetyMode.PUBLICATION) { rawRows.map { it.toRow() } }
 }
 
 /** An alert entry. */
@@ -268,7 +269,7 @@ data class LabState(
     @SerialName("device_admin") val deviceAdmin: Boolean? = null,
     val pin: Boolean? = null,
 ) {
-    val byId: Map<String, Card> get() = cards.associateBy { it.id }
+    val byId: Map<String, Card> by lazy(LazyThreadSafetyMode.PUBLICATION) { cards.associateBy { it.id } }
 }
 
 /** A single event in the timeline. */

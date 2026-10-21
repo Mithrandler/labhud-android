@@ -7,6 +7,7 @@ import io.github.mithrandler.labhud.data.Notes
 import io.github.mithrandler.labhud.ui.duration
 import io.github.mithrandler.labhud.data.History
 import io.github.mithrandler.labhud.data.Info
+import io.github.mithrandler.labhud.data.LabApi
 import io.github.mithrandler.labhud.data.LabJson
 import io.github.mithrandler.labhud.data.LabState
 import io.github.mithrandler.labhud.data.Sparks
@@ -155,5 +156,23 @@ class ModelsTest {
         assertEquals(null, gap.cards.getValue("a")[1])
         val old = LabJson.decodeFromString<Uptime>("""{"step":900,"cards":{},"percent":{}}""")
         assertTrue(old.coverage.isEmpty())
+    }
+
+    /** The derived lookups are worked out once per decoded document, and equal documents are equal (Compose skips on that). */
+    @Test fun derivedFieldsAreCached() {
+        val json = """{"cards":[{"id":"a","rows":[["n","v",true]]},{"id":"b"}]}"""
+        val st = LabJson.decodeFromString<LabState>(json)
+        assertTrue(st.byId === st.byId)
+        assertTrue(st.byId.getValue("a").rows === st.byId.getValue("a").rows)
+        assertEquals(true, st.byId.getValue("a").rows.single().bad)
+        assertEquals(st, LabJson.decodeFromString<LabState>(json))
+    }
+
+    /** One client per pinned certificate: its connection pool is shared by every call to that server. */
+    @Test fun oneClientPerFingerprint() {
+        assertTrue(LabApi.clientFor("") === LabApi.clientFor(""))
+        val fp = "AB:" + "cd".repeat(31)
+        assertTrue(LabApi.clientFor(fp) === LabApi.clientFor(fp.lowercase().replace(":", "")))
+        assertTrue(LabApi.clientFor(fp) !== LabApi.clientFor(""))
     }
 }

@@ -28,6 +28,8 @@ class LabHudApp : Application() {
     lateinit var repo: LabRepository
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var widgetAt = 0L
+    /** Wall mode is on screen: it has its own page and stream, so the app's own stays off meanwhile. */
+    val wallShown = kotlinx.coroutines.flow.MutableStateFlow(false)
 
     override fun onCreate() {
         super.onCreate()
@@ -67,7 +69,7 @@ class LabHudApp : Application() {
             }
         }
         scope.launch {
-            combine(foreground, AppLock.unlocked) { fg, open -> fg && open }.collect { run ->
+            combine(foreground, AppLock.unlocked, wallShown) { fg, open, wall -> fg && open && !wall }.collect { run ->
                 if (run) repo.run() else repo.stop()
             }
         }

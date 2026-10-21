@@ -1,6 +1,8 @@
 package io.github.mithrandler.labhud.ui.settings
 
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,13 +11,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -49,9 +49,9 @@ import java.util.Base64
  */
 @Composable
 fun SystemSection(repo: LabRepository, nav: SettingsNav) {
-    val info by repo.info.collectAsState()
-    val server by repo.server.collectAsState()
-    val rights by repo.rights.collectAsState()
+    val info by repo.info.collectAsStateWithLifecycle()
+    val server by repo.server.collectAsStateWithLifecycle()
+    val rights by repo.rights.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val gate = rememberGate(repo)

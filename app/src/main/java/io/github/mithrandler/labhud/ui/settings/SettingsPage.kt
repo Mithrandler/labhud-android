@@ -1,8 +1,8 @@
 package io.github.mithrandler.labhud.ui.settings
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.runtime.getValue
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -28,7 +27,6 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
@@ -98,26 +96,6 @@ fun WallOnly(where: String, what: List<String>) {
             what.forEach { Text("·  $it", fontSize = 13.sp, color = Lab.sub, modifier = Modifier.padding(vertical = 1.dp)) }
         }
     }
-}
-
-/** What is coming to a section and is not there yet, with the "soon" badge. */
-@Composable
-fun Soon(what: List<String>) {
-    Surface(shape = CardShape, color = Lab.card, border = BorderStroke(1.dp, Lab.line)) {
-        Column(Modifier.fillMaxWidth().padding(14.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Coming", fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
-                SoonBadge()
-            }
-            what.forEach { Text("·  $it", fontSize = 13.sp, color = Lab.muted, modifier = Modifier.padding(top = 4.dp)) }
-        }
-    }
-}
-
-@Composable
-fun SoonBadge() {
-    Text("SOON", fontSize = 10.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 0.8.sp, color = Lab.muted,
-        modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(Lab.block).padding(horizontal = 6.dp, vertical = 2.dp))
 }
 
 /** labhud's mark (static/brand/mark.svg): three cards with status dots. */

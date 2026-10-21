@@ -1,25 +1,16 @@
 # Roadmap
 
-## 0.1 — first version (done)
+What each version brought is in the [CHANGELOG](../CHANGELOG.md); this is what is left.
 
-Server side in labhud 0.1.0: pairing with a one-time QR code, a token per phone, `/api/v1` with
-each card's state worked out on the server (so the phone never disagrees with the wall), and
-ntfy notifications that open the app on their card.
+## Done
 
-The app: pairing, the unlock when it opens, home with problems first and pages as tabs, the
-card's screen with charts and actions, the timeline, several servers, the widget, wall mode.
-
-## 0.1.1 (done)
-
-The lock as a choice (none, screen lock, fingerprint), Overview with resources, uptime and recent
-events, a host's history with a finger on the chart, swiping between pages, Actions with icons and
-each press followed until done.
-
-## 0.1.0
-
-The same version as labhud and its agent: Status / Devices / Activity / Settings, the bell, Games
-natively, the admin's sign-in with the wall's PIN or a fingerprint, containers with Update and
-logs, the agent's charts, Server management, instant notifications through UnifiedPush.
+- **0.1.0** (with labhud and its agent): pairing with a QR code, a token per phone, Status /
+  Devices / Activity / Settings, the bell, Games natively, the admin's sign-in with the wall's PIN
+  or a fingerprint, containers with Update and logs, the agent's charts, server management,
+  instant notifications through UnifiedPush, the widget and wall mode.
+- **0.1.1**: Settings > Containers (registries, scans), Notifications (channels) and System
+  (backup and restore, the Danger zone).
+- **0.1.2**: a container's CVEs on its row and on the Updates list.
 
 ## Next
 

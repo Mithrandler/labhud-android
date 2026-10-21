@@ -11,7 +11,7 @@ battery: it talks to your labhud only while it is open.
 
 - **Pairs with a QR code.** On the display: ⚙ > Phones > Pair a phone; or on the server
   `labhud phone pair`. Each phone gets a token of its own and only looks, until you **sign in as
-  the admin** (Settings > Account): then the buttons work, after the wall's PIN or your fingerprint.
+  the admin** (Settings > Security): then the buttons work, after the wall's PIN or your fingerprint.
 - **Status**: the wall's pages as chips, the cards in a grid with their numbers and 24 hours of
   uptime, a bell with the alerts and what is red, the game servers as a page of their own.
 - **Devices** (hosts and guests, filtered by running, stopped, problems) and **Activity** (the

@@ -21,8 +21,6 @@ class Section(
     val icon: () -> ImageVector,
     /** Hidden while this phone is not signed in as the admin. */
     val admin: Boolean = true,
-    /** Nothing in it works yet: shown with "soon", to the admin only. */
-    val soon: Boolean = false,
     /** Extra words the search finds it by. */
     val keywords: String = "",
     val screen: @Composable (LabRepository, SettingsNav) -> Unit,

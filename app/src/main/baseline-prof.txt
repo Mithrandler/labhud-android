@@ -1,0 +1,9 @@
+# Compiled ahead of time on install (profileinstaller), so the first scroll through Status and a card
+# does not run through the interpreter and the JIT. Written by hand: the screens a person opens
+# first, and the models they draw, by wildcard.
+HSPLio/github/mithrandler/labhud/ui/**;->**(**)**
+HSPLio/github/mithrandler/labhud/data/**;->**(**)**
+HSPLio/github/mithrandler/labhud/MainActivity;->**(**)**
+HSPLio/github/mithrandler/labhud/LabHudApp;->**(**)**
+Lio/github/mithrandler/labhud/ui/**;
+Lio/github/mithrandler/labhud/data/**;

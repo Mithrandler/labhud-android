@@ -85,9 +85,17 @@ class LabApi(val baseUrl: String, private val token: String?, fingerprint: Strin
 
     suspend fun state(): LabState = LabJson.decodeFromString(get("/api/v1/state"))
     suspend fun card(id: String): Card = LabJson.decodeFromString(get("/api/v1/card/$id"))
-    suspend fun history(long: Boolean): History = LabJson.decodeFromString(get("/api/v1/history" + if (long) "?long" else ""))
+    /** [keys] limits the answer to those series (a server that does not know `keys` sends them all). */
+    suspend fun history(long: Boolean, keys: Collection<String> = emptyList()): History =
+        LabJson.decodeFromString(get("/api/v1/history" + historyQuery(if (long) "long" else "", keys)))
     /** A year of 2-hour points, for 30 days and 1 year. */
-    suspend fun historyYear(): History = LabJson.decodeFromString(get("/api/v1/history?year"))
+    suspend fun historyYear(keys: Collection<String> = emptyList()): History =
+        LabJson.decodeFromString(get("/api/v1/history" + historyQuery("year", keys)))
+
+    private fun historyQuery(flag: String, keys: Collection<String>): String {
+        val q = listOfNotNull(flag.ifEmpty { null }, if (keys.isEmpty()) null else "keys=" + java.net.URLEncoder.encode(keys.joinToString(","), "UTF-8"))
+        return if (q.isEmpty()) "" else "?" + q.joinToString("&")
+    }
     suspend fun events(): Events = LabJson.decodeFromString(get("/api/v1/events"))
     suspend fun uptime(week: Boolean): Uptime = LabJson.decodeFromString(get("/api/v1/uptime?range=" + if (week) "7d" else "24h"))
 
@@ -202,7 +210,7 @@ class LabApi(val baseUrl: String, private val token: String?, fingerprint: Strin
         runCatching { LabJson.decodeFromString<ActionAnswer>(answer("/api/maintenance/$card", buildJsonObject { put("minutes", minutes) }.toString())) }
             .getOrElse { ActionAnswer(false, it.message ?: "could not reach LabHUD") }
 
-    // --- pachet G: API tokens and the audit log (labhud api/tokens.py, api/audit.py) ---
+    // --- API tokens and the audit log (labhud api/tokens.py, api/audit.py) ---
 
     suspend fun apiTokens(): ApiTokens = LabJson.decodeFromString(answer("/api/tokens/list", "{}"))
 
@@ -248,14 +256,18 @@ class LabApi(val baseUrl: String, private val token: String?, fingerprint: Strin
         awaitClose { source.cancel() }
     }
 
-    // --- pachet F --- (the calls themselves are in SecurityApi.kt)
+    // the calls of Settings > Security are in SecurityApi.kt, which needs these two
     /** A POST whose 400/403/409 answer carries labhud's words, for the extension functions of other files. */
     internal suspend fun postAnswer(path: String, json: String): String = answer(path, json)
     internal suspend fun getText(path: String): String = get(path)
-    // --- end of pachet F ---
 
     companion object {
-        fun clientFor(fingerprint: String): OkHttpClient {
+        /** One client per pinned certificate: its connections and TLS sessions are reused by every call, instead of a new pool for each. */
+        private val clients = java.util.concurrent.ConcurrentHashMap<String, OkHttpClient>()
+
+        fun clientFor(fingerprint: String): OkHttpClient = clients.getOrPut(fingerprint.lowercase().replace(":", "")) { build(fingerprint) }
+
+        private fun build(fingerprint: String): OkHttpClient {
             val b = OkHttpClient.Builder()
                 .connectTimeout(8, TimeUnit.SECONDS)
                 .readTimeout(20, TimeUnit.SECONDS)
