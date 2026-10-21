@@ -173,7 +173,7 @@ data class Scan(val critical: Int = 0, val high: Int = 0, val t: Long = 0) {
 @Serializable
 data class Bookmark(val group: String = "", val name: String = "", val url: String = "")
 
-/** A container of a host's agent that has no card of its own (labhud 0.1.2 `containers` of the state): [card] is the host card that lists it. */
+/** A container of a host's agent that has no card of its own (labhud 0.1.11 `containers` of the state): [card] is the host card that lists it. */
 @Serializable
 data class StateContainer(
     val card: String = "",

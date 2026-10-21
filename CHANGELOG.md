@@ -6,6 +6,17 @@ All notable changes to LabHUD for Android. The format follows
 
 ## [Unreleased]
 
+## [0.1.22] - 2026-10-22
+
+Needs labhud 0.1.11 for the new palette entries; with an older server the app works as before.
+
+### Added
+- **Palette**: the search also finds the containers the hosts' agents report (opening the host that lists
+  them), with their buttons for the admin, the `[[bookmark]]` links, and a last entry that searches the web
+  with the server's `[search] url`.
+- **Stacks from git**: a stack deploy can take its compose file from a git repository (repo, branch, path;
+  a token for a private one is used once and never saved). The server fetches it, so no new agent is needed.
+
 ## [0.1.21] - 2026-10-22
 
 Needs labhud 0.1.1 (and labhud-agent 0.1.1 on a host for its Docker panel, stacks and live log).
@@ -195,7 +206,8 @@ those parts are simply not shown.
   back in the settings or the camera was switched off in Quick Settings. It now asks again, offers
   the system settings after a permanent refusal, and pasting the link or signing in always works.
 
-[Unreleased]: https://github.com/Mithrandler/labhud-android/compare/v0.1.21...HEAD
+[Unreleased]: https://github.com/Mithrandler/labhud-android/compare/v0.1.22...HEAD
+[0.1.22]: https://github.com/Mithrandler/labhud-android/compare/v0.1.21...v0.1.22
 [0.1.21]: https://github.com/Mithrandler/labhud-android/compare/v0.1.2...v0.1.21
 [0.1.2]: https://github.com/Mithrandler/labhud-android/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/Mithrandler/labhud-android/compare/v0.1.0...v0.1.1

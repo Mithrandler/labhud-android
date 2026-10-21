@@ -60,7 +60,7 @@ data class StackRunAnswer(val ok: Boolean = false, val error: String = "", val o
 data class GitSource(val repo: String, val branch: String = "main", val path: String = "", val token: String = "")
 
 /** deploy, redeploy, restart, down or show. A deploy carries [compose] and [env]: null keeps the .env the host has, "" removes it.
- *  With [git] the server fetches the compose file from the repository instead (labhud 0.1.2+; [compose] is not sent). */
+ *  With [git] the server fetches the compose file from the repository instead (labhud 0.1.11+; [compose] is not sent). */
 suspend fun LabApi.stackRun(agent: String, verb: String, name: String, compose: String? = null, env: String? = null, git: GitSource? = null): StackRunAnswer =
     LabJson.decodeFromString(slowAnswer("/api/setup/stack-run", stackRunBody(agent, verb, name, compose, env, git), 340))
 
