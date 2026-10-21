@@ -6,6 +6,16 @@ All notable changes to LabHUD for Android. The format follows
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-10-21
+
+### Added
+- Icons: containers, games and the page chips show their icon (from labhud 0.1.1, which serves them).
+- Settings > About: the version of the app and of the server, and "Update available" when GitHub
+  has a newer release of the app, the server or the agent. The app sends `X-Labhud-App` so labhud
+  knows which version asks.
+- Themes: System, Dark, Light and HUD (the default), built on Material 3.
+- Activity > Notifications: a Clear button, per phone and per server.
+
 ### Changed
 - A faster app: a state that has not changed redraws nothing, the connection banner and the charts
   read what they draw themselves, the line charts build their paths once, a finger on a chart
@@ -164,7 +174,8 @@ those parts are simply not shown.
   back in the settings or the camera was switched off in Quick Settings. It now asks again, offers
   the system settings after a permanent refusal, and pasting the link or signing in always works.
 
-[Unreleased]: https://github.com/Mithrandler/labhud-android/compare/v0.1.2...HEAD
+[Unreleased]: https://github.com/Mithrandler/labhud-android/compare/v0.1.3...HEAD
+[0.1.3]: https://github.com/Mithrandler/labhud-android/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/Mithrandler/labhud-android/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/Mithrandler/labhud-android/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/Mithrandler/labhud-android/releases/tag/v0.1.0
