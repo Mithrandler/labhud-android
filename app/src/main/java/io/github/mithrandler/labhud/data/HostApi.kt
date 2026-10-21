@@ -56,13 +56,23 @@ data class StackInfo(val updated: Long = 0, val env: Boolean = false, val servic
 @Serializable
 data class StackRunAnswer(val ok: Boolean = false, val error: String = "", val output: String = "")
 
-/** deploy, redeploy, restart, down or show. A deploy carries [compose] and [env]: null keeps the .env the host has, "" removes it. */
-suspend fun LabApi.stackRun(agent: String, verb: String, name: String, compose: String? = null, env: String? = null): StackRunAnswer =
-    LabJson.decodeFromString(slowAnswer("/api/setup/stack-run", buildJsonObject {
-        put("agent", agent); put("verb", verb); put("name", name)
-        if (compose != null) put("compose", compose)
-        if (env != null) put("env", env)
-    }.toString(), 340))
+/** A compose file kept in a git repository: the server fetches [path] on [branch]; [token] (a private repo) is used once and never kept. */
+data class GitSource(val repo: String, val branch: String = "main", val path: String = "", val token: String = "")
+
+/** deploy, redeploy, restart, down or show. A deploy carries [compose] and [env]: null keeps the .env the host has, "" removes it.
+ *  With [git] the server fetches the compose file from the repository instead (labhud 0.1.2+; [compose] is not sent). */
+suspend fun LabApi.stackRun(agent: String, verb: String, name: String, compose: String? = null, env: String? = null, git: GitSource? = null): StackRunAnswer =
+    LabJson.decodeFromString(slowAnswer("/api/setup/stack-run", stackRunBody(agent, verb, name, compose, env, git), 340))
+
+/** The JSON of a stack-run request; a [git] source replaces [compose], and a token is sent only when there is one. */
+fun stackRunBody(agent: String, verb: String, name: String, compose: String?, env: String?, git: GitSource?): String = buildJsonObject {
+    put("agent", agent); put("verb", verb); put("name", name)
+    if (git != null) put("git", buildJsonObject {
+        put("repo", git.repo); put("branch", git.branch.ifBlank { "main" }); put("path", git.path)
+        if (git.token.isNotEmpty()) put("token", git.token)
+    }) else if (compose != null) put("compose", compose)
+    if (env != null) put("env", env)
+}.toString()
 
 /** The compose file of a `show`, and the .env's names that follow it ("# .env: A, B"). */
 fun splitShow(output: String): Pair<String, List<String>> {

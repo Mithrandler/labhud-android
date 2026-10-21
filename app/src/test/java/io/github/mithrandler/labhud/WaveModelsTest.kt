@@ -84,4 +84,14 @@ class WaveModelsTest {
         assertEquals(ZoneId.systemDefault(), zoneOf(""))
         assertEquals(ZoneId.systemDefault(), zoneOf("Mars/Olympus"))
     }
+
+    @Test
+    fun `a stack deploy from git sends the repository, not the compose text`() {
+        val git = io.github.mithrandler.labhud.data.GitSource("https://g.example/o/r", "", "web/compose.yaml", "tok-12345678")
+        val body = io.github.mithrandler.labhud.data.stackRunBody("box", "deploy", "web", "services: {}", null, git)
+        assertEquals("""{"agent":"box","verb":"deploy","name":"web","git":{"repo":"https://g.example/o/r","branch":"main","path":"web/compose.yaml","token":"tok-12345678"}}""", body)
+        val open = io.github.mithrandler.labhud.data.stackRunBody("box", "deploy", "web", null, "", io.github.mithrandler.labhud.data.GitSource("https://g.example/o/r", "dev", "c.yml"))
+        assertEquals("""{"agent":"box","verb":"deploy","name":"web","git":{"repo":"https://g.example/o/r","branch":"dev","path":"c.yml"},"env":""}""", open)
+        assertEquals("""{"agent":"box","verb":"deploy","name":"web","compose":"x"}""", io.github.mithrandler.labhud.data.stackRunBody("box", "deploy", "web", "x", null, null))
+    }
 }

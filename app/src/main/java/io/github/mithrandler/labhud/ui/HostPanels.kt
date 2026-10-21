@@ -38,6 +38,7 @@ import io.github.mithrandler.labhud.data.inventory
 import io.github.mithrandler.labhud.data.openLiveLog
 import io.github.mithrandler.labhud.data.readStream
 import io.github.mithrandler.labhud.data.splitShow
+import io.github.mithrandler.labhud.data.GitSource
 import io.github.mithrandler.labhud.data.stackRun
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
@@ -193,6 +194,10 @@ private fun StackEditor(a: AgentRow, start: String, repo: LabRepository, gate: G
     var compose by remember { mutableStateOf("") }
     var env by remember { mutableStateOf("") }
     var removeEnv by remember { mutableStateOf(false) }
+    var gitRepo by remember { mutableStateOf("") }
+    var gitBranch by remember { mutableStateOf("main") }
+    var gitPath by remember { mutableStateOf("") }
+    var gitToken by remember { mutableStateOf("") }
     var note by remember { mutableStateOf(if (start.isEmpty()) "" else "reading…") }
     var busy by remember { mutableStateOf(false) }
     LaunchedEffect(start) {
@@ -216,6 +221,14 @@ private fun StackEditor(a: AgentRow, start: String, repo: LabRepository, gate: G
                 if (start.isEmpty()) OutlinedTextField(name, { name = it.lowercase() }, Modifier.fillMaxWidth(), singleLine = true, label = { Text("Name") })
                 OutlinedTextField(compose, { compose = it }, Modifier.fillMaxWidth().heightIn(min = 160.dp), label = { Text("compose.yaml") },
                     textStyle = androidx.compose.ui.text.TextStyle(fontFamily = FontFamily.Monospace, fontSize = 12.sp))
+                // or the compose file from a git repository: the server fetches it, the token is used once and not kept
+                OutlinedTextField(gitRepo, { gitRepo = it.trim() }, Modifier.fillMaxWidth(), singleLine = true, label = { Text("or from git: https://git.example/owner/name") })
+                if (gitRepo.isNotEmpty()) {
+                    OutlinedTextField(gitBranch, { gitBranch = it.trim() }, Modifier.fillMaxWidth(), singleLine = true, label = { Text("Branch (main)") })
+                    OutlinedTextField(gitPath, { gitPath = it.trim() }, Modifier.fillMaxWidth(), singleLine = true, label = { Text("Path, e.g. web/compose.yaml") })
+                    OutlinedTextField(gitToken, { gitToken = it.trim() }, Modifier.fillMaxWidth(), singleLine = true,
+                        visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(), label = { Text("Token, private repository (not saved)") })
+                }
                 OutlinedTextField(env, { env = it }, Modifier.fillMaxWidth().heightIn(min = 80.dp), enabled = !removeEnv, label = { Text(".env (empty keeps the host's)") },
                     textStyle = androidx.compose.ui.text.TextStyle(fontFamily = FontFamily.Monospace, fontSize = 12.sp))
                 Row(Modifier.padding(top = 4.dp)) {
@@ -225,15 +238,17 @@ private fun StackEditor(a: AgentRow, start: String, repo: LabRepository, gate: G
                 if (note.isNotEmpty()) Text(note, fontSize = 12.sp, color = Lab.muted)
             }
         },
-        confirmButton = { Button(enabled = !busy && name.matches(Regex("[a-z0-9][a-z0-9_-]{0,63}")) && compose.isNotBlank(), onClick = {
+        confirmButton = { Button(enabled = !busy && name.matches(Regex("[a-z0-9][a-z0-9_-]{0,63}")) && (if (gitRepo.isNotEmpty()) gitPath.isNotEmpty() else compose.isNotBlank()), onClick = {
             gate.press {
                 busy = true
                 onMessage("deploy $name…")
                 scope.launch {
                     val e = if (removeEnv) "" else env.ifEmpty { null }
-                    val r = runCatching { repo.api()?.stackRun(a.name, "deploy", name, compose, e) }.getOrNull()
+                    val r = runCatching { repo.api()?.stackRun(a.name, "deploy", name, compose, e,
+                        if (gitRepo.isNotEmpty()) GitSource(gitRepo, gitBranch, gitPath, gitToken) else null) }.getOrNull()
                     busy = false
                     onMessage(if (r?.ok == true) "✓ deploy $name\n${r.output}".trim() else "✕ deploy $name: ${r?.error?.ifBlank { null } ?: "refused"}")
+                    gitToken = ""
                     if (r?.ok == true) onDeployed() else note = "✕ " + (r?.error?.ifBlank { null } ?: "refused")
                 }
             }
