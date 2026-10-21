@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- labhud lives on a LAN or behind a VPN, and most installs serve plain HTTP: the user pairs the
+     address they chose. HTTPS is checked against the certificate pinned at pairing (LabApi). -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

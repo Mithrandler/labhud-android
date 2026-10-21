@@ -1,0 +1,46 @@
+{
+    "ok": true,
+    "rows": [
+        {
+            "ts": "2026-10-18T16:01:24Z",
+            "who": "admin",
+            "action": "sign-in",
+            "target": "password",
+            "ip": "127.0.0.1",
+            "ua": "Firefox on Linux",
+            "ok": true
+        },
+        {
+            "ts": "2026-10-18T16:00:48Z",
+            "who": "admin",
+            "action": "sign-in",
+            "target": "password",
+            "ip": "127.0.0.1",
+            "ua": "Firefox on Linux",
+            "ok": true
+        },
+        {
+            "ts": "2026-10-18T16:00:01Z",
+            "who": "anonymous",
+            "action": "v1/audit",
+            "target": "",
+            "ip": "127.0.0.1",
+            "ua": "curl/8.14.1",
+            "ok": false
+        },
+        {
+            "ts": "2026-10-18T16:00:01Z",
+            "who": "token backup-script",
+            "action": "setup/save-text",
+            "target": "",
+            "ip": "127.0.0.1",
+            "ua": "curl/8.14.1",
+            "ok": false
+        }
+    ],
+    "more": true,
+    "offset": 0,
+    "limit": 4,
+    "enabled": true,
+    "days": 90
+}

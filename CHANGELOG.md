@@ -1,0 +1,129 @@
+# Changelog
+
+All notable changes to LabHUD for Android. The format follows
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
+[Semantic Versioning](https://semver.org/).
+
+## [0.1.0] - 2026-10-21
+
+Needs labhud 0.1.0: the same version for the server, the agent and the app.
+
+### Added
+
+- **Single sign-on** in Settings > Security: this phone signs in as the admin through the browser
+  (Authentik or any OpenID Connect provider); the password and the authenticator stay as the way
+  back in.
+- **The session's length and the PIN's idle time** in Settings > Security, and the networks the
+  admin may sign in from.
+- **API tokens and the audit log** in Settings > API and audit: a token is made, shown once and
+  revoked; the log says who did what, when and from where.
+- **Containers by compose stack**, with **Restart stack** when every running one of it has
+  RESTART; each container's CPU and RAM and its latest update or crash under its name; **Details**
+  beside Logs (ports, volumes, networks, the environment by name only). labhud 0.1.0 / agent 0.1.0.
+- **Charts over 30 days and a year**, beside 6h, 24h and 7d.
+- **Notes** (a `notes = true` card: read, and written by the admin), **links** (a `bookmarks`
+  card) and **the fleet's updates** (`list = "fleet.updates"`: Update on each, Update all).
+- **Search** in the top bar: every card by its name, line or page.
+- In Server management, under Docker: **Update on their own** (the containers labhud updates by
+  itself) and **Clean unused images**.
+- The new icons (search, note, link) from labhud's design.
+- **Wake-on-LAN by a typed MAC**: an agent's Wake-on-LAN list has a field for a machine that is
+  off (and so not seen on the network), as ⚙ and the `labhud` command have.
+- **Update an agent** from its screen in Server management, when labhud pins a newer release
+  (labhud 0.1.0 or newer); it downloads and checks the release itself and starts again.
+- **A clear "Offline" banner** while LabHUD cannot be reached: why, in words (no answer, refused,
+  unknown name, another certificate), when the data was last live and when the next try is, with
+  Retry now. It stays up through the retries instead of flashing, and the cards are dimmed so
+  the last numbers are not taken for live ones. The top bar says "Offline" too.
+- **An agent's ticks in the app**: Server management > an agent shows each capability it found
+  with a switch, and the containers, guests, services or machines it may act on, each with a
+  tick, as ⚙ > Agents does (the wall's PIN or the fingerprint first).
+- **Swipe left and right between the wall's pages** on Status, as on the wall; the chips follow.
+- **A new bottom bar: Status, Devices, Activity, Settings.**
+  - **Status**: the wall's pages as chips, each group as a grid of small cards (two to a row on a
+    phone, more on a tablet) with the dot, the name, two numbers and 24 hours of uptime.
+  - **The bell** in the top bar: labhud's alerts (the rules that fired, since when) and the red cards.
+  - **Games** as a page of its own: a tile per game server, then its players, address, RAM,
+    uptime and the start / stop / restart buttons.
+  - **Devices**: every machine (Proxmox, NAS, Docker hosts, VMs, PCs), with All / Running /
+    Stopped / Problems.
+  - **Activity**: the timeline and the notifications labhud sent.
+- **Signing in as the admin** in Settings > Account. A paired phone only looks until then. The
+  buttons are on the card's screen only, and only for the admin; with the wall's PIN they ask for
+  it once (the buttons stay open for 2 minutes), and **a fingerprint can stand in for the PIN**:
+  the PIN is then kept behind a key in the Android Keystore that only the fingerprint opens.
+- **Containers** on a Docker host's card: their state, update available, Update, Restart, Stop,
+  Start, and the last lines of the log (the admin).
+- **The host's own charts** from its agent (CPU, RAM, disk, temperatures, network).
+- **Server management** for the admin: the paired phones (Remove), the agents, and where labhud
+  sends its news (ntfy, the app, both) with a test to ntfy.
+- **Instant notifications** without Google in the app (Settings > Notifications): through
+  UnifiedPush, with the ntfy app as the distributor (its Play version rides on Google's push).
+  labhud only knocks, with no news in the knock; the app then reads the news itself, at home or
+  on the VPN, and shows it. Or **ntfy only**, as before, or **off**.
+- Signing in without a QR code works over HTTPS (labhud's default since 0.3): the certificate
+  seen the first time is the only one accepted from then on. An address typed without
+  http:// or https:// tries HTTPS first.
+- **Overview** as the first page of Home: problems, then **resources** (CPU, RAM, GPU,
+  temperatures, storage) per host with the last hours as small lines, **uptime** per card as
+  status-page bars over 24 hours or 7 days, and the **latest events**.
+- **A host's history**: tap its tile for big charts over 6 hours, 24 hours or 7 days; a finger on a
+  chart reads the value and the time, with min / average / max under it.
+- **Swipe between pages** on Home, as on the wall; the tabs follow.
+- **Actions** shown as round buttons with icons (start, wake, reboot, shut down, update…), a
+  filter per page, and each press followed in its card: sending, starting…, done or failed.
+- A bottom bar: **Home**, **Today**, **Actions** and **Settings**. Wall mode and Lock moved to
+  the ⋮ menu on Home.
+- **Actions**: every button labhud offers (VMs, containers, games, reports) in one list, with the
+  same confirmation as on the card. When the server takes no actions from phones it says what is
+  missing (signed actions, LABHUD_ACTION_SECRET).
+- **Sign in as the admin** when adding a server: address, user, password and the authenticator
+  code pair the phone without a QR code (labhud 0.1.0 or newer).
+- Pairing with a QR code (or the link under it) from labhud 0.1.0: ⚙ > Phone app, or `init.py pair`.
+  The token is kept encrypted with a key in the Android Keystore; HTTPS servers are pinned to the
+  certificate named in the QR code.
+- The fingerprint, face or phone PIN when the app opens, again after 5 minutes in the background.
+- Home: all good or the number of problems, labhud's alerts, the problems, then every page as a tab
+  with its groups and cards (Proxmox guests two to a row), live while the app is open.
+- A card's screen: status and note, numbers, history charts over 6 hours, 24 hours or 7 days, its
+  panel, links, actions (with labhud's questions and choices) and maintenance.
+- The timeline, by day.
+- Several servers, renamed or removed in Servers and settings.
+- A home screen widget, refreshed every 15 minutes while it is placed.
+- Wall mode: the wall page full screen and kept on; optionally the home screen app, so it comes
+  back after a reboot.
+- `labhud://card/<id>` links (ntfy's Click with `LABHUD_NOTIFY_CLICK=app`) open that card.
+
+### Changed
+
+- **The wall's icons and colours.** Thin-line icons, the same as on the wall and in ⚙, instead of
+  Android's filled ones; the colours and icons come from labhud's `design/tokens.json`
+  (`ui/Tokens.kt` is written by its `design/build.py`, not by hand). The Material icons library is gone.
+- **The lock is a choice**, in Settings: none (the default), the phone's PIN / pattern / password,
+  or a fingerprint (with the screen lock as the way out). Changing it asks once. Coming from an earlier version:
+  the lock stays on (screen lock) only if you had switched it on yourself; the old default becomes none.
+- The big "All good" card is gone: a dot and the time of the data sit in the top bar, and a thin
+  red line names the problems only while there are some.
+Needs labhud 0.1.0 for uptime and for telling a temperature from a share; with an older server
+those parts are simply not shown.
+
+### Removed
+
+- **Overview** and **Actions**: what they showed is now in Status, the bell, Devices and each
+  card's screen ("Resources over time" opens a host's history).
+
+### Fixed
+
+- The note in Settings > Notifications read the admin's rights without observing them, so it did
+  not follow a sign-in.
+- **"Allow the camera" closed the app** instead of asking for the camera, and so did asking for
+  the notification permission in Settings: the fingerprint library brought an old part of Android
+  that refused the request. The app now asks, and a "Don't allow" leaves it open with the button.
+- A card's numbers were shown twice on its screen (labhud's own "numbers" section).
+- The notification permission is checked before a notification is shown (Android 13+).
+- The QR scanner crashed when the camera permission was refused, given "only this time", taken
+  back in the settings or the camera was switched off in Quick Settings. It now asks again, offers
+  the system settings after a permanent refusal, and pasting the link or signing in always works.
+
+[Unreleased]: https://github.com/Mithrandler/labhud-android/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/Mithrandler/labhud-android/releases/tag/v0.1.0

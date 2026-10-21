@@ -1,0 +1,56 @@
+# Tests and a debug build on every push; for a version tag (vX.Y.Z), a signed APK attached to a
+# GitHub release. The signing key comes from the repository's secrets:
+#   KEYSTORE_BASE64   the release keystore, base64
+#   KEYSTORE_PASSWORD the store and key password
+# Without them the tag still builds, but the APK is left unsigned and nothing is released.
+name: android
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: gradle/actions/setup-gradle@v5
+      - name: Unit tests
+        run: ./gradlew testDebugUnitTest --console=plain
+      - name: Debug build
+        if: "!startsWith(github.ref, 'refs/tags/v')"
+        run: ./gradlew assembleDebug --console=plain
+      - name: Signed release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          LABHUD_KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          LABHUD_KEY_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          LABHUD_KEY_ALIAS: labhud
+          LABHUD_VERSION: ${{ github.ref_name }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+            export LABHUD_KEYSTORE="$RUNNER_TEMP/release.jks"
+          fi
+          ./gradlew assembleRelease --console=plain
+          mkdir -p out
+          cp app/build/outputs/apk/release/*.apk "out/labhud-${GITHUB_REF_NAME#v}.apk"
+          rm -f "$RUNNER_TEMP/release.jks"
+      - name: Publish the release
+        if: startsWith(github.ref, 'refs/tags/v') && github.server_url == 'https://github.com'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ls out/*.apk | grep -q -v unsigned || { echo "unsigned: no release"; exit 0; }
+          notes=$(awk -v v="${GITHUB_REF_NAME#v}" '$0 ~ "^## \\[" v "\\]" {on=1; next} /^## \[/ {on=0} on' CHANGELOG.md)
+          gh release create "$GITHUB_REF_NAME" out/*.apk --title "LabHUD ${GITHUB_REF_NAME#v}" --notes "${notes:-LabHUD $GITHUB_REF_NAME}"

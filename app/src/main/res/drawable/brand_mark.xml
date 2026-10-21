@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- labhud's mark (labhud static/brand/mark.svg): three cards with status dots, no background.
+     For the top bar of Status and anywhere the app shows its name; the launcher icon is ic_launcher_foreground. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="38dp" android:height="32dp"
+    android:viewportWidth="304" android:viewportHeight="256">
+    <group android:translateX="-104" android:translateY="-128">
+        <path android:fillColor="#121214" android:strokeColor="#3a3d44" android:strokeWidth="8"
+            android:pathData="M126,136h260a14,14 0,0 1,14 14v36a14,14 0,0 1,-14 14h-260a14,14 0,0 1,-14 -14v-36a14,14 0,0 1,14 -14z" />
+        <path android:fillColor="#121214" android:strokeColor="#3a3d44" android:strokeWidth="8"
+            android:pathData="M126,224h260a14,14 0,0 1,14 14v36a14,14 0,0 1,-14 14h-260a14,14 0,0 1,-14 -14v-36a14,14 0,0 1,14 -14z" />
+        <path android:fillColor="#121214" android:strokeColor="#3a3d44" android:strokeWidth="8"
+            android:pathData="M126,312h260a14,14 0,0 1,14 14v36a14,14 0,0 1,-14 14h-260a14,14 0,0 1,-14 -14v-36a14,14 0,0 1,14 -14z" />
+        <path android:fillColor="#34c759" android:pathData="M148,168m-13,0a13,13 0,1 1,26 0a13,13 0,1 1,-26 0" />
+        <path android:fillColor="#34c759" android:pathData="M148,256m-13,0a13,13 0,1 1,26 0a13,13 0,1 1,-26 0" />
+        <path android:fillColor="#ff9f0a" android:pathData="M148,344m-13,0a13,13 0,1 1,26 0a13,13 0,1 1,-26 0" />
+        <path android:fillColor="#7cc4ff" android:pathData="M186,160h134a8,8 0,0 1,0 16h-134a8,8 0,0 1,0 -16z" />
+        <path android:fillColor="#7cc4ff" android:pathData="M186,248h94a8,8 0,0 1,0 16h-94a8,8 0,0 1,0 -16z" />
+        <path android:fillColor="#7cc4ff" android:pathData="M186,336h114a8,8 0,0 1,0 16h-114a8,8 0,0 1,0 -16z" />
+    </group>
+</vector>

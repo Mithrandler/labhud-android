@@ -1,0 +1,7 @@
+{"ok": true, "caps": ["sensors", "docker", "systemd", "host", "wol", "pve", "ptero"],
+ "verbs": {"docker": ["start", "stop", "restart", "update", "logs"], "pve": ["start", "shutdown", "reboot"], "wol": ["wake"], "host": ["reboot", "shutdown", "update"]},
+ "agents": [{"id": "1a2b3c4d", "name": "node1", "online": true, "version": "0.3.11", "addr": "192.0.2.5",
+   "host": {"hostname": "node1"}, "paired": 1, "seen": 2, "found": ["sensors", "host", "wol", "pve"],
+   "caps": ["host", "pve"], "targets": {"pve": ["100", "101"], "host": ["host"]},
+   "choices": {"pve": ["100", "101", "102"], "wol": ["aa:bb:cc:dd:ee:01"], "host": ["host"]},
+   "labels": {"pve": {"100": "docker", "101": null, "102": "windows"}, "wol": {"aa:bb:cc:dd:ee:01": "192.0.2.9"}}}]}
