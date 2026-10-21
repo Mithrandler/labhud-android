@@ -302,6 +302,29 @@ data class Alert(
     val since: Long? = null,
 )
 
+/**
+ * The board's theme (labhud 0.1.4, [display] base and accent): `base` is "oled" or "grey", `accent` a
+ * name from [ACCENTS] or "#rrggbb". The app's HUD look follows it; the Material themes keep the phone's.
+ */
+@Serializable
+data class BoardTheme(val base: String = "oled", val accent: String = "blue") {
+    /** The accent and title colours as 0xAARRGGBB: a preset's pair, a custom colour for both, else blue's. */
+    val accentArgb: Pair<Long, Long> get() = ACCENTS[accent] ?: customArgb(accent) ?: ACCENTS.getValue("blue")
+    val grey: Boolean get() = base == "grey"
+
+    companion object {
+        private val ACCENTS = mapOf(
+            "blue" to (0xFF8AB4F8L to 0xFF7CC4FFL), "green" to (0xFF39FF88L to 0xFF5CFFA0L),
+            "orange" to (0xFFFFA94DL to 0xFFFFB86BL), "red" to (0xFFFF8A80L to 0xFFFF9E94L),
+            "violet" to (0xFFB39DFFL to 0xFFC4B2FFL), "cyan" to (0xFF4CE7FFL to 0xFF7AEEFFL),
+            "pink" to (0xFFFF7EB6L to 0xFFFF9AC6L), "yellow" to (0xFFFFE066L to 0xFFFFE98AL),
+        )
+        private val HEX = Regex("^#[0-9a-fA-F]{6}$")
+        private fun customArgb(s: String): Pair<Long, Long>? =
+            if (HEX.matches(s)) (0xFF000000L or s.substring(1).toLong(16)).let { it to it } else null
+    }
+}
+
 /** The full lab state document. */
 @Serializable
 data class LabState(
@@ -311,6 +334,10 @@ data class LabState(
     val cards: List<Card> = emptyList(),
     val problems: List<String> = emptyList(),
     val alerts: List<Alert> = emptyList(),
+    /** The board's look (labhud 0.1.4); the default is the wall's own. */
+    val theme: BoardTheme = BoardTheme(),
+    /** viewer / operator / admin: what this token or phone is (labhud 0.1.4); `pages` already holds only its pages. */
+    val role: String = "",
     /** Only in GET /api/v1/state, not in the stream: see [Info]. */
     @SerialName("device_admin") val deviceAdmin: Boolean? = null,
     val pin: Boolean? = null,

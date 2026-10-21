@@ -112,7 +112,7 @@ fun ThemeSection(repo: LabRepository, nav: SettingsNav) {
         Triple(ThemeMode.System, "System", "Follows the phone's dark mode; colours from the wallpaper (Android 12+)."),
         Triple(ThemeMode.Dark, "Dark", "Always dark, colours from the wallpaper (Android 12+)."),
         Triple(ThemeMode.Light, "Light", "Always light, colours from the wallpaper (Android 12+)."),
-        Triple(ThemeMode.Hud, "HUD", "Black with LabHUD's blue, as the wall."),
+        Triple(ThemeMode.Hud, "HUD", "As the wall: black and blue, or the theme the board sets in ⚙ > Dashboard."),
     )
     SettingsPage(section("theme")!!, nav) {
         item {

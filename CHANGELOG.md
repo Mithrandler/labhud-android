@@ -6,6 +6,11 @@ All notable changes to LabHUD for Android. The format follows
 
 ## [Unreleased]
 
+### Added
+- The HUD theme follows the board's theme (labhud 0.1.4: base oled or grey, accent a name or `#rrggbb`),
+  set in the web ⚙ > Dashboard > Theme; the System, Dark and Light themes keep the phone's own colours.
+- The app reads the `role` the server gives and shows the pages that role is allowed (`[roles.*]`, labhud 0.1.4).
+
 ## [0.1.3] - 2026-10-21
 
 ### Added

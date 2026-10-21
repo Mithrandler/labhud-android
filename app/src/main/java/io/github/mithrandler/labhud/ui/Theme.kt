@@ -19,6 +19,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import io.github.mithrandler.labhud.data.BoardTheme
 import io.github.mithrandler.labhud.data.ThemeMode
 
 /** The colours the screens use, by role. [Hud] is one set of them; the other themes derive theirs from a Material scheme. */
@@ -107,6 +108,30 @@ private val fallbackLight = lightColorScheme(
     outline = Color(0xFF74777F), outlineVariant = Color(0xFFC4C6D0),
 )
 
+/**
+ * The HUD look as the board sets it: the default (oled, blue) is [hudScheme] and [hudPalette] as they
+ * were; grey lifts the ground, cards and edges as the wall's "Dark grey"; the accent recolours the
+ * accent, the titles and the primary button.
+ */
+private fun hudOf(board: BoardTheme): Pair<ColorScheme, LabPalette> {
+    if (board == BoardTheme()) return hudScheme to hudPalette
+    val (accent, title) = board.accentArgb.let { Color(it.first) to Color(it.second) }
+    val bg = if (board.grey) Color(0xFF16181D) else Hud.bg
+    val card = if (board.grey) Color(0xFF1E2128) else Hud.card
+    val block = if (board.grey) Color(0xFF272B33) else Hud.block
+    val line = if (board.grey) Color(0xFF333844) else Hud.line
+    val border = if (board.grey) Color(0xFF454C59) else Hud.border
+    val palette = LabPalette(bg, card, block, line, border, Hud.text, Hud.sub, Hud.muted, accent, title, Hud.onTitle,
+        Hud.green, Hud.warn, Hud.red, Hud.redBg, Hud.redText, Hud.infoBg)
+    val scheme = hudScheme.copy(
+        primary = accent, onPrimaryContainer = title, secondary = title,
+        background = bg, surface = bg, surfaceVariant = card, surfaceContainerLowest = bg,
+        surfaceContainerLow = card, surfaceContainer = card, surfaceContainerHigh = block,
+        surfaceContainerHighest = line, outline = border, outlineVariant = line,
+    )
+    return scheme to palette
+}
+
 /** The roles from a Material scheme; the status colours are labhud's own, darker on a light ground. */
 private fun paletteOf(cs: ColorScheme, dark: Boolean) = LabPalette(
     bg = cs.background, card = cs.surfaceContainerLow, block = cs.surfaceContainerHigh, line = cs.outlineVariant, border = cs.outline,
@@ -137,17 +162,17 @@ fun isDarkTheme(mode: ThemeMode): Boolean = when (mode) {
 }
 
 @Composable
-fun LabTheme(mode: ThemeMode = ThemeMode.Hud, content: @Composable () -> Unit) {
+fun LabTheme(mode: ThemeMode = ThemeMode.Hud, board: BoardTheme = BoardTheme(), content: @Composable () -> Unit) {
     val dark = isDarkTheme(mode)
     val context = LocalContext.current
-    val (scheme, palette) = remember(mode, dark, context) {
+    val (scheme, palette) = remember(mode, dark, context, board) {
+        if (mode == ThemeMode.Hud) return@remember hudOf(board)
         val cs = when {
-            mode == ThemeMode.Hud -> hudScheme
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> if (dark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
             dark -> fallbackDark
             else -> fallbackLight
         }
-        cs to (if (mode == ThemeMode.Hud) hudPalette else paletteOf(cs, dark))
+        cs to paletteOf(cs, dark)
     }
     if (Current.palette !== palette) Current.palette = palette
     MaterialTheme(colorScheme = scheme, typography = type, content = content)

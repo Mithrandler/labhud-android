@@ -63,6 +63,9 @@ import io.github.mithrandler.labhud.ui.Lab
 import io.github.mithrandler.labhud.ui.LabTheme
 import io.github.mithrandler.labhud.ui.isDarkTheme
 import io.github.mithrandler.labhud.data.AppSettings
+import io.github.mithrandler.labhud.data.BoardTheme
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import androidx.compose.runtime.DisposableEffect
 import io.github.mithrandler.labhud.wall.WallActivity
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -88,7 +91,9 @@ class MainActivity : FragmentActivity() {
                 )
                 onDispose {}
             }
-            LabTheme(look.theme) {
+            val board by remember { repo.state.map { it?.theme ?: BoardTheme() }.distinctUntilChanged() }
+                .collectAsStateWithLifecycle(initialValue = BoardTheme())
+            LabTheme(look.theme, board) {
                 val unlocked by AppLock.unlocked.collectAsStateWithLifecycle()
                 val servers by repo.store.servers.collectAsStateWithLifecycle(initialValue = null)
                 val settings by repo.store.settings.collectAsStateWithLifecycle(initialValue = null)
