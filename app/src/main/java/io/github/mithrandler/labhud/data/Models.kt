@@ -109,7 +109,18 @@ data class Container(
     val project: String = "",
     val usage: String = "",
     val last: String = "",
+    /** Its image's last scan (an agent with `scan`), else null. */
+    val scan: Scan? = null,
 )
+
+/** An image scan's summary (cardstate.scan_summary): the critical and high CVEs, when (Unix time). */
+@Serializable
+data class Scan(val critical: Int = 0, val high: Int = 0, val t: Long = 0) {
+    /** "CVEs: 2 critical · 5 high", or "no critical or high CVEs" (cardstate.scan_text). */
+    fun text(): String =
+        if (critical == 0 && high == 0) "no critical or high CVEs"
+        else "CVEs: " + listOfNotNull(if (critical > 0) "$critical critical" else null, if (high > 0) "$high high" else null).joinToString(" · ")
+}
 
 /** A [[bookmark]] link. */
 @Serializable
@@ -123,6 +134,8 @@ data class FleetUpdate(
     val image: String = "",
     val updating: Boolean = false,
     val action: Action? = null,
+    /** The running image's last scan, else null. */
+    val scan: Scan? = null,
 )
 
 /** A single metric on a card. */

@@ -3,6 +3,9 @@ package io.github.mithrandler.labhud
 import io.github.mithrandler.labhud.data.Backups
 import io.github.mithrandler.labhud.data.Channel
 import io.github.mithrandler.labhud.data.Channels
+import io.github.mithrandler.labhud.data.Container
+import io.github.mithrandler.labhud.data.FleetUpdate
+import io.github.mithrandler.labhud.data.Scan
 import io.github.mithrandler.labhud.data.LabJson
 import io.github.mithrandler.labhud.data.Registries
 import io.github.mithrandler.labhud.data.Registry
@@ -164,5 +167,15 @@ class SetupApiTest {
         assertEquals("forbidden", b.error)
         val c = LabJson.decodeFromString<Channels>("{}")
         assertTrue(c.channels.isEmpty())
+    }
+
+    @Test fun scanOnRows() {
+        val c = LabJson.decodeFromString<Container>("""{"name":"jellyfin","up":true,"scan":{"critical":2,"high":7,"t":1792580445}}""")
+        assertEquals(Scan(2, 7, 1792580445), c.scan)
+        assertNull(LabJson.decodeFromString<Container>("""{"name":"x","scan":null}""").scan)
+        assertEquals(3, LabJson.decodeFromString<FleetUpdate>("""{"name":"sonarr","host":"docker","scan":{"critical":0,"high":3,"t":0}}""").scan?.high)
+        assertEquals("CVEs: 2 critical · 7 high", Scan(2, 7).text())
+        assertEquals("CVEs: 3 high", Scan(high = 3).text())
+        assertEquals("no critical or high CVEs", Scan().text())
     }
 }

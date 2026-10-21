@@ -285,6 +285,7 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
                             Column(Modifier.weight(1f)) {
                                 Text(u.name, fontSize = 14.sp, fontWeight = FontWeight.Medium)
                                 Text("${u.host} · ${u.image}", fontSize = 12.sp, color = Lab.muted, maxLines = 1)
+                                u.scan?.let { sc -> Text(sc.text(), fontSize = 12.sp, color = scanColor(sc)) }
                             }
                             when {
                                 u.updating -> Text("updating…", fontSize = 12.sp, color = Lab.accent)
@@ -405,7 +406,10 @@ private fun detailRows(json: String): List<Pair<String, String>> = runCatching {
     out.filter { it.second.isNotEmpty() }
 }.getOrElse { listOf("✕" to "an older agent: update it") }
 
-/** A container: its dot, name and state, "update available", its usage and latest news, its buttons and (admin) LOGS, DETAILS. */
+/** Red with a critical CVE, amber with a high one, else muted. */
+private fun scanColor(s: io.github.mithrandler.labhud.data.Scan) = when { s.critical > 0 -> Lab.red; s.high > 0 -> Lab.warn; else -> Lab.muted }
+
+/** A container: its dot, name and state, "update available", its usage, latest news and CVEs, its buttons and (admin) LOGS, DETAILS. */
 @Composable
 private fun ContainerRow(b: io.github.mithrandler.labhud.data.Container, admin: Boolean, onAction: (Action) -> Unit, onLogs: () -> Unit,
                          onDetails: () -> Unit = {}) {
@@ -421,6 +425,7 @@ private fun ContainerRow(b: io.github.mithrandler.labhud.data.Container, admin: 
         listOf(b.usage, b.last).filter { it.isNotEmpty() }.forEach {
             Text(it, fontSize = 12.sp, color = Lab.muted, modifier = Modifier.padding(start = 18.dp))
         }
+        b.scan?.let { sc -> Text(sc.text(), fontSize = 12.sp, color = scanColor(sc), modifier = Modifier.padding(start = 18.dp)) }
         if (admin) Row(Modifier.padding(start = 14.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
             b.actions.forEach { a ->
                 TextButton(onClick = { onAction(a) }, enabled = !b.updating) {

@@ -6,6 +6,9 @@ All notable changes to LabHUD for Android. The format follows
 
 ## [Unreleased]
 
+### Added
+- A container's CVEs (its image's last scan, critical and high) on its row and on the Updates list.
+
 ## [0.1.1] - 2026-10-21
 
 Needs labhud 0.1.0.
