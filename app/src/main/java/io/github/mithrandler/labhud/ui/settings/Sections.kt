@@ -55,6 +55,8 @@ val SECTIONS: List<Section> = listOf(
         keywords = "agents capabilities targets wol update host") { r, n -> HostsSection(r, n) },
     Section("containers", "infra", "Containers", "Update on their own, clean unused images", { LabIcons.container },
         keywords = "docker auto update prune images registries scan cve") { r, n -> ContainersSection(r, n) },
+    Section("discovered", "infra", "Discovered", "What LabHUD found and has no card for", { LabIcons.pages },
+        keywords = "discover new guests containers services approve dismiss cards") { r, n -> DiscoveredSection(r, n) },
     Section("integrations", "infra", "Integrations", "Sources and the network scan", { LabIcons.sources },
         keywords = "sources scan network catalog proxmox") { r, n -> IntegrationsSection(r, n) },
 

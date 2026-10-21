@@ -124,7 +124,7 @@ fun HudCard(
                 .padding(horizontal = LabScale.space3, vertical = if (compact) 6.dp else 10.dp)) {
                 CardHead(c, server)
                 val fade = Modifier.alpha(if (c.frozen) 0.45f else 1f)
-                CardBody(c, fade)
+                CardBody(c, fade, server)
                 if (c.note.isNotEmpty()) {
                     Text(c.note, fontSize = LabScale.textXs, color = if (c.noteKind == "error" || c.noteKind == "stale") Lab.warn else Lab.muted,
                         maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = LabScale.space1))
@@ -167,7 +167,7 @@ fun CardHead(c: Card, server: Server?) {
 }
 
 @Composable
-private fun CardBody(c: Card, fade: Modifier) {
+private fun CardBody(c: Card, fade: Modifier, server: Server? = null) {
     val word = statusWord(c)
     val most = when (c.size) { "xl" -> 8; "l" -> 6; "m" -> 4; else -> 2 }
     val shown = c.metrics.filter { it.value.isNotEmpty() && it.value != "—" }.take(most)
@@ -178,6 +178,9 @@ private fun CardBody(c: Card, fade: Modifier) {
     }
     Column(fade.padding(top = LabScale.space2)) {
         when {
+            c.widget == "clock" -> ClockWidget(c.timezone)
+            c.widget == "calendar" -> CalendarWidget()
+            c.frame.isNotEmpty() -> FrameWidget(c.frame, c.frameHeight)
             shown.isNotEmpty() -> {
                 shown.filter { it.pct != null }.forEach { MeterRow(it) }
                 shown.filter { it.pct == null }.chunked(2).forEach { pair ->
@@ -189,7 +192,7 @@ private fun CardBody(c: Card, fade: Modifier) {
             }
             c.kind == "list" && c.rows.isNotEmpty() -> {
                 val n = if (c.size == "s") 3 else 5
-                c.rows.take(n).forEach { ListRow(it) }
+                c.rows.take(n).forEach { ListRow(it, server) }
                 if (c.rows.size > n) Text("+${c.rows.size - n} more", fontSize = LabScale.textXs, color = Lab.muted)
             }
             !c.notes.isNullOrBlank() -> Text(c.notes, fontSize = LabScale.textSm, color = Lab.sub, maxLines = 4, overflow = TextOverflow.Ellipsis)
@@ -269,8 +272,12 @@ fun UptimeBar(values: List<Double?>, modifier: Modifier, slices: Int = 48) {
 }
 
 @Composable
-fun ListRow(row: DataRow) {
+fun ListRow(row: DataRow, server: Server? = null) {
     Row(Modifier.fillMaxWidth().padding(vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
+        if (row.icon.isNotEmpty()) {
+            NamedIcon(row.icon, LabIcons.container, server, 14.dp)
+            Spacer(Modifier.width(6.dp))
+        }
         Text(row.name, fontSize = LabScale.textSm, color = if (row.bad) Lab.red else if (row.quiet) Lab.muted else Lab.text,
             maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
         if (row.value.isNotEmpty()) {
