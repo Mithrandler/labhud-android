@@ -76,6 +76,16 @@ class LabApi(val baseUrl: String, private val token: String?, fingerprint: Strin
         }
     }
 
+    /** [answer] for a call that takes a while on the server (a stack deploy, a held stream read): the client waits [seconds]. */
+    internal suspend fun slowAnswer(path: String, json: String, seconds: Long): String = withContext(Dispatchers.IO) {
+        val slow = client.newBuilder().readTimeout(seconds, TimeUnit.SECONDS).callTimeout(seconds + 5, TimeUnit.SECONDS).build()
+        slow.newCall(request(path).post(json.toRequestBody(JSON)).build()).execute().use { r ->
+            val text = r.body.string()
+            if (r.code in listOf(200, 400, 403, 404, 409, 502) && text.startsWith("{")) text
+            else body(r)
+        }
+    }
+
     private suspend fun get(path: String) = call(request(path).get().build())
     private suspend fun post(path: String, json: String) = call(request(path).post(json.toRequestBody(JSON)).build())
 

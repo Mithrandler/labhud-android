@@ -56,6 +56,8 @@ private val CAP_WORDS = mapOf(
     "wol" to "Wake-on-LAN for machines it can see",
     "pve" to "Proxmox guests: start, shut down, reboot",
     "ptero" to "Game servers (Pterodactyl): start, stop, restart",
+    "stacks" to "Docker compose stacks: deploy, redeploy, restart, down (docker compose on the host)",
+    "terminal" to "A shell in the ticked containers, from the wall's ⚙ with the PIN (the agent needs LABHUD_AGENT_TERMINAL=on)",
 )
 
 /**
@@ -164,9 +166,13 @@ fun AgentScreen(repo: LabRepository, id: String, onBack: () -> Unit, onSignIn: (
                             if (cap == "wol") MacField(enabled = !busy) { mac ->
                                 if (mac !in ticked) change { api -> api.agentTargets(a.id, cap, ticked + mac) }
                             }
-                            if (cap == "docker") DockerExtras(a, ticked.filter { it != "images" }, busy,
-                                onAuto = { list -> change { api -> api.agentAuto(a.id, list) } },
-                                onPrune = { confirmPrune = true })
+                            if (cap == "docker") {
+                                DockerExtras(a, ticked.filter { it != "images" }, busy,
+                                    onAuto = { list -> change { api -> api.agentAuto(a.id, list) } },
+                                    onPrune = { confirmPrune = true })
+                                if (a.prune) DockerHostPanel(a, repo, gate, busy) { message = it }
+                            }
+                            if (cap == "stacks") StacksPanel(a, repo, gate, busy, { message = it }) { load() }
                         }
                     }
                 }

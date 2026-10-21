@@ -71,6 +71,7 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
     var sections by remember { mutableStateOf<List<Section>>(emptyList()) }
     var full by remember { mutableStateOf<Card?>(null) }
     var logs by remember { mutableStateOf<Pair<String, String>?>(null) }
+    var liveLog by remember { mutableStateOf<Pair<String, String>?>(null) }
     val rights by repo.rights.collectAsStateWithLifecycle()
     val gate = rememberGate(repo)
     var history by remember { mutableStateOf<History?>(null) }
@@ -222,6 +223,7 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
                                         }
                                     }
                                 },
+                                onLive = { gate.press { liveLog = full?.agent.orEmpty() to b.name } },
                                 onDetails = {
                                     gate.press {
                                         scope.launch {
@@ -324,6 +326,7 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
     }
 
     ask?.let { a -> ActionDialog(a, onSend = { name, label -> send(name, label) }, onDismiss = { ask = null }) }
+    liveLog?.let { (agent, container) -> LiveLogDialog(agent, container, repo, gate) { liveLog = null } }
     GateDialogs(gate, onSignIn)
     askStack?.let { (project, acts) ->
         AlertDialog(
@@ -412,7 +415,7 @@ private fun scanColor(s: io.github.mithrandler.labhud.data.Scan) = when { s.crit
 /** A container: its dot, name and state, "update available", its usage, latest news and CVEs, its buttons and (admin) LOGS, DETAILS. */
 @Composable
 private fun ContainerRow(b: io.github.mithrandler.labhud.data.Container, admin: Boolean, server: io.github.mithrandler.labhud.data.Server?, onAction: (Action) -> Unit, onLogs: () -> Unit,
-                         onDetails: () -> Unit = {}) {
+                         onLive: () -> Unit = {}, onDetails: () -> Unit = {}) {
     Column(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             androidx.compose.foundation.layout.Box(Modifier.size(8.dp).clip(androidx.compose.foundation.shape.CircleShape)
@@ -436,6 +439,7 @@ private fun ContainerRow(b: io.github.mithrandler.labhud.data.Container, admin: 
             }
             TextButton(onClick = onDetails) { Text("Details", fontSize = 12.sp) }
             TextButton(onClick = onLogs) { Text("Logs", fontSize = 12.sp) }
+            if (b.up) TextButton(onClick = onLive) { Text("Live", fontSize = 12.sp) }
         }
     }
 }

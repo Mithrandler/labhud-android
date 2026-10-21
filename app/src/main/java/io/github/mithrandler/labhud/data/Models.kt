@@ -232,6 +232,8 @@ data class Row(
     val value: String,
     val bad: Boolean,
     val quiet: Boolean = false,
+    /** A service-icon name (labhud 0.1.x, the fifth element), "" when the row has none. */
+    val icon: String = "",
 )
 
 fun JsonArray.toRow(): Row = Row(
@@ -239,6 +241,7 @@ fun JsonArray.toRow(): Row = Row(
     value = getOrNull(1)?.jsonPrimitive?.contentOrNull ?: "",
     bad = getOrNull(2)?.jsonPrimitive?.booleanOrNull ?: false,
     quiet = getOrNull(3)?.jsonPrimitive?.booleanOrNull ?: false,
+    icon = getOrNull(4)?.jsonPrimitive?.contentOrNull ?: "",
 )
 
 /** A section (panel) on a card. */
@@ -288,6 +291,13 @@ data class Card(
     val icon: String = "",
     /** Its place in the grid: s (1×1), m (2×1), l (2×2), xl (4×2); "" means s. */
     val size: String = "",
+    /** "clock" or "calendar": a card the app draws on its own, without data (labhud 0.1.x); "" for every other. */
+    val widget: String = "",
+    /** The clock's time zone (an IANA name), "" for the phone's. */
+    val timezone: String = "",
+    /** An address the card shows inside itself, in a web view (nothing else is loaded from it); "" for none. */
+    val frame: String = "",
+    @SerialName("frame_height") val frameHeight: Int = 0,
 ) {
     val rows: List<Row> by lazy(LazyThreadSafetyMode.PUBLICATION) { rawRows.map { it.toRow() } }
 }
@@ -442,6 +452,8 @@ data class AgentRow(
     val prune: Boolean = false,
     /** The containers labhud updates on its own, in the window. */
     val auto: List<String> = emptyList(),
+    /** The compose stacks it keeps (the `stacks` capability), by name. */
+    val stacks: Map<String, StackInfo> = emptyMap(),
 )
 
 @Serializable
