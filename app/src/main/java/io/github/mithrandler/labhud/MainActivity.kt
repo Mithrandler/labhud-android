@@ -43,6 +43,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.fragment.app.FragmentActivity
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -181,13 +183,16 @@ class MainActivity : FragmentActivity() {
                         onCard = { nav.navigate("card/$it") },
                         onGame = { nav.navigate("game/$it") },
                         onServers = { nav.navigate("settings/servers") },
+                        onSettings = { id -> nav.navigate("settings/$id") },
+                        onAction = { card, action -> nav.navigate("card/$card?ask=" + Uri.encode(action)) },
                         onWall = { startActivity(Intent(this@MainActivity, WallActivity::class.java)) },
                         onLock = if (AppLock.on) ({ AppLock.lockNow() }) else null,
                     )
                 }
-                composable("card/{id}") {
+                composable("card/{id}?ask={ask}", arguments = listOf(navArgument("ask") { type = NavType.StringType; defaultValue = "" })) {
                     CardScreen(repo, it.arguments?.getString("id").orEmpty(), onBack = { nav.popBackStack() },
-                        onHistory = { id -> nav.navigate("host/$id") }, onSignIn = { nav.navigate("signin") })
+                        onHistory = { id -> nav.navigate("host/$id") }, onSignIn = { nav.navigate("signin") },
+                        askFirst = it.arguments?.getString("ask").orEmpty())
                 }
                 composable("game/{id}") {
                     GameScreen(repo, it.arguments?.getString("id").orEmpty(), onBack = { nav.popBackStack() }, onSignIn = { nav.navigate("signin") })

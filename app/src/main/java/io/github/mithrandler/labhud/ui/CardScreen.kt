@@ -1,6 +1,7 @@
 package io.github.mithrandler.labhud.ui
 
 import android.content.Intent
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import android.net.Uri
 import androidx.compose.foundation.BorderStroke
@@ -65,7 +66,9 @@ private val RANGES = listOf("6h" to 6 * 3600, "24h" to 86400, "7d" to 7 * 86400,
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (String) -> Unit, onSignIn: () -> Unit) {
+fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (String) -> Unit, onSignIn: () -> Unit,
+               /** A button picked in the command palette: it asks once the card is here, as if pressed. */
+               askFirst: String = "") {
     val state by repo.state.collectAsStateWithLifecycle()
     val live = state?.byId?.get(id)
     var sections by remember { mutableStateOf<List<Section>>(emptyList()) }
@@ -114,6 +117,14 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
     LaunchedEffect(range, keys) {
         if (range in 1..2 && long == null) repo.api()?.let { api -> runCatching { api.history(true, keys) }.onSuccess { long = it } }
         if (range >= 3 && year == null) repo.api()?.let { api -> runCatching { api.historyYear(keys) }.onSuccess { year = it } }
+    }
+
+    var askedFirst by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(live != null) {
+        val a = live?.actions?.firstOrNull { it.name == askFirst } ?: return@LaunchedEffect
+        if (askedFirst) return@LaunchedEffect
+        askedFirst = true
+        gate.press { ask = a }
     }
 
     fun send(name: String, label: String) = scope.launch { snack.showSnackbar(sendAction(repo, name, label)) }

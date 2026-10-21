@@ -73,7 +73,6 @@ import kotlinx.coroutines.launch
 import java.text.DateFormat
 import java.util.Date
 
-private val WHITESPACE = Regex("\\s+")
 
 /** Built once: a DateFormat costs more to make than to use. Only ever called from the main thread. */
 internal val SHORT_TIME: DateFormat = DateFormat.getTimeInstance(DateFormat.SHORT)
@@ -91,6 +90,10 @@ fun StatusScreen(
     onCard: (String) -> Unit,
     onGame: (String) -> Unit,
     onServers: () -> Unit,
+    /** A ⚙ section by its id, from the command palette. */
+    onSettings: (String) -> Unit,
+    /** A card's button from the palette: its screen opens and asks there, as a press on it does. */
+    onAction: (card: String, action: String) -> Unit,
     onWall: () -> Unit,
     onLock: (() -> Unit)?,
 ) {
@@ -104,6 +107,8 @@ fun StatusScreen(
     var bell by remember { mutableStateOf(false) }
     var search by remember { mutableStateOf(false) }
     var pageId by rememberSaveable { mutableStateOf<String?>(null) }
+    var goPage by remember { mutableStateOf<String?>(null) }
+    val rights by repo.rights.collectAsStateWithLifecycle()
     var uptime by remember { mutableStateOf<Uptime?>(null) }
     var sparks by remember { mutableStateOf<Map<String, List<Double?>>>(emptyMap()) }
 
@@ -171,6 +176,12 @@ fun StatusScreen(
             val pager = rememberPagerState(initialPage = start) { pages.size }
             val chips = rememberLazyListState()
             // the chip row follows a swipe; the remembered page follows the pager
+            // a page picked in the palette
+            LaunchedEffect(goPage) {
+                val i = pages.indexOfFirst { it.id == goPage }
+                if (i >= 0) pager.scrollToPage(i)
+                goPage = null
+            }
             LaunchedEffect(pager.currentPage, pages.size) {
                 pages.getOrNull(pager.currentPage)?.let { pageId = it.id }
                 if (pages.size > 1) chips.animateScrollToItem(pager.currentPage.coerceAtMost(pages.size - 1))
@@ -214,7 +225,9 @@ fun StatusScreen(
         }
     }
     if (bell && st != null) BellSheet(st, onDismiss = { bell = false }, onCard = { bell = false; onCard(it) })
-    if (search && st != null) SearchSheet(st, onDismiss = { search = false }, onCard = { search = false; onCard(it) })
+    if (search && st != null) PaletteSheet(st, rights.admin, server, onDismiss = { search = false },
+        onPage = { search = false; goPage = it }, onCard = { search = false; onCard(it) },
+        onAction = { c, a -> search = false; onAction(c, a) }, onSection = { search = false; onSettings(it) })
 }
 
 private fun LazyGridScope.groups(page: Page, byId: Map<String, Card>, server: Server?, sparks: Map<String, List<Double?>>,
@@ -252,35 +265,6 @@ private fun GameTile(g: GameServer, server: Server?, onClick: () -> Unit) {
             }
             Text(g.title, fontSize = 12.sp, color = Lab.muted, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 6.dp))
             Text(g.line, fontSize = 13.sp, color = if (g.running) Lab.text else Lab.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        }
-    }
-}
-
-/** Search: every card by its name, its line or its page, as the wall's 🔍 does. */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun SearchSheet(st: LabState, onDismiss: () -> Unit, onCard: (String) -> Unit) {
-    var q by remember { mutableStateOf("") }
-    val hits = remember(q, st) {
-        val words = q.trim().lowercase().split(WHITESPACE).filter { it.isNotEmpty() }
-        if (words.isEmpty()) emptyList() else st.byId.values.filter { c ->
-            val text = listOf(c.name, c.subtitle, c.page.orEmpty(), c.group.orEmpty(), c.url).joinToString(" ").lowercase()
-            words.all { it in text }
-        }.sortedBy { it.name.lowercase() }.take(20)
-    }
-    val searching = q.isNotBlank()
-    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Lab.card) {
-        Column(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 32.dp)) {
-            androidx.compose.material3.OutlinedTextField(q, { q = it }, Modifier.fillMaxWidth(), singleLine = true,
-                placeholder = { Text("Search the cards") }, leadingIcon = { Icon(LabIcons.search, null) })
-            hits.forEach { c ->
-                Row(Modifier.fillMaxWidth().clickable { onCard(c.id) }.padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-                    if (c.status != null) { StatusDot(c); Spacer(Modifier.width(10.dp)) }
-                    Text(c.name, fontSize = 14.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
-                    Text(listOfNotNull(c.page, c.group).joinToString(" · "), fontSize = 12.sp, color = Lab.muted, maxLines = 1)
-                }
-            }
-            if (searching && hits.isEmpty()) Text("Nothing matches.", color = Lab.muted, fontSize = 14.sp, modifier = Modifier.padding(top = 10.dp))
         }
     }
 }
