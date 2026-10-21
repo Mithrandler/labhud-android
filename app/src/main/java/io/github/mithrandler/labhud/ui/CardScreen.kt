@@ -120,8 +120,9 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
     }
 
     var askedFirst by rememberSaveable { mutableStateOf(false) }
-    LaunchedEffect(live != null) {
-        val a = live?.actions?.firstOrNull { it.name == askFirst } ?: return@LaunchedEffect
+    LaunchedEffect(live != null, live?.containers?.size) {
+        // a card's own button, or one of its containers' (the palette's "restart · name")
+        val a = (live?.actions.orEmpty() + live?.containers.orEmpty().flatMap { it.actions }).firstOrNull { it.name == askFirst } ?: return@LaunchedEffect
         if (askedFirst) return@LaunchedEffect
         askedFirst = true
         gate.press { ask = a }

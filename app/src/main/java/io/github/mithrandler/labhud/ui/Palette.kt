@@ -22,6 +22,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
@@ -36,7 +37,7 @@ import java.text.Normalizer
 // the cards' buttons (RESTART · name) and the sections of ⚙, the last two only for the admin.
 // "> text" looks only among the commands. A button opens its card and asks there, as a press does.
 
-enum class HitKind { Page, Card, Action, Section }
+enum class HitKind { Page, Card, Action, Section, Container, Link, Web }
 
 data class Hit(
     val label: String,
@@ -50,7 +51,7 @@ data class Hit(
     val action: String = "",
     val icon: String = "",
 ) {
-    val command: Boolean get() = kind != HitKind.Card
+    val command: Boolean get() = kind == HitKind.Page || kind == HitKind.Action || kind == HitKind.Section
 }
 
 const val PALETTE_MAX = 12
@@ -95,6 +96,19 @@ fun paletteItems(st: LabState, admin: Boolean): List<Hit> {
             }
         }
     }
+    // the containers the hosts' agents report, found by name; their buttons are the admin's, as a card's
+    st.containers.forEach { x ->
+        val host = st.byId[x.card] ?: return@forEach
+        out += Hit(x.name, "container · ${host.name}", HitKind.Container, paletteNorm("container docker ${x.name} ${host.name}"), x.card)
+        if (admin) x.actions.forEach { a ->
+            val word = a.label.ifEmpty { a.name }
+            out += Hit("${word.lowercase()} · ${x.name}", if (a.danger || a.confirm.isNotEmpty()) "asks first" else "action",
+                HitKind.Action, paletteNorm("$word ${x.name} container ${host.name}"), x.card, a.name)
+        }
+    }
+    st.bookmarks.forEach { b ->
+        out += Hit(b.name, b.group, HitKind.Link, paletteNorm("${b.name} ${b.group} ${b.url}"), b.url)
+    }
     if (admin) visibleSections(admin = true).forEach { s ->
         out += Hit(s.title, "⚙ settings", HitKind.Section, paletteNorm("settings ${s.title} ${s.hint} ${s.keywords}"), s.id)
     }
@@ -108,6 +122,14 @@ fun paletteHits(items: List<Hit>, raw: String, max: Int = PALETTE_MAX): List<Hit
     val q = paletteNorm(if (cmd) typed.drop(1).trim() else typed)
     val all = if (cmd) items.filter { it.command } else items
     return if (cmd && q.isEmpty()) all.filter { it.kind == HitKind.Action }.take(max) else paletteRank(all, q).take(max)
+}
+
+/** The last hit of a plain search that matches nothing else: the web search of `[search] url` ("" or no `%s`: none). */
+fun paletteWeb(search: String, raw: String): Hit? {
+    val typed = raw.trim()
+    if (typed.isEmpty() || typed.startsWith(">") || !search.startsWith("http") || "%s" !in search) return null
+    val host = runCatching { java.net.URI(search.replace("%s", "")).host }.getOrNull().orEmpty()
+    return Hit("Search the web for “$typed”", host, HitKind.Web, "", search.replace("%s", java.net.URLEncoder.encode(typed, "UTF-8")))
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -124,8 +146,11 @@ fun PaletteSheet(
 ) {
     var q by remember { mutableStateOf("") }
     val items = remember(st, admin) { paletteItems(st, admin) }
-    val hits = remember(items, q) { paletteHits(items, q) }
+    val hits = remember(items, q) { paletteHits(items, q) + listOfNotNull(paletteWeb(st.search, q)) }
+    val uri = LocalUriHandler.current
     fun run(h: Hit) = when (h.kind) {
+        HitKind.Link, HitKind.Web -> { onDismiss(); uri.openUri(h.target) }
+        HitKind.Container -> onCard(h.target)
         HitKind.Page -> onPage(h.target)
         HitKind.Card -> onCard(h.target)
         HitKind.Action -> onAction(h.target, h.action)
@@ -157,6 +182,9 @@ fun PaletteSheet(
 }
 
 private fun kindIcon(k: HitKind): ImageVector = when (k) {
+    HitKind.Container -> LabIcons.status
+    HitKind.Link -> LabIcons.link
+    HitKind.Web -> LabIcons.search
     HitKind.Page -> LabIcons.pages
     HitKind.Card -> LabIcons.status
     HitKind.Action -> LabIcons.bolt

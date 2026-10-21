@@ -173,6 +173,15 @@ data class Scan(val critical: Int = 0, val high: Int = 0, val t: Long = 0) {
 @Serializable
 data class Bookmark(val group: String = "", val name: String = "", val url: String = "")
 
+/** A container of a host's agent that has no card of its own (labhud 0.1.2 `containers` of the state): [card] is the host card that lists it. */
+@Serializable
+data class StateContainer(
+    val card: String = "",
+    val name: String = "",
+    val up: Boolean = false,
+    val actions: List<Action> = emptyList(),
+)
+
 /** A container with a newer image, anywhere in the fleet (`list = "fleet.updates"`). */
 @Serializable
 data class FleetUpdate(
@@ -346,6 +355,11 @@ data class LabState(
     val alerts: List<Alert> = emptyList(),
     /** The board's look (labhud 0.1.1); the default is the wall's own. */
     val theme: BoardTheme = BoardTheme(),
+    /** For the palette; an older server sends none of the three (the defaults are empty). */
+    val containers: List<StateContainer> = emptyList(),
+    val bookmarks: List<Bookmark> = emptyList(),
+    /** `[search] url`, `%s` where the words go; "" when there is none. */
+    val search: String = "",
     /** viewer / operator / admin: what this token or phone is (labhud 0.1.1); `pages` already holds only its pages. */
     val role: String = "",
     /** Only in GET /api/v1/state, not in the stream: see [Info]. */
