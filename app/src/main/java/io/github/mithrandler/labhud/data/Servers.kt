@@ -64,6 +64,7 @@ class ServerStore(private val context: Context) {
     private fun tokenKey(id: String) = stringPreferencesKey("token_$id")
     private fun pinKey(id: String) = stringPreferencesKey("pin_$id")
     private fun lastNoteKey(id: String) = androidx.datastore.preferences.core.longPreferencesKey("last_note_$id")
+    private fun clearedNotesKey(id: String) = androidx.datastore.preferences.core.longPreferencesKey("cleared_notes_$id")
     private val notifyKey = stringPreferencesKey("notify_mode")
     private val pushKey = stringPreferencesKey("push_endpoint")
 
@@ -102,6 +103,7 @@ class ServerStore(private val context: Context) {
             p.remove(tokenKey(id))
             p.remove(pinKey(id))
             p.remove(lastNoteKey(id))
+            p.remove(clearedNotesKey(id))
             if (p[currentKey] == id) p.remove(currentKey)
         }
     }
@@ -125,6 +127,9 @@ class ServerStore(private val context: Context) {
 
     /** The id of the newest notification already shown for a server (the outbox's ids rise). */
     suspend fun lastNote(id: String): Long? = context.store.data.first()[lastNoteKey(id)]
+    /** The time (Unix seconds) up to which this phone has cleared the Notifications list; 0 = never. */
+    suspend fun clearedNotes(id: String): Long = context.store.data.first()[clearedNotesKey(id)] ?: 0L
+    suspend fun setClearedNotes(id: String, time: Long) = context.store.edit { it[clearedNotesKey(id)] = time }
     suspend fun setLastNote(id: String, last: Long) = context.store.edit { it[lastNoteKey(id)] = last }
 
     suspend fun setNotify(mode: NotifyMode) = context.store.edit { it[notifyKey] = mode.name }

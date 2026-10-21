@@ -25,6 +25,10 @@ import androidx.compose.foundation.layout.Column
 import io.github.mithrandler.labhud.data.Note
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.launch
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -56,6 +60,11 @@ fun ActivityScreen(repo: LabRepository, onCard: (String) -> Unit) {
     var notes by remember { mutableStateOf<List<Note>?>(null) }
     var error by remember { mutableStateOf("") }
     var tab by rememberSaveable { mutableStateOf(0) }
+    var cleared by remember { mutableStateOf(0L) }
+    val server by repo.server.collectAsStateWithLifecycle()
+    val scope = rememberCoroutineScope()
+    LaunchedEffect(server?.id) { server?.let { cleared = repo.store.clearedNotes(it.id) } }
+    val shown = remember(notes, cleared) { notes?.filter { it.time > cleared } }
     LaunchedEffect(Unit) {
         val api = repo.api()
         if (api == null) error = "No server paired." else {
@@ -70,6 +79,14 @@ fun ActivityScreen(repo: LabRepository, onCard: (String) -> Unit) {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Lab.bg),
                 title = { Text("Activity") },
+                actions = {
+                    if (tab == 1 && !shown.isNullOrEmpty()) TextButton(onClick = {
+                        val id = server?.id ?: return@TextButton
+                        val last = notes.orEmpty().maxOf { it.time }
+                        cleared = last
+                        scope.launch { repo.store.setClearedNotes(id, last) }
+                    }) { Text("Clear") }
+                },
             )
         },
     ) { pad ->
@@ -80,7 +97,7 @@ fun ActivityScreen(repo: LabRepository, onCard: (String) -> Unit) {
             }
         }
         if (tab == 1) {
-            NotesList(notes, error, onCard)
+            NotesList(shown, error, onCard)
             return@Column
         }
         val list = events
@@ -124,7 +141,7 @@ private fun NotesList(notes: List<Note>?, error: String, onCard: (String) -> Uni
     }
     LazyColumn(Modifier.fillMaxSize(), contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp)) {
         if (list.isEmpty()) item {
-            Text("No notification since LabHUD started.", color = Lab.muted)
+            Text("No notifications.", color = Lab.muted)
         }
         items(list, key = { it.id }) { n ->
             Row(
