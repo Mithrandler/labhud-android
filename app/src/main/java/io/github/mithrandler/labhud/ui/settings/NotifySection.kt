@@ -35,6 +35,12 @@ import androidx.compose.ui.unit.sp
 import androidx.fragment.app.FragmentActivity
 import io.github.mithrandler.labhud.data.AlertSetup
 import io.github.mithrandler.labhud.data.AppSettings
+import io.github.mithrandler.labhud.data.Channels
+import io.github.mithrandler.labhud.data.channels
+import io.github.mithrandler.labhud.data.forgetChannel
+import io.github.mithrandler.labhud.data.saveChannel
+import io.github.mithrandler.labhud.data.saveEvents
+import io.github.mithrandler.labhud.data.testChannel
 import io.github.mithrandler.labhud.data.LabRepository
 import io.github.mithrandler.labhud.data.NotifyMode
 import io.github.mithrandler.labhud.push.Push
@@ -59,11 +65,21 @@ fun NotifySection(repo: LabRepository, nav: SettingsNav) {
     val scope = rememberCoroutineScope()
     val gate = rememberGate(repo)
     var alerts by remember { mutableStateOf<AlertSetup?>(null) }
+    var chans by remember { mutableStateOf<Channels?>(null) }
     var message by remember { mutableStateOf("") }
 
     fun load() = scope.launch {
         val api = repo.api() ?: return@launch
         runCatching { api.alertSetup() }.onSuccess { alerts = it }.onFailure { message = it.message ?: "Not loaded." }
+        runCatching { api.channels() }.onSuccess { c -> if (c.ok) chans = c else message = c.error.ifBlank { "Channels refused." } }
+    }
+    /** A channel's change behind the gate: what it did in the message line, the section anew. */
+    fun change(done: String, what: String, call: suspend () -> Pair<Boolean, String>?) = gate.press {
+        scope.launch {
+            val (ok, error) = runCatching { call() }.getOrElse { false to (it.message ?: "") } ?: return@launch
+            message = if (ok) done else "✕ $what: " + error.ifBlank { "refused" }
+            if (ok) load()
+        }
     }
     LaunchedEffect(rights.admin) { if (rights.admin && repo.mayPress()) load() }
 
@@ -108,7 +124,22 @@ fun NotifySection(repo: LabRepository, nav: SettingsNav) {
                         }) { Text("Send a test to ntfy") }
                     }
                 }
-                item { Soon(listOf("Email, webhook, Discord and Gotify, each with a test", "Which news goes where: alerts, a host down, updates, sign-ins")) }
+                chans?.let { c ->
+                    item {
+                        ChannelsPanel(c,
+                            onSave = { ch, cfg, sec -> change("✓ ${CHANNEL_NAMES[ch]} saved.", "Not saved") { repo.api()?.saveChannel(ch, cfg, sec)?.let { it.ok to it.error } } },
+                            onTest = { ch, cfg, sec ->
+                                gate.press {
+                                    scope.launch {
+                                        val r = runCatching { repo.api()?.testChannel(ch, cfg, sec) }.getOrNull()
+                                        message = if (r?.ok == true) "✓ Test sent to ${CHANNEL_NAMES[ch]}." else "✕ " + (r?.error?.ifBlank { null } ?: "not sent")
+                                    }
+                                }
+                            },
+                            onForget = { ch -> change("${CHANNEL_NAMES[ch]} forgotten.", "Not forgotten") { repo.api()?.forgetChannel(ch)?.let { it.ok to it.error } } })
+                    }
+                    item { MatrixPanel(c) { m -> change("", "Not saved") { repo.api()?.saveEvents(m)?.let { it.ok to it.error } } } }
+                }
             }
         }
     }

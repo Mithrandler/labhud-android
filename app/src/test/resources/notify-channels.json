@@ -1,0 +1,145 @@
+{
+ "ok": true,
+ "managed": false,
+ "channels": {
+  "app": {
+   "set": true
+  },
+  "ntfy": {
+   "set": false,
+   "host": "",
+   "problem": null,
+   "sent": 0,
+   "last_sent": null,
+   "last_error": null,
+   "last_error_at": null
+  },
+  "email": {
+   "set": false,
+   "problem": null,
+   "host": null,
+   "port": null,
+   "security": null,
+   "user": null,
+   "from": null,
+   "to": null,
+   "password": false,
+   "sent": 0,
+   "last_sent": null,
+   "last_error": null,
+   "last_error_at": null
+  },
+  "webhook": {
+   "set": true,
+   "problem": null,
+   "host": "hooks.example.org",
+   "auth": true,
+   "sent": 0,
+   "last_sent": null,
+   "last_error": null,
+   "last_error_at": null
+  },
+  "discord": {
+   "set": true,
+   "problem": null,
+   "host": "discord.com",
+   "sent": 4,
+   "last_sent": 1792580000,
+   "last_error": "HTTP 429",
+   "last_error_at": 1792580400
+  },
+  "gotify": {
+   "set": false,
+   "problem": null,
+   "url": null,
+   "token": false,
+   "sent": 0,
+   "last_sent": null,
+   "last_error": null,
+   "last_error_at": null
+  }
+ },
+ "order": [
+  "app",
+  "ntfy",
+  "email",
+  "webhook",
+  "discord",
+  "gotify"
+ ],
+ "events": [
+  [
+   "alert",
+   "An alert"
+  ],
+  [
+   "host_down",
+   "A host down"
+  ],
+  [
+   "container_stopped",
+   "A container or guest stopped"
+  ],
+  [
+   "update_available",
+   "An update available"
+  ],
+  [
+   "update_done",
+   "An update done"
+  ],
+  [
+   "agent_offline",
+   "An agent offline"
+  ],
+  [
+   "admin_login",
+   "An admin sign-in"
+  ],
+  [
+   "backup_failed",
+   "A backup failed"
+  ]
+ ],
+ "matrix": {
+  "alert": [
+   "app",
+   "ntfy",
+   "webhook",
+   "discord"
+  ],
+  "host_down": [
+   "app",
+   "ntfy",
+   "webhook",
+   "discord"
+  ],
+  "container_stopped": [
+   "app",
+   "ntfy",
+   "webhook",
+   "discord"
+  ],
+  "update_available": [],
+  "update_done": [],
+  "agent_offline": [
+   "app",
+   "ntfy",
+   "webhook",
+   "discord"
+  ],
+  "admin_login": [],
+  "backup_failed": [
+   "app",
+   "ntfy",
+   "webhook",
+   "discord"
+  ]
+ },
+ "explicit": false,
+ "always": [
+  "admin_login",
+  "update_available",
+  "update_done"
+ ]
+}

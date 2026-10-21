@@ -6,6 +6,16 @@ All notable changes to LabHUD for Android. The format follows
 
 ## [Unreleased]
 
+### Added
+- Settings › Containers: the registries with their own sign-in (add, edit, remove; the token kept in
+  secrets.env), the image scans worst first, which agents can scan, and holding back an update whose
+  image brings new critical CVEs.
+- Settings › Notifications: email, webhook, Discord and Gotify, each with Set, a test and Forget, and
+  which news goes where (a chip per channel on each kind of news).
+- Settings › System: Backup and restore (one now, with the secrets encrypted; the daily one; the kept
+  ones with Save to the phone, Restore and Delete) and the Danger zone (Remove every phone, New keys),
+  each behind its typed word. Uploading a backup back stays on the wall.
+
 ### Fixed
 - The versionCode starts at 1000000 (0.1.1 is 1000101), above the old numbering, so the app
   installs over an earlier build (0.3.15 was 315; the 0.1.0 APK, 100, had to replace it by hand).

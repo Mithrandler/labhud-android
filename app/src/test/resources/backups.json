@@ -1,0 +1,27 @@
+{
+ "ok": true,
+ "problem": null,
+ "encryption": false,
+ "password_set": false,
+ "settings": {
+  "daily": true,
+  "keep": 7,
+  "at": 3
+ },
+ "last": {
+  "t": 1792598460,
+  "ok": true,
+  "kind": "manual",
+  "name": "x",
+  "error": ""
+ },
+ "backups": [
+  {
+   "name": "labhud-manual-20261021-190100.tar.gz",
+   "kind": "manual",
+   "size": 425,
+   "t": 1792598460,
+   "encrypted": false
+  }
+ ]
+}

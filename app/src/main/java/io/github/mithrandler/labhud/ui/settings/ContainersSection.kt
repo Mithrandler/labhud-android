@@ -24,6 +24,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.mithrandler.labhud.data.AgentRow
 import io.github.mithrandler.labhud.data.LabRepository
+import io.github.mithrandler.labhud.data.Registries
+import io.github.mithrandler.labhud.data.holdCritical
+import io.github.mithrandler.labhud.data.registries
+import io.github.mithrandler.labhud.data.removeRegistry
+import io.github.mithrandler.labhud.data.saveRegistry
 import io.github.mithrandler.labhud.ui.GateDialogs
 import io.github.mithrandler.labhud.ui.Lab
 import io.github.mithrandler.labhud.ui.LabIcons
@@ -34,19 +39,28 @@ import kotlinx.coroutines.launch
 /**
  * The containers section: load behind the gate (admin, then the PIN or a fingerprint), an "Unlock"
  * panel until then, a message line, the Docker-capable agents, how many containers each has and how many update on their own,
- * and the gate's dialogs.
+ * the registries and the image scans ([RegistriesPanel], [ScansPanel]), and the gate's dialogs.
  */
 @Composable
 fun ContainersSection(repo: LabRepository, nav: SettingsNav) {
     val scope = rememberCoroutineScope()
     val gate = rememberGate(repo)
     var agents by remember { mutableStateOf<List<AgentRow>?>(null) }
+    var regs by remember { mutableStateOf<Registries?>(null) }
     var message by remember { mutableStateOf("") }
 
     fun load() = scope.launch {
         val api = repo.api() ?: return@launch
         message = ""
         runCatching { api.agents().agents.filter { "docker" in it.caps } }.onSuccess { agents = it }.onFailure { message = it.message ?: "Not loaded." }
+        runCatching { api.registries() }.onSuccess { r -> if (r.ok) regs = r else message = r.error.ifBlank { "Registries refused." } }
+    }
+    /** A change behind the gate: its refusal in the message line, else the section anew. */
+    fun change(what: String, call: suspend () -> Pair<Boolean, String>?) = gate.press {
+        scope.launch {
+            val (ok, error) = runCatching { call() }.getOrElse { false to (it.message ?: "") } ?: return@launch
+            if (ok) load() else message = "$what: " + error.ifBlank { "refused" }
+        }
     }
     LaunchedEffect(Unit) { gate.press { load() } }
 
@@ -72,7 +86,14 @@ fun ContainersSection(repo: LabRepository, nav: SettingsNav) {
                 }
             }
             item { WallOnly("⚙ > Containers", listOf("The window when containers update on their own", "Webhooks that update a container")) }
-            item { Soon(listOf("Registries with their own sign-in", "Scanning images for vulnerabilities (CVE)")) }
+            regs?.let { r ->
+                item {
+                    RegistriesPanel(r,
+                        onSave = { host, user, token -> change("Not saved") { repo.api()?.saveRegistry(host, user, token)?.let { it.ok to it.error } } },
+                        onRemove = { reg -> change("Not removed") { repo.api()?.removeRegistry(reg.host)?.let { it.ok to it.error } } })
+                }
+                item { ScansPanel(r) { on -> change("Not saved") { repo.api()?.holdCritical(on)?.let { it.ok to it.error } } } }
+            }
         }
     }
     GateDialogs(gate, nav.signIn)

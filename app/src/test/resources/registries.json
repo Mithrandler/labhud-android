@@ -1,0 +1,51 @@
+{
+ "ok": true,
+ "managed": false,
+ "registries": [
+  {
+   "host": "ghcr.io",
+   "user": "mithrandler",
+   "token": false,
+   "key": "LABHUD_REGISTRY_GHCR_IO_TOKEN",
+   "containers": 1
+  },
+  {
+   "host": "registry.example.org:5000",
+   "user": "ci",
+   "token": false,
+   "key": "LABHUD_REGISTRY_REGISTRY_EXAMPLE_ORG_5000_TOKEN",
+   "containers": 0
+  }
+ ],
+ "hold_critical": false,
+ "scanners": [],
+ "scans": [
+  {
+   "agent": "docker",
+   "name": "jellyfin",
+   "image": "jellyfin/jellyfin:10.10.3",
+   "critical": 2,
+   "high": 7,
+   "tool": "trivy",
+   "t": 1792580460
+  },
+  {
+   "agent": "docker",
+   "name": "sonarr",
+   "image": "lscr.io/linuxserver/sonarr:latest",
+   "critical": 0,
+   "high": 3,
+   "tool": "trivy",
+   "t": 1792580460
+  },
+  {
+   "agent": "docker",
+   "name": "radarr",
+   "image": "lscr.io/linuxserver/radarr:latest",
+   "critical": 0,
+   "high": 0,
+   "tool": "trivy",
+   "t": 1792580460
+  }
+ ]
+}
