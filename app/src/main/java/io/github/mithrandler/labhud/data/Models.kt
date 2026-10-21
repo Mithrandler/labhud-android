@@ -5,6 +5,40 @@ import androidx.compose.runtime.getValue
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.*
 
+/** The newest release tags the server read ("" when not known). */
+@Serializable
+data class Latest(val server: String = "", val agent: String = "", val app: String = "")
+
+/** Which of the agent and the app are behind their latest release. */
+@Serializable
+data class Outdated(val agent: Boolean = false, val app: Boolean = false)
+
+/** The links in [About]. */
+@Serializable
+data class AboutLinks(val source: String = "", val app: String = "", val agent: String = "")
+
+/** GET /api/brand/about: what the server is, and the update check (`enabled` false: switched off). */
+@Serializable
+data class About(
+    val name: String = "LabHUD",
+    val version: String = "",
+    val links: AboutLinks = AboutLinks(),
+    val enabled: Boolean = false,
+    val latest: Latest = Latest(),
+    val update: Boolean = false,
+    val outdated: Outdated = Outdated(),
+    val checked: Long = 0,
+) {
+    /** "Update available 0.1.3", or null when this app is not behind (or the check is off). */
+    fun appUpdate(): String? = if (enabled && outdated.app && latest.app.isNotEmpty()) latest.app.removePrefix("v") else null
+
+    /** The same for the server itself. */
+    fun serverUpdate(): String? = if (enabled && update && latest.server.isNotEmpty()) latest.server.removePrefix("v") else null
+
+    /** Where to get the new app: the app's release page. */
+    fun appDownload(): String = links.app.trimEnd('/').let { if (it.isEmpty()) "" else "$it/releases/latest" }
+}
+
 /** API info from GET /api/v1/info. */
 @Serializable
 data class Info(
@@ -63,6 +97,8 @@ data class Page(
     val title: String = "",
     val groups: List<Group> = emptyList(),
     val games: Boolean = false,
+    /** A service-icon name (ServiceIcons), "" when the server names none. */
+    val icon: String = "",
     /** A games page: its game servers, as the wall's tiles show them. */
     val servers: List<GameServer> = emptyList(),
 )
@@ -73,6 +109,7 @@ data class GameServer(
     val id: String = "",
     val name: String = "",
     val game: String = "",
+    val icon: String = "",
     val state: String = "",
     val running: Boolean = false,
     val title: String = "",
@@ -101,6 +138,9 @@ data class ChartRef(
 @Serializable
 data class Container(
     val name: String = "",
+    /** The Docker image and the icon the server derived from it ("" when none). */
+    val image: String = "",
+    val icon: String = "",
     val up: Boolean = false,
     val status: String = "",
     val update: Boolean = false,

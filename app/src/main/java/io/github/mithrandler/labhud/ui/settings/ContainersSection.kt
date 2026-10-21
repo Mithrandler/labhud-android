@@ -74,7 +74,7 @@ fun ContainersSection(repo: LabRepository, nav: SettingsNav) {
                     if (list.isEmpty()) Text("No agent runs Docker yet.", color = Lab.muted, fontSize = 14.sp, modifier = Modifier.padding(top = 8.dp))
                     list.forEach { a ->
                         Row(Modifier.fillMaxWidth().clickable { nav.agent(a.id) }.padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(SettingsIcons.container, null, tint = if (a.online) Lab.accent else Lab.muted, modifier = Modifier.size(20.dp))
+                            Icon(LabIcons.container, null, tint = if (a.online) Lab.accent else Lab.muted, modifier = Modifier.size(20.dp))
                             Spacer(Modifier.width(10.dp))
                             Column(Modifier.weight(1f)) {
                                 Text(a.name, fontWeight = FontWeight.Medium, fontSize = 14.sp)

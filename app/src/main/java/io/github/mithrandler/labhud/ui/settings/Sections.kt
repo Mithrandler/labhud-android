@@ -53,7 +53,7 @@ val SECTIONS: List<Section> = listOf(
 
     Section("hosts", "infra", "Hosts and agents", "Agents, what they may do, updates", { LabIcons.devices },
         keywords = "agents capabilities targets wol update host") { r, n -> HostsSection(r, n) },
-    Section("containers", "infra", "Containers", "Update on their own, clean unused images", { SettingsIcons.container },
+    Section("containers", "infra", "Containers", "Update on their own, clean unused images", { LabIcons.container },
         keywords = "docker auto update prune images registries scan cve") { r, n -> ContainersSection(r, n) },
     Section("integrations", "infra", "Integrations", "Sources and the network scan", { LabIcons.sources },
         keywords = "sources scan network catalog proxmox") { r, n -> IntegrationsSection(r, n) },
@@ -65,14 +65,14 @@ val SECTIONS: List<Section> = listOf(
 
     Section("security", "system", "Security", "The admin account, PIN, sign in", { LabIcons.security },
         admin = false, keywords = "admin sign in sign out pin totp oidc sessions account") { r, n -> SecuritySection(r, n) },
-    Section("phones", "system", "Phones", "Paired phones", { SettingsIcons.phone },
+    Section("phones", "system", "Phones", "Paired phones", { LabIcons.phone },
         keywords = "pair devices tokens remove") { r, n -> PhonesSection(r, n) },
-    Section("api", "system", "API and audit", "Tokens and the log of who did what", { SettingsIcons.key },
+    Section("api", "system", "API and audit", "Tokens and the log of who did what", { LabIcons.key },
         keywords = "tokens audit log bearer scope who history") { r, n -> ApiSection(r, n) },
     Section("system", "system", "System", "config.toml, about, backup", { LabIcons.advanced },
         keywords = "config toml take over keys backup restore about version danger") { r, n -> SystemSection(r, n) },
 
-    Section("servers", "phone", "Servers", "The LabHUDs this phone knows", { SettingsIcons.server },
+    Section("servers", "phone", "Servers", "The LabHUDs this phone knows", { LabIcons.server },
         admin = false, keywords = "add pair rename remove certificate") { r, n -> ServersSection(r, n) },
     Section("lock", "phone", "App lock", "Phone PIN or fingerprint when it opens", { LabIcons.lock },
         admin = false, keywords = "biometric fingerprint pin pattern") { r, n -> LockSection(r, n) },

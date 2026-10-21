@@ -4,6 +4,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -19,10 +20,12 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.mithrandler.labhud.BuildConfig
+import io.github.mithrandler.labhud.data.About
 import io.github.mithrandler.labhud.data.BackupData
 import io.github.mithrandler.labhud.data.Backups
 import io.github.mithrandler.labhud.data.LabRepository
@@ -58,6 +61,9 @@ fun SystemSection(repo: LabRepository, nav: SettingsNav) {
     var backups by remember { mutableStateOf<Backups?>(null) }
     var message by remember { mutableStateOf("") }
     var saving by remember { mutableStateOf<BackupData?>(null) }
+    var about by remember { mutableStateOf<About?>(null) }
+    val uri = LocalUriHandler.current
+    LaunchedEffect(server?.id) { about = runCatching { repo.api()?.about() }.getOrNull() }
 
     fun load() = scope.launch {
         val api = repo.api() ?: return@launch
@@ -98,7 +104,13 @@ fun SystemSection(repo: LabRepository, nav: SettingsNav) {
                         Text(info?.title ?: server?.name ?: "LabHUD", fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
                         Text("LabHUD " + (info?.version?.ifEmpty { null } ?: "?") + (if (info?.demo == true) " · demo" else ""),
                             fontSize = 12.sp, color = Lab.muted)
+                        about?.serverUpdate()?.let { Text("Update available $it", fontSize = 12.sp, color = Lab.accent) }
                         Text("This app ${BuildConfig.VERSION_NAME}", fontSize = 12.sp, color = Lab.muted)
+                        about?.appUpdate()?.let { v ->
+                            val url = about?.appDownload().orEmpty()
+                            Text("Update available $v" + if (url.isNotEmpty()) " (Download)" else "", fontSize = 12.sp, color = Lab.accent,
+                                modifier = if (url.isEmpty()) Modifier else Modifier.clickable { runCatching { uri.openUri(url) } })
+                        }
                     }
                 }
                 Text("github.com/Mithrandler/labhud · github.com/Mithrandler/labhud-android", fontSize = 12.sp, color = Lab.muted,

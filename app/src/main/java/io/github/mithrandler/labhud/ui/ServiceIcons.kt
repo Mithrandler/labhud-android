@@ -68,6 +68,22 @@ object ServiceIcons {
         "wall" -> LabIcons.wall
         "lock" -> LabIcons.lock
         "person" -> LabIcons.person
+        "look" -> LabIcons.look
+        "pages" -> LabIcons.pages
+        "advanced" -> LabIcons.advanced
+        "setup" -> LabIcons.setup
+        "settings" -> LabIcons.settings
+        "home" -> LabIcons.home
+        "network" -> LabIcons.network
+        "media" -> LabIcons.media
+        "games" -> LabIcons.games
+        "discover" -> LabIcons.discover
+        "container" -> LabIcons.container
+        "plug" -> LabIcons.plug
+        "phone" -> LabIcons.phone
+        "key" -> LabIcons.key
+        "search" -> LabIcons.search
+        "power" -> LabIcons.power
         else -> null
     }
 
@@ -88,17 +104,22 @@ object ServiceIcons {
 
 /** The card's icon at [size]: the server's picture of the service when it has one, else a line icon. */
 @Composable
-fun CardIcon(c: Card, server: Server?, size: Dp = LabScale.iconCard, tint: Color = Lab.sub) {
-    val line = ServiceIcons.line(c.icon)
-    var failed by remember(c.icon, server?.id) { mutableStateOf(false) }
-    if (line != null || c.icon.isEmpty() || server == null || failed) {
-        Icon(line ?: ServiceIcons.fallback(c), null, tint = tint, modifier = Modifier.size(size))
+fun CardIcon(c: Card, server: Server?, size: Dp = LabScale.iconCard, tint: Color = Lab.sub) =
+    NamedIcon(c.icon, ServiceIcons.fallback(c), server, size, tint)
+
+/** An icon by the name the server gave ([name], "" for none): its picture, else a line icon, else [fallback]. */
+@Composable
+fun NamedIcon(name: String, fallback: ImageVector, server: Server?, size: Dp, tint: Color = Lab.sub) {
+    val line = ServiceIcons.line(name)
+    var failed by remember(name, server?.id) { mutableStateOf(false) }
+    if (line != null || name.isEmpty() || server == null || failed) {
+        Icon(line ?: fallback, null, tint = tint, modifier = Modifier.size(size))
         return
     }
     val context = LocalContext.current
     val loader = remember(server.id, server.fingerprint) { ServiceIcons.loader(context, server) }
-    val request = remember(c.icon, server.url) {
-        ImageRequest.Builder(context).data(server.url.trimEnd('/') + "/icons/svc/" + android.net.Uri.encode(c.icon) + ".png").build()
+    val request = remember(name, server.url) {
+        ImageRequest.Builder(context).data(server.url.trimEnd('/') + "/icons/svc/" + android.net.Uri.encode(name) + ".png").build()
     }
     AsyncImage(request, contentDescription = null, imageLoader = loader, modifier = Modifier.size(size), onError = { failed = true })
 }

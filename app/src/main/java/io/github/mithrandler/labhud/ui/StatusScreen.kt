@@ -187,6 +187,7 @@ fun StatusScreen(
                     FilterChip(
                         selected = i == pager.currentPage, onClick = { scope.launch { pager.animateScrollToPage(i) } },
                         label = { Text(p.title.lowercase().replaceFirstChar(Char::uppercase)) },
+                        leadingIcon = if (p.icon.isNotEmpty()) ({ NamedIcon(p.icon, LabIcons.status, server, 16.dp) }) else null,
                         trailingIcon = if (bad) ({ Box(Modifier.size(6.dp).clip(CircleShape).background(Lab.red)) }) else null,
                         colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Lab.accent.copy(alpha = 0.2f), selectedLabelColor = Lab.title),
                     )
@@ -205,7 +206,7 @@ fun StatusScreen(
                         verticalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
                         if (page == null) return@LazyVerticalGrid
-                        if (page.games) games(page, onGame) else groups(page, byId, server, sparks, uptime, onCard)
+                        if (page.games) games(page, server, onGame) else groups(page, byId, server, sparks, uptime, onCard)
                     }
                 }
             }
@@ -232,18 +233,20 @@ private fun LazyGridScope.groups(page: Page, byId: Map<String, Card>, server: Se
     }
 }
 
-private fun LazyGridScope.games(page: Page, onGame: (String) -> Unit) {
+private fun LazyGridScope.games(page: Page, server: Server?, onGame: (String) -> Unit) {
     if (page.servers.isEmpty()) item(span = { GridItemSpan(maxLineSpan) }) { Text("No game servers known yet.", color = Lab.muted) }
-    items(page.servers, key = { "game-" + it.id.ifEmpty { it.name } }) { g -> GameTile(g) { if (g.id.isNotEmpty()) onGame(g.id) } }
+    items(page.servers, key = { "game-" + it.id.ifEmpty { it.name } }) { g -> GameTile(g, server) { if (g.id.isNotEmpty()) onGame(g.id) } }
 }
 
 @Composable
-private fun GameTile(g: GameServer, onClick: () -> Unit) {
+private fun GameTile(g: GameServer, server: Server?, onClick: () -> Unit) {
     Surface(onClick = onClick, shape = CardShape, color = Lab.card, border = BorderStroke(1.dp, Lab.line), modifier = Modifier.heightIn(min = 92.dp)) {
         Column(Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.size(9.dp).clip(CircleShape).background(if (g.running) Lab.green else Lab.border))
                 Spacer(Modifier.width(8.dp))
+                NamedIcon(g.icon, LabIcons.games, server, 18.dp)
+                Spacer(Modifier.width(6.dp))
                 Text(g.name.ifEmpty { g.title }, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             Text(g.title, fontSize = 12.sp, color = Lab.muted, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 6.dp))

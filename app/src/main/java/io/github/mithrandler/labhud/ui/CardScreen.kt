@@ -212,7 +212,7 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
                             }
                         }
                         members.forEach { b ->
-                            ContainerRow(b, admin = rights.admin,
+                            ContainerRow(b, admin = rights.admin, server = server,
                                 onAction = { a -> gate.press { ask = a } },
                                 onLogs = {
                                     gate.press {
@@ -411,13 +411,15 @@ private fun scanColor(s: io.github.mithrandler.labhud.data.Scan) = when { s.crit
 
 /** A container: its dot, name and state, "update available", its usage, latest news and CVEs, its buttons and (admin) LOGS, DETAILS. */
 @Composable
-private fun ContainerRow(b: io.github.mithrandler.labhud.data.Container, admin: Boolean, onAction: (Action) -> Unit, onLogs: () -> Unit,
+private fun ContainerRow(b: io.github.mithrandler.labhud.data.Container, admin: Boolean, server: io.github.mithrandler.labhud.data.Server?, onAction: (Action) -> Unit, onLogs: () -> Unit,
                          onDetails: () -> Unit = {}) {
     Column(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             androidx.compose.foundation.layout.Box(Modifier.size(8.dp).clip(androidx.compose.foundation.shape.CircleShape)
                 .background(if (b.up) Lab.green else Lab.red))
             Spacer(Modifier.width(10.dp))
+            NamedIcon(b.icon, LabIcons.container, server, 18.dp)
+            Spacer(Modifier.width(8.dp))
             Text(b.name, fontSize = 14.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
             Text(when { b.updating -> "updating…"; b.update -> "update available"; else -> b.status }, fontSize = 12.sp,
                 color = if (b.update || b.updating) Lab.accent else if (b.up) Lab.muted else Lab.red, maxLines = 1)

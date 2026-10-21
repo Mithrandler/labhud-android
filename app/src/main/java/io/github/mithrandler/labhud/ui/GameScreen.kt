@@ -52,6 +52,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun GameScreen(repo: LabRepository, id: String, onBack: () -> Unit, onSignIn: () -> Unit) {
     val state by repo.state.collectAsStateWithLifecycle()
+    val server by repo.server.collectAsStateWithLifecycle()
     val live = state?.pages?.flatMap { it.servers }?.firstOrNull { it.id == id }
     var detail by remember { mutableStateOf<GameServer?>(null) }
     var ask by remember { mutableStateOf<Action?>(null) }
@@ -90,6 +91,8 @@ fun GameScreen(repo: LabRepository, id: String, onBack: () -> Unit, onSignIn: ()
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Box(Modifier.size(12.dp).clip(CircleShape).background(if (g.running) Lab.green else Lab.border))
                             Spacer(Modifier.width(10.dp))
+                            NamedIcon(g.icon, LabIcons.games, server, 22.dp)
+                            Spacer(Modifier.width(8.dp))
                             Text(if (g.running) "Running" else g.state.ifEmpty { "Stopped" }.replaceFirstChar(Char::uppercase),
                                 fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
                         }

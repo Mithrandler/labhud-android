@@ -1,5 +1,6 @@
 package io.github.mithrandler.labhud.data
 
+import io.github.mithrandler.labhud.BuildConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -42,6 +43,7 @@ class LabApi(val baseUrl: String, private val token: String?, fingerprint: Strin
     val client: OkHttpClient = clientFor(fingerprint)
 
     private fun request(path: String) = Request.Builder().url(base + path).apply {
+        header("X-Labhud-App", BuildConfig.VERSION_NAME)
         if (token != null) header("Authorization", "Bearer $token")
         if (ticket != null) header("X-Labhud-Unlock", ticket)
     }
@@ -76,6 +78,9 @@ class LabApi(val baseUrl: String, private val token: String?, fingerprint: Strin
 
     private suspend fun get(path: String) = call(request(path).get().build())
     private suspend fun post(path: String, json: String) = call(request(path).post(json.toRequestBody(JSON)).build())
+
+    /** GET /api/brand/about: the update check's answer (the server sees this app's version in the header). */
+    suspend fun about(): About = LabJson.decodeFromString<About>(get("/api/brand/about"))
 
     suspend fun info(): Info {
         val info = LabJson.decodeFromString<Info>(get("/api/v1/info"))
