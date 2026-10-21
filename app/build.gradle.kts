@@ -15,10 +15,11 @@ val keyProps = Properties().apply {
 fun signing(env: String, prop: String): String? = System.getenv(env) ?: keyProps.getProperty(prop)
 val keystoreFile = signing("LABHUD_KEYSTORE", "storeFile")
 
-// The version comes from the tag in CI (LABHUD_VERSION=0.1.0); 1.2.3 becomes versionCode 10203.
+// The version comes from the tag in CI (LABHUD_VERSION=0.1.0); 1.2.3 becomes versionCode 1010203.
+// The 1000000 keeps 0.1.0 above the old numbering (0.3.15 was 315), so it installs over it.
 val version = System.getenv("LABHUD_VERSION")?.removePrefix("v") ?: "0.1.0-dev"
 val code = Regex("""(\d+)\.(\d+)\.(\d+)""").find(version)?.destructured
-    ?.let { (a, b, c) -> a.toInt() * 10000 + b.toInt() * 100 + c.toInt() } ?: 1
+    ?.let { (a, b, c) -> 1_000_000 + a.toInt() * 10000 + b.toInt() * 100 + c.toInt() } ?: 1
 
 android {
     namespace = "io.github.mithrandler.labhud"

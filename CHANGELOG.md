@@ -4,6 +4,12 @@ All notable changes to LabHUD for Android. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Fixed
+- The versionCode starts at 1000000 (0.1.1 is 1000101), above the old numbering, so the app
+  installs over an earlier build (0.3.15 was 315; the 0.1.0 APK, 100, had to replace it by hand).
+
 ## [0.1.0] - 2026-10-21
 
 Needs labhud 0.1.0: the same version for the server, the agent and the app.
