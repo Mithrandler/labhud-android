@@ -22,8 +22,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -34,6 +32,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.mithrandler.labhud.R
+import io.github.mithrandler.labhud.ui.LabTopBar
+import io.github.mithrandler.labhud.ui.labBarScroll
+import io.github.mithrandler.labhud.ui.rememberLabBarScroll
 import io.github.mithrandler.labhud.ui.CardShape
 import io.github.mithrandler.labhud.ui.Heading
 import io.github.mithrandler.labhud.ui.Lab
@@ -46,11 +47,13 @@ import io.github.mithrandler.labhud.ui.LabIcons
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsPage(section: Section, nav: SettingsNav, content: LazyListScope.() -> Unit) {
+    val barScroll = rememberLabBarScroll()
     Scaffold(
+        modifier = Modifier.labBarScroll(barScroll),
         containerColor = Lab.bg,
         topBar = {
-            TopAppBar(
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Lab.bg),
+            LabTopBar(
+                scroll = barScroll,
                 navigationIcon = { IconButton(onClick = nav.back) { Icon(LabIcons.back, "Back") } },
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {

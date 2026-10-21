@@ -29,8 +29,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
@@ -73,11 +71,13 @@ fun ActivityScreen(repo: LabRepository, onCard: (String) -> Unit) {
         }
     }
     val time = SHORT_TIME
+    val barScroll = rememberLabBarScroll()
     Scaffold(
+        modifier = Modifier.labBarScroll(barScroll),
         containerColor = Lab.bg,
         topBar = {
-            TopAppBar(
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Lab.bg),
+            LabTopBar(
+                scroll = barScroll,
                 title = { Text("Activity") },
                 actions = {
                     if (tab == 1 && !shown.isNullOrEmpty()) TextButton(onClick = {

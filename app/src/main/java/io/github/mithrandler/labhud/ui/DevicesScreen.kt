@@ -28,8 +28,6 @@ import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.remember
@@ -89,11 +87,13 @@ fun DevicesScreen(repo: LabRepository, onCard: (String) -> Unit) {
     }
     val counts = remember(devices) { Filter.entries.associateWith { f -> devices.count { it.matches(f) } } }
 
+    val barScroll = rememberLabBarScroll()
     Scaffold(
+        modifier = Modifier.labBarScroll(barScroll),
         containerColor = Lab.bg,
         topBar = {
-            TopAppBar(
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Lab.bg),
+            LabTopBar(
+                scroll = barScroll,
                 title = { Text("Devices") },
             )
         },

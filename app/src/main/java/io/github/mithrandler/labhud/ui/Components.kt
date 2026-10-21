@@ -116,7 +116,13 @@ fun HudCard(
     val sev = c.severity()
     Surface(
         onClick = onClick, modifier = modifier.fillMaxWidth(), shape = CardShape, color = Lab.card,
-        border = BorderStroke(1.dp, if (c.bad == true) Lab.red.copy(alpha = 0.7f) else Lab.line),
+        // HUD: a thin edge on black, as the wall; Material: raised as an ElevatedCard, the edge only when in trouble
+        border = when {
+            c.bad == true -> BorderStroke(1.dp, Lab.red.copy(alpha = 0.7f))
+            Lab.hud -> BorderStroke(1.dp, Lab.line)
+            else -> null
+        },
+        shadowElevation = if (Lab.hud) 0.dp else 1.dp,
     ) {
         Row(Modifier.height(IntrinsicSize.Min)) {
             if (sev.isNotEmpty()) Box(Modifier.width(3.dp).fillMaxHeight().background(barColor(sev)))

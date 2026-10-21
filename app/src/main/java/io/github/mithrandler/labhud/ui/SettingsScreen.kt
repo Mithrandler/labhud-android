@@ -22,8 +22,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.mutableStateOf
@@ -60,11 +58,13 @@ fun SettingsScreen(repo: LabRepository, onOpen: (String) -> Unit, signInFirst: B
     var query by rememberSaveable { mutableStateOf("") }
     val shown = visibleSections(rights.admin, query)
 
+    val barScroll = rememberLabBarScroll()
     Scaffold(
+        modifier = Modifier.labBarScroll(barScroll),
         containerColor = Lab.bg,
         topBar = {
-            TopAppBar(
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Lab.bg),
+            LabTopBar(
+                scroll = barScroll,
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         BrandMark(24.dp)

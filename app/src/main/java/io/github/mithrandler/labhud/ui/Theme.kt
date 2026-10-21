@@ -37,6 +37,7 @@ private val hudPalette = LabPalette(
 /** The palette now in force: one snapshot state, so a change of theme redraws whatever read [Lab]. */
 private object Current {
     var palette by mutableStateOf(hudPalette)
+    var hud by mutableStateOf(true)
 }
 
 /**
@@ -45,6 +46,8 @@ private object Current {
  * on Android 12+). Status colours stay green, orange and red in every theme.
  */
 object Lab {
+    /** The HUD theme (the wall's look) rather than a Material one: Material gets large bars and raised cards. */
+    val hud: Boolean get() = Current.hud
     val bg: Color get() = Current.palette.bg
     val card: Color get() = Current.palette.card
     val block: Color get() = Current.palette.block
@@ -175,6 +178,7 @@ fun LabTheme(mode: ThemeMode = ThemeMode.Hud, board: BoardTheme = BoardTheme(), 
         cs to paletteOf(cs, dark)
     }
     if (Current.palette !== palette) Current.palette = palette
+    if (Current.hud != (mode == ThemeMode.Hud)) Current.hud = mode == ThemeMode.Hud
     MaterialTheme(colorScheme = scheme, typography = type, content = content)
 }
 
