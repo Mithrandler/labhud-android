@@ -246,7 +246,7 @@ private fun CardBody(c: Card, fade: Modifier, server: Server? = null, chips: Lis
 
 /** A number that is not a percentage, as a small chip: its label, then its value. */
 @Composable
-private fun Chip(m: Metric) {
+fun Chip(m: Metric) {
     Row(Modifier.clip(RoundedCornerShape(50)).background(Lab.block).padding(horizontal = 10.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically) {
         if (m.label.isNotEmpty() || m.key.isNotEmpty()) {

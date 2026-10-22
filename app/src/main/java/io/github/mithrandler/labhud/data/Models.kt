@@ -310,6 +310,10 @@ data class Card(
     val guest: Guest? = null,
     /** A host's graphics cards (labhud 0.1.12): load, video memory and temperature. */
     val gpus: List<Gpu> = emptyList(),
+    /** The Proxmox node a guest runs on, or a host card shows (labhud 0.1.12): it links a VM to its host. */
+    val node: String = "",
+    /** A host's guests, running and total: {"vm": [4, 5], "lxc": [6, 6]}. */
+    @SerialName("guest_counts") val guestCounts: Map<String, List<Int>> = emptyMap(),
     val note: String = "",
     @SerialName("note_kind") val noteKind: String = "",
     val metrics: List<Metric> = emptyList(),

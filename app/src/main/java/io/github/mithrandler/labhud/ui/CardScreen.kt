@@ -51,6 +51,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import io.github.mithrandler.labhud.data.Metric
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -70,7 +75,9 @@ private val RANGES = listOf("6h" to 6 * 3600, "24h" to 86400, "7d" to 7 * 86400,
 @Composable
 fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (String) -> Unit, onSignIn: () -> Unit,
                /** A button picked in the command palette: it asks once the card is here, as if pressed. */
-               askFirst: String = "") {
+               askFirst: String = "",
+               /** Another card (a VM's host, a host's VM): opens its screen. */
+               onCard: (String) -> Unit = {}) {
     val state by repo.state.collectAsStateWithLifecycle()
     val live = state?.byId?.get(id)
     var sections by remember { mutableStateOf<List<Section>>(emptyList()) }
@@ -97,6 +104,7 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
     var uptimeWeek by remember { mutableStateOf<io.github.mithrandler.labhud.data.Uptime?>(null) }
     var ask by remember { mutableStateOf<Action?>(null) }
     var askMaint by remember { mutableStateOf(false) }
+    var openBox by remember { mutableStateOf<io.github.mithrandler.labhud.data.Container?>(null) }
     val snack = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -156,198 +164,260 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
             Text("This card is not in the current config.", color = Lab.muted, modifier = Modifier.padding(pad).padding(24.dp))
             return@Scaffold
         }
-        LazyColumn(
-            Modifier.padding(pad).fillMaxSize(),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-            item { StatusHeader(c, server) }
-            val up = if (week) uptimeWeek else uptimeDay
-            if (up?.cards?.get(c.id) != null) item {
-                Panel("Uptime") {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(uptimeText(up.percent[c.id], up.coverage[c.id]).ifEmpty { "—" }, fontSize = 14.sp, fontWeight = FontWeight.Medium,
-                            modifier = Modifier.weight(1f))
-                        listOf(false to "24 h", true to "7 d").forEach { (w, label) ->
-                            TextButton(onClick = { week = w }) { Text(label, color = if (week == w) Lab.title else Lab.muted) }
+        val up = if (week) uptimeWeek else uptimeDay
+        val buttons = showButtons && rights.admin && (c.actions.isNotEmpty() || c.maintenanceButton)
+        val all = state?.cards.orEmpty()
+        // a host's VMs and LXCs, and a guest's host: the card's node links them
+        val guests = if (c.kind == "guest" || c.node.isEmpty()) emptyList() else all.filter { it.kind == "guest" && it.node == c.node }.sortedBy { it.name.lowercase() }
+        val host = if (c.kind != "guest" || c.node.isEmpty()) null else all.firstOrNull { it.kind != "guest" && it.node == c.node }
+        val labels = c.metrics.filter { it.trend }.map { it.label }.toSet()
+        val trends = c.metrics.filter { it.trend } + c.charts.filter { it.label !in labels }.map {
+            io.github.mithrandler.labhud.data.Metric(key = it.key, label = it.label, value = "", trend = true, format = it.format)
+        }
+        val boxes = full?.containers.orEmpty()
+        val stacks = if (boxes.isEmpty()) emptyList() else boxes.groupBy { it.project }.toSortedMap(compareBy { it.ifEmpty { "￿" } }).entries.toList()
+        val marks = full?.bookmarks.orEmpty()
+        val ups = full?.updates.orEmpty()
+        val cols = LocalConfiguration.current.screenWidthDp.let { if (it >= 840) 4 else if (it >= 600) 3 else 2 }
+        // small facts of a machine fold into its Overview; every other section is a tab of its own
+        val smallTitles = setOf("host", "resources")
+        val secs = sections.filterNot { it.title.equals("numbers", true) && c.metrics.isNotEmpty() }
+            .filterNot { it.title.equals("guests", true) && guests.isNotEmpty() }
+            .filterNot { it.title.startsWith("docker containers", true) && stacks.isNotEmpty() }
+        val tabs = buildList<CTab> {
+            add(CTab("Overview") {
+                item { StatusHeader(c, server) }
+                val own = c.metrics.filter { it.value.isNotEmpty() && it.value != "—" }.ifEmpty { c.guest?.meters().orEmpty() }
+                val (rings, others) = ringsAndChips(own)
+                if (rings.size >= 2 || c.type == "proxmox" && rings.isNotEmpty()) item {
+                    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                            rings.take(4).forEach { (m, t) -> Ring(m, Modifier.weight(1f), t) }
+                            c.gpus.take(2).forEachIndexed { i, g -> GpuRing(g, if (c.gpus.size > 1) "GPU${i + 1}" else "GPU", Modifier.weight(1f)) }
                         }
+                        val facts = others.filter { c.guestCounts.isEmpty() || it.label.uppercase() !in c.guestCounts.keys.map { k -> k.uppercase() } }
+                            .filter { c.gpus.isEmpty() || !(it.format == "celsius" && "gpu" in (it.label + it.key).lowercase()) } +
+                            listOfNotNull(c.guest?.uptime?.let { Metric(label = "up", value = upText(it)) }) +
+                            c.guestCounts.entries.sortedBy { it.key }.mapNotNull { (k, v) -> if (v.size == 2 && v[1] > 0) Metric(label = k.uppercase(), value = "${v[0]}/${v[1]}") else null }
+                        if (facts.isNotEmpty()) FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)) { facts.forEach { Chip(it) } }
                     }
-                    UptimeBar(up.cards.getValue(c.id), Modifier.fillMaxWidth().padding(top = 4.dp).height(10.dp), slices = if (week) 56 else 48)
-                    if ((up.coverage[c.id] ?: 100.0) < 99.95) Text("Grey: LabHUD itself was off then, so it does not know.",
-                        fontSize = 12.sp, color = Lab.muted, modifier = Modifier.padding(top = 6.dp))
-                }
-            }
-            if ((c.actions.isNotEmpty() || c.maintenanceButton) && !rights.admin) item {
-                Surface(onClick = onSignIn, shape = CardShape, color = Lab.block, border = BorderStroke(1.dp, Lab.line)) {
-                    Text("This phone only looks. Sign in as the admin for the buttons.", fontSize = 13.sp, color = Lab.sub,
-                        modifier = Modifier.fillMaxWidth().padding(12.dp))
-                }
-            }
-            val buttons = showButtons && rights.admin && (c.actions.isNotEmpty() || c.maintenanceButton)
-            if (c.resources().isNotEmpty()) item {
-                OutlinedButton(onClick = { onHistory(c.id) }) { Text("Resources over time") }
-            }
-            if (buttons || c.url.isNotEmpty() || c.links.isNotEmpty()) item {
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (showButtons && rights.admin) c.actions.forEach { a -> ActionButton(a) { gate.press { ask = a } } }
-                    if (showButtons && rights.admin && c.maintenanceButton) {
-                        OutlinedButton(onClick = { gate.press { askMaint = true } }) { Text(if (c.maintenanceUntil != null) "Maintenance ✓" else "Maintenance") }
-                    }
-                    (listOfNotNull(c.url.takeIf { it.isNotEmpty() }?.let { "Web UI" to it }) + c.links.map { it.label to it.url }).forEach { (label, url) ->
-                        OutlinedButton(onClick = { runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) } }) {
-                            Text(label)
-                            Spacer(Modifier.width(6.dp))
-                            Icon(LabIcons.open, null, Modifier.padding(0.dp))
-                        }
-                    }
-                }
-            }
-            if (c.metrics.isNotEmpty()) item {
-                Panel("Numbers") {
-                    c.metrics.forEach { m ->
-                        if (m.pct != null) MeterRow(m, Modifier.padding(vertical = 2.dp))
-                        else Row(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-                            Text(m.label, color = Lab.sub, fontSize = 14.sp, modifier = Modifier.weight(1f))
-                            Text(m.value, color = sevColor(m.sev), fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                } else if (c.metrics.isNotEmpty()) item {
+                    Panel("") {
+                        c.metrics.forEach { m ->
+                            if (m.pct != null) MeterRow(m, Modifier.padding(vertical = 2.dp))
+                            else Row(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                                Text(m.label, color = Lab.sub, fontSize = 14.sp, modifier = Modifier.weight(1f))
+                                Text(m.value, color = sevColor(m.sev), fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                            }
                         }
                     }
                 }
-            }
-            val labels = c.metrics.filter { it.trend }.map { it.label }.toSet()
-            val trends = c.metrics.filter { it.trend } + c.charts.filter { it.label !in labels }.map {
-                io.github.mithrandler.labhud.data.Metric(key = it.key, label = it.label, value = "", trend = true, format = it.format)
-            }
-            val boxes = full?.containers.orEmpty()
-            // grouped by compose project, as on the wall; a project's running containers restart together
-            val stacks = if (boxes.isEmpty()) emptyList() else boxes.groupBy { it.project }.toSortedMap(compareBy { it.ifEmpty { "\uffff" } }).entries.toList()
-            stacks.forEachIndexed { n, (project, members) ->
-                item(key = "stack-$project") {
-                    Panel(if (n == 0) "Containers" else "") {
-                        if (stacks.size > 1 || project.isNotEmpty()) {
-                            val restarts = members.filter { it.up }.map { m -> m.actions.firstOrNull { it.name.endsWith("-restart") } }
-                            Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Text((project.ifEmpty { "not in a stack" }).uppercase(), style = Heading, modifier = Modifier.weight(1f))
-                                Text("${members.count { it.up }}/${members.size}", fontSize = 12.sp, color = Lab.muted)
-                                if (rights.admin && project.isNotEmpty() && restarts.isNotEmpty() && restarts.all { it != null }) {
-                                    TextButton(onClick = { gate.press { askStack = project to restarts.filterNotNull() } }) {
-                                        Text("Restart stack", fontSize = 12.sp, color = Lab.accent)
-                                    }
+                // the rings already say CPU and RAM
+                secs.filter { it.title.lowercase() in smallTitles }.forEach { s ->
+                    val rows = s.rows.filterNot { r -> rings.isNotEmpty() && r.name.uppercase() in setOf("CPU", "RAM") }
+                    if (rows.isNotEmpty()) item { Panel("") { rows.forEach { ListRow(it, server) } } }
+                }
+                if ((c.actions.isNotEmpty() || c.maintenanceButton) && !rights.admin) item {
+                    Surface(onClick = onSignIn, shape = CardShape, color = Lab.block, border = BorderStroke(1.dp, Lab.line)) {
+                        Text("This phone only looks. Sign in as the admin for the buttons.", fontSize = 13.sp, color = Lab.sub,
+                            modifier = Modifier.fillMaxWidth().padding(12.dp))
+                    }
+                }
+                val hasLinks = c.url.isNotEmpty() || c.links.isNotEmpty()
+                if (buttons || hasLinks || host != null || c.resources().isNotEmpty()) item {
+                    FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (host != null) OutlinedButton(onClick = { onCard(host.id) }) { Text("Host · ${host.name}") }
+                        if (c.resources().isNotEmpty()) OutlinedButton(onClick = { onHistory(c.id) }) { Text("Resources over time") }
+                        if (showButtons && rights.admin) c.actions.forEach { a -> ActionButton(a) { gate.press { ask = a } } }
+                        if (showButtons && rights.admin && c.maintenanceButton) {
+                            OutlinedButton(onClick = { gate.press { askMaint = true } }) { Text(if (c.maintenanceUntil != null) "Maintenance ✓" else "Maintenance") }
+                        }
+                        (listOfNotNull(c.url.takeIf { it.isNotEmpty() }?.let { "Web UI" to it }) + c.links.map { it.label to it.url }).forEach { (label, url) ->
+                            OutlinedButton(onClick = { runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) } }) {
+                                Text(label)
+                                Spacer(Modifier.width(6.dp))
+                                Icon(LabIcons.open, null, Modifier.padding(0.dp))
+                            }
+                        }
+                    }
+                }
+                if (up?.cards?.get(c.id) != null) item {
+                    Panel("Uptime") {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(uptimeText(up.percent[c.id], up.coverage[c.id]).ifEmpty { "—" }, fontSize = 14.sp, fontWeight = FontWeight.Medium,
+                                modifier = Modifier.weight(1f))
+                            listOf(false to "24 h", true to "7 d").forEach { (w, label) ->
+                                TextButton(onClick = { week = w }) { Text(label, color = if (week == w) Lab.title else Lab.muted) }
+                            }
+                        }
+                        UptimeBar(up.cards.getValue(c.id), Modifier.fillMaxWidth().padding(top = 4.dp).height(10.dp), slices = if (week) 56 else 48)
+                        if ((up.coverage[c.id] ?: 100.0) < 99.95) Text("Grey: LabHUD itself was off then, so it does not know.",
+                            fontSize = 12.sp, color = Lab.muted, modifier = Modifier.padding(top = 6.dp))
+                    }
+                }
+            })
+            if (guests.isNotEmpty()) add(CTab("VM/LXC") {
+                gridRows(guests, cols) { g -> MiniCard(g, server, Modifier.weight(1f)) { onCard(g.id) } }
+            })
+            if (stacks.isNotEmpty()) add(CTab("Containers") {
+                stacks.forEach { (project, members) ->
+                    if (stacks.size > 1 || project.isNotEmpty()) item(key = "head-$project") {
+                        val restarts = members.filter { it.up }.map { m -> m.actions.firstOrNull { it.name.endsWith("-restart") } }
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Text((project.ifEmpty { "not in a stack" }).uppercase(), style = Heading, modifier = Modifier.weight(1f))
+                            Text("${members.count { it.up }}/${members.size}", fontSize = 12.sp, color = Lab.muted)
+                            if (rights.admin && project.isNotEmpty() && restarts.isNotEmpty() && restarts.all { it != null }) {
+                                TextButton(onClick = { gate.press { askStack = project to restarts.filterNotNull() } }) {
+                                    Text("Restart stack", fontSize = 12.sp, color = Lab.accent)
                                 }
                             }
                         }
-                        members.forEach { b ->
-                            ContainerRow(b, admin = rights.admin, server = server,
-                                onAction = { a -> gate.press { ask = a } },
-                                onLogs = {
-                                    gate.press {
-                                        scope.launch {
-                                            val r = runCatching { repo.api()?.logs(full?.agent.orEmpty(), b.name) }.getOrNull()
-                                            logs = b.name to (if (r?.ok == true) r.output.ifBlank { "(nothing)" } else "✕ " + (r?.error?.ifBlank { null } ?: "refused"))
-                                        }
-                                    }
-                                },
-                                onLive = { gate.press { liveLog = full?.agent.orEmpty() to b.name } },
-                                onDetails = {
-                                    gate.press {
-                                        scope.launch {
-                                            val r = runCatching { repo.api()?.inspect(full?.agent.orEmpty(), b.name) }.getOrNull()
-                                            details = b.name to (if (r?.ok == true) detailRows(r.output)
-                                                else listOf("✕" to (r?.error?.ifBlank { null } ?: "refused")))
-                                        }
-                                    }
-                                })
+                    }
+                    gridRows(members, cols, keyPrefix = "box-$project") { b -> ContainerCell(b, server, Modifier.weight(1f)) { openBox = b } }
+                }
+            })
+            secs.filterNot { it.title.lowercase() in smallTitles }.forEach { s ->
+                val name = s.title.replaceFirstChar { it.uppercase() }.let { if (it == "History") "Events" else it }
+                add(CTab(name) {
+                    if (s.title.equals("storage", true)) gridRows(s.rows, cols) { r -> RowCell(r, Modifier.weight(1f)) }
+                    else item { Panel("") { s.rows.forEach { ListRow(it, server) } } }
+                })
+            }
+            if (sections.isEmpty() && c.rows.isNotEmpty()) add(CTab("Details") { item { Panel("") { c.rows.forEach { ListRow(it, server) } } } })
+            if (full?.updates != null) add(CTab("Updates") {
+                item {
+                    Panel("") {
+                        val ready = ups.filter { !it.updating }.mapNotNull { it.action }
+                        if (rights.admin && ready.size > 1) {
+                            OutlinedButton(onClick = { gate.press { askAll = ready } }) { Text("Update all ${ready.size}") }
+                        }
+                        if (ups.isEmpty()) Text("All containers up to date", fontSize = 13.sp, color = Lab.muted)
+                        ups.forEach { u ->
+                            Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Column(Modifier.weight(1f)) {
+                                    Text(u.name, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                                    Text("${u.host} · ${u.image}", fontSize = 12.sp, color = Lab.muted, maxLines = 1)
+                                    u.scan?.let { sc -> Text(sc.text(), fontSize = 12.sp, color = scanColor(sc)) }
+                                }
+                                when {
+                                    u.updating -> Text("updating…", fontSize = 12.sp, color = Lab.accent)
+                                    rights.admin && u.action != null -> TextButton(onClick = { gate.press { ask = u.action } }) { Text("Update", fontSize = 12.sp) }
+                                }
+                            }
                         }
                     }
                 }
-            }
+            })
             full?.notes?.let { text ->
-                item {
-                    Panel("Notes") {
-                        if (rights.admin) {
-                            val now = notesText ?: text
-                            androidx.compose.material3.OutlinedTextField(value = now, onValueChange = { notesText = it.take(4000) },
-                                modifier = Modifier.fillMaxWidth(), minLines = 4)
-                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                                TextButton(enabled = notesText != null && notesText != text, onClick = {
-                                    gate.press {
-                                        scope.launch {
-                                            val r = runCatching { repo.api()?.saveNotes(notesText.orEmpty()) }.getOrNull()
-                                            snack.showSnackbar(if (r?.ok == true) "Notes saved" else "Notes: ${r?.error ?: "refused"}")
-                                            if (r?.ok == true) runCatching { repo.api()?.card(id) }.getOrNull()?.let { full = it; notesText = null }
+                add(CTab("Notes") {
+                    item {
+                        Panel("") {
+                            if (rights.admin) {
+                                val now = notesText ?: text
+                                androidx.compose.material3.OutlinedTextField(value = now, onValueChange = { notesText = it.take(4000) },
+                                    modifier = Modifier.fillMaxWidth(), minLines = 4)
+                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                                    TextButton(enabled = notesText != null && notesText != text, onClick = {
+                                        gate.press {
+                                            scope.launch {
+                                                val r = runCatching { repo.api()?.saveNotes(notesText.orEmpty()) }.getOrNull()
+                                                snack.showSnackbar(if (r?.ok == true) "Notes saved" else "Notes: ${r?.error ?: "refused"}")
+                                                if (r?.ok == true) runCatching { repo.api()?.card(id) }.getOrNull()?.let { full = it; notesText = null }
+                                            }
                                         }
-                                    }
-                                }) { Text("Save") }
-                            }
-                        } else {
-                            Text(text.ifBlank { "—" }, fontSize = 15.sp, lineHeight = 20.sp)
-                        }
-                    }
-                }
-            }
-            val marks = full?.bookmarks.orEmpty()
-            if (marks.isNotEmpty()) item {
-                Panel("Links") {
-                    marks.groupBy { it.group }.forEach { (group, links) ->
-                        if (marks.map { it.group }.toSet().size > 1) Text(group.uppercase(), style = Heading, modifier = Modifier.padding(top = 6.dp))
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            links.forEach { b ->
-                                OutlinedButton(onClick = { runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(b.url))) } }) { Text(b.name) }
+                                    }) { Text("Save") }
+                                }
+                            } else {
+                                Text(text.ifBlank { "—" }, fontSize = 15.sp, lineHeight = 20.sp)
                             }
                         }
                     }
-                }
+                })
             }
-            val ups = full?.updates.orEmpty()
-            if (full?.updates != null) item {
-                Panel("Updates") {
-                    val ready = ups.filter { !it.updating }.mapNotNull { it.action }
-                    if (rights.admin && ready.size > 1) {
-                        OutlinedButton(onClick = { gate.press { askAll = ready } }) { Text("Update all ${ready.size}") }
-                    }
-                    if (ups.isEmpty()) Text("All containers up to date", fontSize = 13.sp, color = Lab.muted)
-                    ups.forEach { u ->
-                        Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Column(Modifier.weight(1f)) {
-                                Text(u.name, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                                Text("${u.host} · ${u.image}", fontSize = 12.sp, color = Lab.muted, maxLines = 1)
-                                u.scan?.let { sc -> Text(sc.text(), fontSize = 12.sp, color = scanColor(sc)) }
-                            }
-                            when {
-                                u.updating -> Text("updating…", fontSize = 12.sp, color = Lab.accent)
-                                rights.admin && u.action != null -> TextButton(onClick = { gate.press { ask = u.action } }) { Text("Update", fontSize = 12.sp) }
-                            }
-                        }
-                    }
-                }
-            }
-            if (trends.isNotEmpty()) item {
-                Panel("History") {
-                    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
-                        RANGES.forEachIndexed { i, (label, _) ->
-                            SegmentedButton(selected = range == i, onClick = { range = i },
-                                shape = SegmentedButtonDefaults.itemShape(i, RANGES.size)) { Text(label) }
-                        }
-                    }
-                    val h = when { range == 0 -> history; range <= 2 -> long; else -> year }
-                    trends.forEach { m ->
-                        val series = h?.series?.get(m.key).orEmpty()
-                        val keep = if (h == null || h.step == 0) series.size else (RANGES[range].second / h.step).coerceAtMost(series.size)
-                        Text(if (m.value.isEmpty()) m.label else "${m.label}  ${m.value}", fontSize = 13.sp, color = Lab.sub, modifier = Modifier.padding(top = 6.dp))
-                        if (series.size >= 2) LineChart(series.takeLast(keep), color = Lab.accent)
-                        else Text("No history yet", fontSize = 12.sp, color = Lab.muted)
-                    }
-                }
-            }
-            // labhud's own "numbers" section repeats the metrics, already shown above
-            sections.filterNot { it.title.equals("numbers", true) && c.metrics.isNotEmpty() }.forEach { s ->
+            if (marks.isNotEmpty()) add(CTab("Links") {
                 item {
-                    Panel(s.title) { s.rows.forEach { ListRow(it, server) } }
+                    Panel("") {
+                        marks.groupBy { it.group }.forEach { (group, links) ->
+                            if (marks.map { it.group }.toSet().size > 1) Text(group.uppercase(), style = Heading, modifier = Modifier.padding(top = 6.dp))
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                links.forEach { b ->
+                                    OutlinedButton(onClick = { runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(b.url))) } }) { Text(b.name) }
+                                }
+                            }
+                        }
+                    }
+                }
+            })
+            if (trends.isNotEmpty()) add(CTab("History") {
+                item {
+                    Panel("") {
+                        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
+                            RANGES.forEachIndexed { i, (label, _) ->
+                                SegmentedButton(selected = range == i, onClick = { range = i },
+                                    shape = SegmentedButtonDefaults.itemShape(i, RANGES.size)) { Text(label) }
+                            }
+                        }
+                        val h = when { range == 0 -> history; range <= 2 -> long; else -> year }
+                        trends.forEach { m ->
+                            val series = h?.series?.get(m.key).orEmpty()
+                            val keep = if (h == null || h.step == 0) series.size else (RANGES[range].second / h.step).coerceAtMost(series.size)
+                            Text(if (m.value.isEmpty()) m.label else "${m.label}  ${m.value}", fontSize = 13.sp, color = Lab.sub, modifier = Modifier.padding(top = 6.dp))
+                            if (series.size >= 2) LineChart(series.takeLast(keep), color = Lab.accent)
+                            else Text("No history yet", fontSize = 12.sp, color = Lab.muted)
+                        }
+                    }
+                }
+            })
+        }
+        val pager = rememberPagerState { tabs.size }
+        Column(Modifier.padding(pad).fillMaxSize()) {
+            if (tabs.size > 1) androidx.compose.material3.ScrollableTabRow(
+                selectedTabIndex = pager.currentPage.coerceAtMost(tabs.size - 1), containerColor = Lab.bg, edgePadding = 8.dp,
+            ) {
+                tabs.forEachIndexed { i, t ->
+                    androidx.compose.material3.Tab(selected = pager.currentPage == i, onClick = { scope.launch { pager.scrollToPage(i) } },
+                        text = { Text(t.name, maxLines = 1, color = if (pager.currentPage == i) Lab.title else Lab.muted) })
                 }
             }
-            if (sections.isEmpty() && c.rows.isNotEmpty()) item { Panel("Details") { c.rows.forEach { ListRow(it, server) } } }
+            HorizontalPager(pager, Modifier.fillMaxSize(), key = { tabs.getOrNull(it)?.name ?: it }) { i ->
+                LazyColumn(Modifier.fillMaxSize(), contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)) { tabs.getOrNull(i)?.body?.invoke(this) }
+            }
         }
     }
 
+    openBox?.let { b0 ->
+        // the container as the card now has it (an update or restart changes it while the sheet is open)
+        val b = full?.containers.orEmpty().firstOrNull { it.name == b0.name } ?: b0
+        AlertDialog(
+            onDismissRequest = { openBox = null },
+            confirmButton = { TextButton(onClick = { openBox = null }) { Text("Close") } },
+            text = {
+                ContainerRow(b, admin = rights.admin, server = server,
+                    onAction = { a -> openBox = null; gate.press { ask = a } },
+                    onLogs = {
+                        openBox = null
+                        gate.press {
+                            scope.launch {
+                                val r = runCatching { repo.api()?.logs(full?.agent.orEmpty(), b.name) }.getOrNull()
+                                logs = b.name to (if (r?.ok == true) r.output.ifBlank { "(nothing)" } else "✕ " + (r?.error?.ifBlank { null } ?: "refused"))
+                            }
+                        }
+                    },
+                    onLive = { openBox = null; gate.press { liveLog = full?.agent.orEmpty() to b.name } },
+                    onDetails = {
+                        openBox = null
+                        gate.press {
+                            scope.launch {
+                                val r = runCatching { repo.api()?.inspect(full?.agent.orEmpty(), b.name) }.getOrNull()
+                                details = b.name to (if (r?.ok == true) detailRows(r.output) else listOf("✕" to (r?.error?.ifBlank { null } ?: "refused")))
+                            }
+                        }
+                    })
+            },
+        )
+    }
     ask?.let { a -> ActionDialog(a, onSend = { name, label -> send(name, label) }, onDismiss = { ask = null }) }
     liveLog?.let { (agent, container) -> LiveLogDialog(agent, container, repo, gate) { liveLog = null } }
     GateDialogs(gate, onSignIn)
@@ -417,6 +487,52 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
             },
             dismissButton = { TextButton(onClick = { askMaint = false }) { Text("Cancel") } },
         )
+    }
+}
+
+/** One tab of a card's screen: its name and the items of its list. */
+private class CTab(val name: String, val body: LazyListScope.() -> Unit)
+
+/** [items] as rows of [cols] cells that share the width; the last row is padded so its cells stay as wide. */
+private fun <T> LazyListScope.gridRows(items: List<T>, cols: Int, keyPrefix: String? = null, cell: @Composable androidx.compose.foundation.layout.RowScope.(T) -> Unit) {
+    items.chunked(cols).forEachIndexed { n, row ->
+        item(key = keyPrefix?.let { "$it-$n" }) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                row.forEach { cell(it) }
+                repeat(cols - row.size) { Spacer(Modifier.weight(1f)) }
+            }
+        }
+    }
+}
+
+/** A container as a small card: dot, icon, its whole name, then what it is doing and what it uses. A tap opens its buttons. */
+@Composable
+private fun ContainerCell(b: io.github.mithrandler.labhud.data.Container, server: io.github.mithrandler.labhud.data.Server?, modifier: Modifier, onClick: () -> Unit) {
+    Surface(onClick = onClick, modifier = modifier, shape = CardShape, color = Lab.card,
+        border = if (b.up) BorderStroke(1.dp, Lab.line) else BorderStroke(1.dp, Lab.red.copy(alpha = 0.7f))) {
+        Column(Modifier.padding(horizontal = 10.dp, vertical = 8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                androidx.compose.foundation.layout.Box(Modifier.size(8.dp).clip(androidx.compose.foundation.shape.CircleShape).background(if (b.up) Lab.green else Lab.red))
+                Spacer(Modifier.width(6.dp))
+                NamedIcon(b.icon, LabIcons.container, server, 16.dp)
+                Spacer(Modifier.width(6.dp))
+                FitText(b.name, 12.sp, FontWeight.SemiBold, Modifier.weight(1f))
+            }
+            Text(when { b.updating -> "updating…"; b.update -> "update available"; else -> b.status }, fontSize = 11.sp, maxLines = 1,
+                color = if (b.update || b.updating) Lab.accent else if (b.up) Lab.muted else Lab.red, modifier = Modifier.padding(top = 4.dp))
+            if (b.usage.isNotEmpty()) Text(b.usage, fontSize = 11.sp, color = Lab.muted, maxLines = 1)
+        }
+    }
+}
+
+/** A section's row (name, value) as a small card: a storage and how full it is. */
+@Composable
+private fun RowCell(r: io.github.mithrandler.labhud.data.Row, modifier: Modifier) {
+    Surface(modifier = modifier, shape = CardShape, color = Lab.card, border = BorderStroke(1.dp, Lab.line)) {
+        Column(Modifier.padding(horizontal = 10.dp, vertical = 8.dp)) {
+            FitText(r.name, 12.sp, FontWeight.SemiBold)
+            Text(r.value, fontSize = 11.sp, color = if (r.bad) Lab.red else Lab.muted, modifier = Modifier.padding(top = 4.dp))
+        }
     }
 }
 

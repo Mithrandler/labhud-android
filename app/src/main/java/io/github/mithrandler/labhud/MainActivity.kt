@@ -197,7 +197,7 @@ class MainActivity : FragmentActivity() {
                 composable("card/{id}?ask={ask}", arguments = listOf(navArgument("ask") { type = NavType.StringType; defaultValue = "" })) {
                     CardScreen(repo, it.arguments?.getString("id").orEmpty(), onBack = { nav.popBackStack() },
                         onHistory = { id -> nav.navigate("host/$id") }, onSignIn = { nav.navigate("signin") },
-                        askFirst = it.arguments?.getString("ask").orEmpty())
+                        askFirst = it.arguments?.getString("ask").orEmpty(), onCard = { id -> nav.navigate("card/$id") })
                 }
                 composable("game/{id}") {
                     GameScreen(repo, it.arguments?.getString("id").orEmpty(), onBack = { nav.popBackStack() }, onSignIn = { nav.navigate("signin") })
