@@ -188,7 +188,7 @@ private fun HostList(hosts: List<ZoneHost>?, message: String, onOpen: (String) -
     }
 }
 
-private val TABS = listOf("overview" to "Overview", "containers" to "Containers", "stacks" to "Stacks", "images" to "Images", "volumes" to "Volumes", "networks" to "Networks", "vms" to "VMs & LXC")
+private val TABS = listOf("overview" to "Overview", "containers" to "Containers", "stacks" to "Stacks", "images" to "Images", "volumes" to "Volumes", "networks" to "Networks", "vms" to "VMs & LXC", "host" to "Host")
 
 @Composable
 private fun HostScreen(h: ZoneHost, ask: suspend (suspend LabApi.() -> ZoneAnswer) -> ZoneAnswer, repo: LabRepository, gate: Gate) {
@@ -201,6 +201,7 @@ private fun HostScreen(h: ZoneHost, ask: suspend (suspend LabApi.() -> ZoneAnswe
         "volumes" -> VolumesTab(h, ask, gate)
         "networks" -> NetworksTab(h, ask, gate)
         "vms" -> GuestsTab(h, ask, gate)
+        "host" -> HostTab(h, ask, gate)
         else -> ContainersTab(h, ask, repo, gate)
     }
     val tabs = TABS.filter { it.first != "vms" || h.pve }

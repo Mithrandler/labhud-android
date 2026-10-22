@@ -278,4 +278,11 @@ class ZoneObjectsTest {
         assertEquals("trivy · scanned 2023-11-14 22:13", io.github.mithrandler.labhud.data.scanWhen(bad, java.time.ZoneOffset.UTC))
         assertEquals("? · scanned ?", io.github.mithrandler.labhud.data.scanWhen(io.github.mithrandler.labhud.data.ZoneScan(), java.time.ZoneOffset.UTC))
     }
+
+    @Test fun a_hosts_uptime_and_activity_read_short() {
+        assertEquals(listOf("–", "7m", "3h 5m", "12d 0h"), listOf(0L, 420L, 11100L, 1036800L).map { io.github.mithrandler.labhud.data.uptimeText(it) })
+        val e = io.github.mithrandler.labhud.data.ZoneActivity("t", "w", "servers/unit-restart", "h/u", true)
+        assertEquals("unit-restart", io.github.mithrandler.labhud.data.activityText(e))
+        assertEquals("unit-restart (refused)", io.github.mithrandler.labhud.data.activityText(e.copy(ok = false)))
+    }
 }

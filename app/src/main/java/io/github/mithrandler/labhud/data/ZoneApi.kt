@@ -177,7 +177,41 @@ data class ZoneAnswer(
     val snapshots: List<ZoneSnapshot> = emptyList(),
     val backups: List<ZoneBackup> = emptyList(),
     val tasks: List<ZoneTask> = emptyList(),
+    // Host tab
+    val host: ZoneSystem? = null,
+    val version: String = "",
+    val uptime: Long = 0,
+    val can: ZoneHostCan? = null,
+    val units: List<ZoneUnit> = emptyList(),
+    val failed: List<String> = emptyList(),
+    val rows: List<ZoneActivity> = emptyList(),
+    val more: Boolean = false,
+    val intact: Boolean = false,
+    val checked: Int = 0,
+    val broken: String = "",
 )
+
+@Serializable
+data class ZoneSystem(val hostname: String = "", val os: String = "", val kernel: String = "", val arch: String = "")
+
+@Serializable
+data class ZoneHostCan(val update: Boolean = false, val power: Boolean = false)
+
+@Serializable
+data class ZoneUnit(val name: String = "", val active: String = "", val sub: String = "", val description: String = "", val ticked: Boolean = false)
+
+@Serializable
+data class ZoneActivity(val ts: String = "", val who: String = "", val action: String = "", val target: String = "", val ok: Boolean = false)
+
+/** "12d 0h", "3h 5m", "7m", "–": a host's uptime. Server `uptime_text`. */
+fun uptimeText(s: Long): String {
+    if (s <= 0) return "–"
+    val d = s / 86400; val h = s % 86400 / 3600; val m = s % 3600 / 60
+    return if (d > 0) "${d}d ${h}h" else if (h > 0) "${h}h ${m}m" else "${m}m"
+}
+
+/** "unit-restart" for "servers/unit-restart", with " (refused)" when it was not allowed. */
+fun activityText(e: ZoneActivity) = e.action.removePrefix("servers/") + if (e.ok) "" else " (refused)"
 
 /** The words for a refusal: labhud's, or why a wait is asked. */
 fun ZoneAnswer.refusal(): String = when {
@@ -195,6 +229,13 @@ private suspend fun LabApi.zone(op: String, seconds: Long = 0, build: JsonObject
 }
 
 suspend fun LabApi.zoneSession() = zone("session")
+suspend fun LabApi.zoneHostInfo(agent: String) = zone("host", 35) { put("agent", agent) }
+suspend fun LabApi.zoneHostUpdate(agent: String) = zone("host-update", 60) { put("agent", agent) }
+suspend fun LabApi.zoneHostPower(agent: String, verb: String, confirm: String) = zone("host-power", 60) { put("agent", agent); put("verb", verb); put("confirm", confirm) }
+suspend fun LabApi.zoneUnit(agent: String, name: String, verb: String) = zone("unit", 60) { put("agent", agent); put("name", name); put("verb", verb) }
+suspend fun LabApi.zoneUnitStop(agent: String, name: String, confirm: String) = zone("unit-stop", 60) { put("agent", agent); put("name", name); put("confirm", confirm) }
+suspend fun LabApi.zoneActivity(agent: String, offset: Int) = zone("activity", 35) { put("agent", agent); put("offset", offset) }
+suspend fun LabApi.zoneAuditVerify() = zone("audit-verify", 60)
 suspend fun LabApi.zoneHosts() = zone("hosts")
 suspend fun LabApi.zoneContainers(agent: String) = zone("containers") { put("agent", agent) }
 suspend fun LabApi.zoneAction(agent: String, name: String, verb: String) = zone("action", 60) { put("agent", agent); put("name", name); put("verb", verb) }
