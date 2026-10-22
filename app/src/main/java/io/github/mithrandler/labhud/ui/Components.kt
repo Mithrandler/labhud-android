@@ -343,6 +343,27 @@ fun UptimeBar(values: List<Double?>, modifier: Modifier, slices: Int = 48) {
     }
 }
 
+/** The last week, a square a day coloured by how much of that day it was up, with the day's initials and percent. */
+@Composable
+fun UptimeDays(values: List<Double?>, modifier: Modifier = Modifier) {
+    val shares = remember(values) { dayShares(values) }
+    val today = java.time.LocalDate.now()
+    val locale = androidx.compose.ui.platform.LocalConfiguration.current.locales.get(0)
+    Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        shares.forEachIndexed { i, v ->
+            val day = today.minusDays((shares.size - 1 - i).toLong()).dayOfWeek.getDisplayName(java.time.format.TextStyle.SHORT, locale).take(2)
+            val color = uptimeColor(v)
+            val on = v != null && v >= 0
+            Column(Modifier.weight(1f).clip(RoundedCornerShape(8.dp)).background(if (on) color else Lab.block).padding(vertical = 8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(day.uppercase(), fontSize = 10.sp, color = if (on) androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.7f) else Lab.muted)
+                Text(if (on) "${Math.round(v!! * 100)}%" else "—", fontSize = 12.sp, fontWeight = FontWeight.Bold,
+                    color = if (on) androidx.compose.ui.graphics.Color.Black else Lab.muted)
+            }
+        }
+    }
+}
+
 @Composable
 fun ListRow(row: DataRow, server: Server? = null) {
     Row(Modifier.fillMaxWidth().padding(vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {

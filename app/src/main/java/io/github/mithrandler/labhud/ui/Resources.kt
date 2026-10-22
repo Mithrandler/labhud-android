@@ -84,3 +84,18 @@ fun upText(seconds: Long): String = when {
     seconds >= 3600 -> "${seconds / 3600}h"
     else -> "${seconds / 60}m"
 }
+
+/**
+ * A week of uptime as one share a day, oldest first: the mean of the slices that were up or down (0..1),
+ * -1.0 for a day labhud knew only as off on purpose, null for a day it knows nothing about.
+ */
+fun dayShares(values: List<Double?>, days: Int = 7): List<Double?> = (0 until days).map { d ->
+    val from = values.size * d / days
+    val to = values.size * (d + 1) / days
+    val known = values.subList(from, to).filterNotNull()
+    when {
+        known.isEmpty() -> null
+        known.all { it < 0 } -> -1.0
+        else -> known.filter { it >= 0 }.average()
+    }
+}

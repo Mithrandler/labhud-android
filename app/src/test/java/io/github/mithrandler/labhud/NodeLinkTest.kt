@@ -3,6 +3,7 @@ package io.github.mithrandler.labhud
 import io.github.mithrandler.labhud.data.Card
 import io.github.mithrandler.labhud.data.Guest
 import io.github.mithrandler.labhud.data.LabJson
+import io.github.mithrandler.labhud.ui.dayShares
 import io.github.mithrandler.labhud.ui.hostsWithGuests
 import io.github.mithrandler.labhud.ui.meters
 import org.junit.Assert.assertEquals
@@ -52,5 +53,24 @@ class GpuStateTest {
         assertEquals("100", g.vmid)
         assertEquals(90061L, g.uptime)
         assertEquals(listOf("CPU", "RAM"), g.meters().map { it.label })
+    }
+}
+
+/** The week of uptime as a share a day. */
+class DaySharesTest {
+    @Test fun meanOfADayAndTheUnknownOnes() {
+        // 14 slices = 2 a day: day 1 all up, day 2 half down, day 3 off, day 4 unknown, then three up days
+        val v = listOf(1.0, 1.0, 1.0, 0.0, -1.0, -1.0, null, null, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0)
+        val d = dayShares(v)
+        assertEquals(7, d.size)
+        assertEquals(1.0, d[0]!!, 0.0)
+        assertEquals(0.5, d[1]!!, 0.0)
+        assertEquals(-1.0, d[2]!!, 0.0)
+        assertEquals(null, d[3])
+        assertEquals(1.0, d[6]!!, 0.0)
+    }
+
+    @Test fun aYoungHistoryLeavesTheOldDaysUnknown() {
+        assertEquals(List(7) { null }, dayShares(emptyList()))
     }
 }

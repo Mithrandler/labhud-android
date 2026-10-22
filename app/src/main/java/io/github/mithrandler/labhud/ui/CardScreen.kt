@@ -251,7 +251,8 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
                                 TextButton(onClick = { week = w }) { Text(label, color = if (week == w) Lab.title else Lab.muted) }
                             }
                         }
-                        UptimeBar(up.cards.getValue(c.id), Modifier.fillMaxWidth().padding(top = 4.dp).height(10.dp), slices = if (week) 56 else 48)
+                        if (week) UptimeDays(up.cards.getValue(c.id), Modifier.padding(top = 4.dp))
+                        else UptimeBar(up.cards.getValue(c.id), Modifier.fillMaxWidth().padding(top = 4.dp).height(10.dp), slices = 48)
                         if ((up.coverage[c.id] ?: 100.0) < 99.95) Text("Grey: LabHUD itself was off then, so it does not know.",
                             fontSize = 12.sp, color = Lab.muted, modifier = Modifier.padding(top = 6.dp))
                     }
