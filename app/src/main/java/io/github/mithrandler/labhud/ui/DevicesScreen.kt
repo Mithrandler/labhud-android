@@ -2,6 +2,11 @@ package io.github.mithrandler.labhud.ui
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.key
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.draw.alpha
 import androidx.compose.foundation.layout.height
@@ -89,6 +94,7 @@ fun DevicesScreen(repo: LabRepository, bar: BarNav) {
     val conn by repo.conn.collectAsStateWithLifecycle()
     val server by repo.server.collectAsStateWithLifecycle()
     var filter by rememberSaveable { mutableStateOf(Filter.All) }
+    var sectionPick by rememberSaveable { mutableStateOf("") }
 
     val devices = remember(state) { state?.cards.orEmpty().filter { it.type.isNotEmpty() }.distinctBy { it.id } }
     val filtered = remember(devices, filter) { devices.filter { it.matches(filter) } }
@@ -129,23 +135,28 @@ fun DevicesScreen(repo: LabRepository, bar: BarNav) {
                     )
                 }
             }
-            LazyColumn(
-                Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                if (state == null) {
-                    item { Text("Connecting…", color = Lab.muted) }
-                } else if (filtered.isEmpty()) {
-                    item { Text("Nothing here.", color = Lab.muted) }
-                } else {
+            if (state == null) Text("Connecting…", color = Lab.muted, modifier = Modifier.padding(16.dp))
+            else if (filtered.isEmpty()) Text("Nothing here.", color = Lab.muted, modifier = Modifier.padding(16.dp))
+            else {
+                // one section at a time (chips when there are several), its machines a few to a page
+                val picked = grouped.firstOrNull { it.first == sectionPick } ?: grouped.first()
+                if (grouped.size > 1) Row(
+                    Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
                     grouped.forEach { (type, title, group) ->
-                        item(key = "h-$type") {
-                            SectionTitle(title, bad = group.any { it.bad == true })
-                        }
-                        items(group, key = { "d-" + it.id }) { c ->
-                            DeviceRow(c, server, indent = c.type == "vm") { onCard(c.id) }
-                        }
+                        FilterChip(
+                            selected = type == picked.first, onClick = { sectionPick = type },
+                            label = { Text("$title ${group.size}") },
+                            trailingIcon = if (group.any { it.bad == true }) ({ Box(Modifier.size(6.dp).clip(CircleShape).background(Lab.red)) }) else null,
+                            colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Lab.accent.copy(alpha = 0.2f), selectedLabelColor = Lab.title),
+                        )
+                    }
+                }
+                val cols = gridColumns()
+                Column(Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 8.dp)) {
+                    key(picked.first) {
+                        PagedGrid(picked.third, cols, rows = 4) { c -> DeviceCell(c, server, Modifier.weight(1f)) { onCard(c.id) } }
                     }
                 }
             }
@@ -153,37 +164,29 @@ fun DevicesScreen(repo: LabRepository, bar: BarNav) {
     }
 }
 
-/** A machine on one row: its icon, name, CPU and RAM in a few words, its state, the dot. */
+/** A machine as a small card: icon, its whole name, the dot, then CPU and RAM in a few words or its state. */
 @Composable
-private fun DeviceRow(c: Card, server: Server?, indent: Boolean = false, onClick: () -> Unit) {
+private fun DeviceCell(c: Card, server: Server?, modifier: Modifier, onClick: () -> Unit) {
     val sev = c.severity()
     Surface(
-        onClick = onClick,
-        shape = CardShape,
-        color = Lab.card,
-        modifier = Modifier.padding(start = if (indent) 20.dp else 0.dp),
-        border = BorderStroke(1.dp, if (c.bad == true) Lab.red.copy(alpha = 0.7f) else Lab.line),
+        onClick = onClick, modifier = modifier, shape = CardShape, color = Lab.card,
+        border = BorderStroke(1.dp, if (c.bad == true) Lab.red.copy(alpha = 0.7f) else if (sev.isNotEmpty()) barColor(sev) else Lab.line),
     ) {
-        Row(Modifier.height(IntrinsicSize.Min)) {
-            if (sev.isNotEmpty()) Box(Modifier.width(3.dp).fillMaxHeight().background(barColor(sev)))
-            Row(Modifier.weight(1f).padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.heightIn(min = 76.dp).padding(horizontal = 10.dp, vertical = 8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 CardIcon(c, server)
-                Spacer(Modifier.width(10.dp))
-                Column(Modifier.weight(1f)) {
-                    FitText(c.name, 14.sp, FontWeight.SemiBold)
-                    // the percentages in a line ("CPU 16% · RAM 58%"), else what the card says about itself
-                    val bars = c.metrics.filter { it.pct != null }.ifEmpty { c.guest?.meters().orEmpty() }.take(3)
-                    val up = c.guest?.uptime?.let { "up " + upText(it) } ?: c.metrics.firstOrNull { it.short().equals("uptime", true) }?.let { "up " + it.value }
-                    val line = if (c.status == "up") (bars.map { it.short() + " " + Math.round(it.pct ?: 0.0) + "%" } + listOfNotNull(up)).joinToString(" · ") else ""
-                    val sub = line.ifEmpty { c.subtitle.ifEmpty { c.summary } }
-                    if (sub.isNotEmpty()) Text(sub, fontSize = 12.sp, color = Lab.muted, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.alpha(if (c.frozen) 0.45f else 1f))
-                }
-                val word = statusWord(c)
-                if (word.isNotEmpty()) Text(word, fontSize = 12.sp, color = if (c.status == "down") Lab.red else Lab.muted, modifier = Modifier.padding(start = 8.dp))
                 Spacer(Modifier.width(8.dp))
-                StatusDot(c, 10)
+                FitText(c.name, 13.sp, FontWeight.SemiBold, Modifier.weight(1f))
+                Spacer(Modifier.width(6.dp))
+                StatusDot(c, 9)
             }
+            val bars = c.metrics.filter { it.pct != null }.ifEmpty { c.guest?.meters().orEmpty() }.take(3)
+            val up = c.guest?.uptime?.let { "up " + upText(it) } ?: c.metrics.firstOrNull { it.short().equals("uptime", true) }?.let { "up " + it.value }
+            val line = if (c.status == "up") (bars.map { it.short() + " " + Math.round(it.pct ?: 0.0) + "%" } + listOfNotNull(up)).joinToString(" · ") else ""
+            val word = statusWord(c)
+            val sub = line.ifEmpty { word.ifEmpty { c.subtitle.ifEmpty { c.summary } } }
+            if (sub.isNotEmpty()) Text(sub, fontSize = 11.sp, color = if (c.status == "down") Lab.red else Lab.muted, maxLines = 2, overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(top = 4.dp).alpha(if (c.frozen) 0.45f else 1f))
         }
     }
 }

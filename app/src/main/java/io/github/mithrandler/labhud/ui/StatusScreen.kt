@@ -3,6 +3,7 @@ package io.github.mithrandler.labhud.ui
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -188,17 +189,40 @@ fun StatusScreen(
                     // the page's own columns and density, when the server sets them (⚙ > Dashboard)
                     val compact = page?.compact == true || view == ViewMode.Glance
                     val gap = if (compact) 6.dp else 10.dp
-                    LazyVerticalGrid(
-                        CappedAdaptive(158.dp, page?.columns ?: 0, split = 3),
-                        Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp),
-                        horizontalArrangement = Arrangement.spacedBy(gap),
-                        verticalArrangement = Arrangement.spacedBy(gap),
-                    ) {
-                        if (page == null) return@LazyVerticalGrid
-                        if (page.games) games(page, server, onGame) else {
-                            if (index == 0) favorites(favs, byId, server, sparks, uptime, compact, onCard, boxChips)
-                            groups(page, byId, server, sparks, uptime, compact, onCard, boxChips)
+                    androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxSize()) {
+                        // the cards of this page cut into screens by height; a bar under them moves between the screens
+                        val cells = (((maxWidth.value - 32f + 10f) / 168f).toInt().coerceAtLeast(1)) * 3
+                        val slots = if (page == null) emptyList() else if (page.games) page.servers.map { Slot("game-" + it.id.ifEmpty { it.name }, game = it) } else
+                            (if (index == 0) favs.mapNotNull { byId[it] }.sortedBy { it.name.lowercase() }.map { Slot("c-fav-${it.id}", it) } else emptyList()) +
+                                page.groups.flatMap { g -> g.cards.mapNotNull { byId[it] }.map { Slot("c-${g.id}-${it.id}", it) } }
+                        val screens = remember(slots, cells, maxHeight) {
+                            packGrid(slots, { it.span(cells) }, { it.height() }, cells, gap.value, maxHeight.value - 96f)
+                        }
+                        var asked by rememberSaveable(page?.id) { mutableIntStateOf(0) }
+                        val cur = asked.coerceIn(0, screens.size - 1)
+                        Column(Modifier.fillMaxSize()) {
+                            LazyVerticalGrid(
+                                CappedAdaptive(158.dp, page?.columns ?: 0, split = 3),
+                                Modifier.weight(1f).fillMaxWidth(),
+                                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
+                                horizontalArrangement = Arrangement.spacedBy(gap),
+                                verticalArrangement = Arrangement.spacedBy(gap),
+                            ) {
+                                if (page == null) return@LazyVerticalGrid
+                                if (slots.isEmpty() && page.games) item(span = { GridItemSpan(maxLineSpan) }) { Text("No game servers known yet.", color = Lab.muted) }
+                                screens[cur].forEach { sl ->
+                                    val c = sl.card
+                                    if (c != null) item(key = sl.key, span = { GridItemSpan(c.statusSpan(maxLineSpan)) }) {
+                                        if (c.kind == "guest") MiniCard(c, server, chip = boxChips[c.id]) { onCard(c.id) }
+                                        else HudCard(c, server, sparks = sparks, uptime = uptime?.cards?.get(c.id), percent = uptime?.percent?.get(c.id),
+                                            coverage = uptime?.coverage?.get(c.id), compact = compact,
+                                            chips = listOfNotNull(boxChips[c.id])) { onCard(c.id) }
+                                    }
+                                    val g = sl.game
+                                    if (g != null) item(key = sl.key, span = { GridItemSpan(3.coerceAtMost(maxLineSpan)) }) { GameTile(g, server) { if (g.id.isNotEmpty()) onGame(g.id) } }
+                                }
+                            }
+                            PageBar(cur, screens.size, { asked = it.coerceIn(0, screens.size - 1) })
                         }
                     }
                 }
@@ -207,42 +231,22 @@ fun StatusScreen(
     }
 }
 
-private fun LazyGridScope.groups(page: Page, byId: Map<String, Card>, server: Server?, sparks: Map<String, List<Double?>>,
-                                 uptime: Uptime?, compact: Boolean, onCard: (String) -> Unit, boxChips: Map<String, String>) {
-    page.groups.forEach { g ->
-        val cards = g.cards.mapNotNull { byId[it] }
-        if (cards.isEmpty()) return@forEach
-        cards.forEach { c ->
-            item(key = "c-${g.id}-${c.id}", span = { GridItemSpan(c.statusSpan(maxLineSpan)) }) {
-                if (c.kind == "guest") MiniCard(c, server, chip = boxChips[c.id]) { onCard(c.id) }
-                else HudCard(c, server, sparks = sparks, uptime = uptime?.cards?.get(c.id), percent = uptime?.percent?.get(c.id),
-                    coverage = uptime?.coverage?.get(c.id), compact = compact,
-                    chips = listOfNotNull(boxChips[c.id])) { onCard(c.id) }
-            }
+/** One thing on a Status screen: a card (or a game server) with a key for its grid cell. */
+private class Slot(val key: String, val card: Card? = null, val game: GameServer? = null) {
+    /** Cells it takes in a line of [cells]. */
+    fun span(cells: Int): Int = card?.statusSpan(cells) ?: 3.coerceAtMost(cells)
+
+    /** About how tall it is, in dp. */
+    fun height(): Float {
+        val c = card ?: return 92f
+        return when {
+            c.kind == "guest" -> 165f
+            c.size == "xl" -> 270f
+            c.size == "m" || c.size == "l" -> 235f
+            c.kind == "list" && c.size.isEmpty() -> 230f
+            else -> 140f
         }
     }
-}
-
-/** The cards starred on this phone, above the first page's groups. */
-private fun LazyGridScope.favorites(favs: Set<String>, byId: Map<String, Card>, server: Server?, sparks: Map<String, List<Double?>>,
-                                    uptime: Uptime?, compact: Boolean, onCard: (String) -> Unit, boxChips: Map<String, String>) {
-    val cards = favs.mapNotNull { byId[it] }.sortedBy { it.name.lowercase() }
-    if (cards.isEmpty()) return
-    item(key = "g-fav", span = { GridItemSpan(maxLineSpan) }) { SectionTitle("Favorites", bad = cards.any { it.bad == true }) }
-    cards.forEach { c ->
-        item(key = "c-fav-${c.id}", span = { GridItemSpan(c.statusSpan(maxLineSpan)) }) {
-            if (c.kind == "guest") MiniCard(c, server, chip = boxChips[c.id]) { onCard(c.id) }
-            else HudCard(c, server, sparks = sparks, uptime = uptime?.cards?.get(c.id), percent = uptime?.percent?.get(c.id),
-                coverage = uptime?.coverage?.get(c.id), compact = compact,
-                    chips = listOfNotNull(boxChips[c.id])) { onCard(c.id) }
-        }
-    }
-}
-
-private fun LazyGridScope.games(page: Page, server: Server?, onGame: (String) -> Unit) {
-    if (page.servers.isEmpty()) item(span = { GridItemSpan(maxLineSpan) }) { Text("No game servers known yet.", color = Lab.muted) }
-    // the grid's cells are a third of a column: a game server takes half a row, two to a row on a phone
-    items(page.servers, key = { "game-" + it.id.ifEmpty { it.name } }, span = { GridItemSpan(3.coerceAtMost(maxLineSpan)) }) { g -> GameTile(g, server) { if (g.id.isNotEmpty()) onGame(g.id) } }
 }
 
 @Composable

@@ -118,25 +118,29 @@ fun ActivityScreen(repo: LabRepository, bar: BarNav) {
             Text(error.ifEmpty { "Loading…" }, color = Lab.muted, modifier = Modifier.padding(24.dp))
             return@Column
         }
-        LazyColumn(Modifier.fillMaxSize(), contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp)) {
-            if (list.isEmpty()) item { Text("Nothing happened yet.", color = Lab.muted) }
-            days.forEach { (heading, rows) ->
-                item(key = heading) {
-                    val bad = rows.count { it.bad }
-                    Text("${heading.uppercase()} · ${rows.size}" + if (bad > 0) " · $bad bad" else "", style = Heading,
-                        modifier = Modifier.padding(top = 14.dp, bottom = 6.dp))
-                }
-                itemsIndexed(rows, key = { i, _ -> "$heading#$i" }) { _, e ->
-                    Row(
-                        Modifier.fillMaxWidth().clickable(enabled = e.card != null) { e.card?.let(onCard) }.padding(vertical = 7.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Box(Modifier.size(8.dp).clip(CircleShape).background(if (e.bad) Lab.red else Lab.border))
-                        Spacer(Modifier.width(12.dp))
-                        Text(e.name, fontSize = 14.sp, color = if (e.bad) Lab.text else Lab.sub, modifier = Modifier.weight(1f))
-                        Spacer(Modifier.width(12.dp))
-                        Text(time.format(Date(e.t * 1000)), fontSize = 12.sp, color = Lab.muted)
-                    }
+        if (list.isEmpty()) { Text("Nothing happened yet.", color = Lab.muted, modifier = Modifier.padding(16.dp)); return@Column }
+        // the day's heading and its events as one list, a few to a page; a page that starts mid-day names the day again
+        val lines = remember(days) {
+            days.flatMap { (heading, rows) -> listOf<Any>(heading to rows) + rows.map { heading to it } }
+        }
+        PagedScreen(lines, per = 8) { line ->
+            @Suppress("UNCHECKED_CAST")
+            if (line is Pair<*, *> && line.second is List<*>) {
+                val rows = line.second as List<Event>
+                val bad = rows.count { it.bad }
+                Text("${(line.first as String).uppercase()} · ${rows.size}" + if (bad > 0) " · $bad bad" else "", style = Heading,
+                    modifier = Modifier.padding(top = 10.dp, bottom = 4.dp))
+            } else {
+                val e = (line as Pair<*, *>).second as Event
+                Row(
+                    Modifier.fillMaxWidth().clickable(enabled = e.card != null) { e.card?.let(onCard) }.padding(vertical = 9.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Box(Modifier.size(8.dp).clip(CircleShape).background(if (e.bad) Lab.red else Lab.border))
+                    Spacer(Modifier.width(12.dp))
+                    Text(e.name, fontSize = 14.sp, color = if (e.bad) Lab.text else Lab.sub, modifier = Modifier.weight(1f))
+                    Spacer(Modifier.width(12.dp))
+                    Text(time.format(Date(e.t * 1000)), fontSize = 12.sp, color = Lab.muted)
                 }
             }
         }
@@ -153,11 +157,9 @@ private fun NotesList(notes: List<Note>?, error: String, onCard: (String) -> Uni
         Text(error.ifEmpty { "Loading…" }, color = Lab.muted, modifier = Modifier.padding(24.dp))
         return
     }
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp)) {
-        if (list.isEmpty()) item {
-            Text("No notifications.", color = Lab.muted)
-        }
-        items(list, key = { it.id }) { n ->
+    if (list.isEmpty()) { Text("No notifications.", color = Lab.muted, modifier = Modifier.padding(16.dp)); return }
+    PagedScreen(list, per = 4) { n ->
+        run {
             Row(
                 Modifier.fillMaxWidth().clickable(enabled = n.card != null) { n.card?.let(onCard) }.padding(vertical = 8.dp),
                 verticalAlignment = Alignment.Top,

@@ -4,6 +4,9 @@ import io.github.mithrandler.labhud.data.Card
 import io.github.mithrandler.labhud.data.Guest
 import io.github.mithrandler.labhud.data.LabJson
 import io.github.mithrandler.labhud.ui.dayShares
+import io.github.mithrandler.labhud.ui.packGrid
+import io.github.mithrandler.labhud.ui.paginate
+import io.github.mithrandler.labhud.ui.pageCount
 import io.github.mithrandler.labhud.ui.hostsWithGuests
 import io.github.mithrandler.labhud.ui.meters
 import org.junit.Assert.assertEquals
@@ -72,5 +75,32 @@ class DaySharesTest {
 
     @Test fun aYoungHistoryLeavesTheOldDaysUnknown() {
         assertEquals(List(7) { null }, dayShares(emptyList()))
+    }
+}
+
+/** Pages of a grid: by count, and by the height the lines really take. */
+class PagingTest {
+    @Test fun pagesByCount() {
+        assertEquals(1, pageCount(0, 4))
+        assertEquals(2, pageCount(5, 4))
+        assertEquals(listOf(listOf(1, 2), listOf(3)), paginate(listOf(1, 2, 3), 2))
+        assertEquals(listOf(emptyList<Int>()), paginate(emptyList<Int>(), 2))
+    }
+
+    @Test fun aHalfEmptyLineStillCostsAWholeLine() {
+        // 6 cells a line: a big card (6) of 240 dp, then 4 small ones (2 cells, 160 dp): a line of 3 and a line of 1
+        val items = listOf(6 to 240f, 2 to 160f, 2 to 160f, 2 to 160f, 2 to 160f)
+        val screens = packGrid(items, { it.first }, { it.second }, 6, 10f, 560f)
+        // 240 + 10 + 160 = 410 fits; the 4th small one opens a line at 410 + 10 + 160 = 580 > 560: a new screen
+        assertEquals(listOf(4, 1), screens.map { it.size })
+    }
+
+    @Test fun anItemTallerThanTheBudgetHasAScreenToItself() {
+        val screens = packGrid(listOf(6 to 900f, 6 to 100f), { it.first }, { it.second }, 6, 10f, 500f)
+        assertEquals(listOf(1, 1), screens.map { it.size })
+    }
+
+    @Test fun nothingIsOneEmptyScreen() {
+        assertEquals(1, packGrid(emptyList<Pair<Int, Float>>(), { it.first }, { it.second }, 6, 10f, 500f).size)
     }
 }

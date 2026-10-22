@@ -6,6 +6,9 @@ All notable changes to LabHUD for Android. The format follows
 
 ## [Unreleased]
 
+### Changed
+- **A few at a time, everywhere**: lists are pages of cells 2-3 to a row (4 on a tablet), a bar under them (‹ dots 1/3 ›), no scrolling down a long list and no animation: a card's screen (VM/LXC, containers - one stack at a time with chips -, storage, backup, sections, updates), Devices (one kind of machine at a time), Activity (timeline and notifications) and the Status pages, whose cards are cut into screens by the height they really take.
+
 ## [0.1.24] - 2026-10-22
 
 ### Changed

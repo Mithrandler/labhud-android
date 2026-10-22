@@ -105,6 +105,7 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
     var ask by remember { mutableStateOf<Action?>(null) }
     var askMaint by remember { mutableStateOf(false) }
     var openBox by remember { mutableStateOf<io.github.mithrandler.labhud.data.Container?>(null) }
+    var stackPick by rememberSaveable { mutableStateOf<String?>(null) }
     val snack = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -178,7 +179,7 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
         val stacks = if (boxes.isEmpty()) emptyList() else boxes.groupBy { it.project }.toSortedMap(compareBy { it.ifEmpty { "￿" } }).entries.toList()
         val marks = full?.bookmarks.orEmpty()
         val ups = full?.updates.orEmpty()
-        val cols = LocalConfiguration.current.screenWidthDp.let { if (it >= 840) 4 else if (it >= 600) 3 else 2 }
+        val cols = gridColumns()
         // small facts of a machine fold into its Overview; every other section is a tab of its own
         val smallTitles = setOf("host", "resources")
         val secs = sections.filterNot { it.title.equals("numbers", true) && c.metrics.isNotEmpty() }
@@ -259,33 +260,44 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
                 }
             })
             if (guests.isNotEmpty()) add(CTab("VM/LXC") {
-                gridRows(guests, cols) { g -> MiniCard(g, server, Modifier.weight(1f)) { onCard(g.id) } }
+                item(key = "guests") { PagedGrid(guests, cols, rows = 2) { g -> MiniCard(g, server, Modifier.weight(1f)) { onCard(g.id) } } }
             })
             if (stacks.isNotEmpty()) add(CTab("Containers") {
-                stacks.forEach { (project, members) ->
-                    if (stacks.size > 1 || project.isNotEmpty()) item(key = "head-$project") {
-                        val restarts = members.filter { it.up }.map { m -> m.actions.firstOrNull { it.name.endsWith("-restart") } }
-                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                            Text((project.ifEmpty { "not in a stack" }).uppercase(), style = Heading, modifier = Modifier.weight(1f))
-                            Text("${members.count { it.up }}/${members.size}", fontSize = 12.sp, color = Lab.muted)
-                            if (rights.admin && project.isNotEmpty() && restarts.isNotEmpty() && restarts.all { it != null }) {
-                                TextButton(onClick = { gate.press { askStack = project to restarts.filterNotNull() } }) {
-                                    Text("Restart stack", fontSize = 12.sp, color = Lab.accent)
-                                }
+                // one stack at a time (chips when there are several), its containers a few to a page
+                val picked = stacks.firstOrNull { it.key == stackPick } ?: stacks.first()
+                val (project, members) = picked
+                if (stacks.size > 1) item(key = "stacks") {
+                    FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        stacks.forEach { (name, list) ->
+                            androidx.compose.material3.FilterChip(selected = name == project, onClick = { stackPick = name },
+                                label = { Text((name.ifEmpty { "other" }) + " ${list.count { it.up }}/${list.size}") },
+                                colors = androidx.compose.material3.FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = Lab.accent.copy(alpha = 0.2f), selectedLabelColor = Lab.title))
+                        }
+                    }
+                }
+                if (project.isNotEmpty()) item(key = "head") {
+                    val restarts = members.filter { it.up }.map { m -> m.actions.firstOrNull { it.name.endsWith("-restart") } }
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text(project.uppercase(), style = Heading, modifier = Modifier.weight(1f))
+                        Text("${members.count { it.up }}/${members.size} running", fontSize = 12.sp, color = Lab.muted)
+                        if (rights.admin && restarts.isNotEmpty() && restarts.all { it != null }) {
+                            TextButton(onClick = { gate.press { askStack = project to restarts.filterNotNull() } }) {
+                                Text("Restart stack", fontSize = 12.sp, color = Lab.accent)
                             }
                         }
                     }
-                    gridRows(members, cols, keyPrefix = "box-$project") { b -> ContainerCell(b, server, Modifier.weight(1f)) { openBox = b } }
                 }
+                item(key = "boxes-$project") { PagedGrid(members, cols, rows = 3) { b -> ContainerCell(b, server, Modifier.weight(1f)) { openBox = b } } }
             })
             secs.filterNot { it.title.lowercase() in smallTitles }.forEach { s ->
                 val name = s.title.replaceFirstChar { it.uppercase() }.let { if (it == "History") "Events" else it }
                 add(CTab(name) {
-                    if (s.title.lowercase() in setOf("storage", "backup", "datastores")) gridRows(s.rows, cols) { r -> RowCell(r, Modifier.weight(1f)) }
-                    else item { Panel("") { s.rows.forEach { ListRow(it, server) } } }
+                    if (s.title.lowercase() in setOf("storage", "backup", "datastores")) item(key = "sec-${s.title}") { PagedGrid(s.rows, cols, rows = 3) { r -> RowCell(r, Modifier.weight(1f)) } }
+                    else item(key = "sec-${s.title}") { Panel("") { PagedList(s.rows, per = 6) { ListRow(it, server) } } }
                 })
             }
-            if (sections.isEmpty() && c.rows.isNotEmpty()) add(CTab("Details") { item { Panel("") { c.rows.forEach { ListRow(it, server) } } } })
+            if (sections.isEmpty() && c.rows.isNotEmpty()) add(CTab("Details") { item { Panel("") { PagedList(c.rows, per = 6) { ListRow(it, server) } } } })
             if (full?.updates != null) add(CTab("Updates") {
                 item {
                     Panel("") {
@@ -294,7 +306,7 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
                             OutlinedButton(onClick = { gate.press { askAll = ready } }) { Text("Update all ${ready.size}") }
                         }
                         if (ups.isEmpty()) Text("All containers up to date", fontSize = 13.sp, color = Lab.muted)
-                        ups.forEach { u ->
+                        PagedList(ups, per = 4) { u ->
                             Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                                 Column(Modifier.weight(1f)) {
                                     Text(u.name, fontSize = 14.sp, fontWeight = FontWeight.Medium)
@@ -496,18 +508,6 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
 
 /** One tab of a card's screen: its name and the items of its list. */
 private class CTab(val name: String, val narrow: Boolean = false, val body: LazyListScope.() -> Unit)
-
-/** [items] as rows of [cols] cells that share the width; the last row is padded so its cells stay as wide. */
-private fun <T> LazyListScope.gridRows(items: List<T>, cols: Int, keyPrefix: String? = null, cell: @Composable androidx.compose.foundation.layout.RowScope.(T) -> Unit) {
-    items.chunked(cols).forEachIndexed { n, row ->
-        item(key = keyPrefix?.let { "$it-$n" }) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                row.forEach { cell(it) }
-                repeat(cols - row.size) { Spacer(Modifier.weight(1f)) }
-            }
-        }
-    }
-}
 
 /** A container as a small card: dot, icon, its whole name, then what it is doing and what it uses. A tap opens its buttons. */
 @Composable
