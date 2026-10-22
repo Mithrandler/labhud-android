@@ -60,6 +60,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.github.mithrandler.labhud.data.AppSettings
 import io.github.mithrandler.labhud.data.Card
 import io.github.mithrandler.labhud.data.Conn
 import io.github.mithrandler.labhud.data.GameServer
@@ -109,6 +110,9 @@ fun StatusScreen(
     var pageId by rememberSaveable { mutableStateOf<String?>(null) }
     var goPage by remember { mutableStateOf<String?>(null) }
     val rights by repo.rights.collectAsStateWithLifecycle()
+    val prefs by repo.store.settings.collectAsStateWithLifecycle(initialValue = AppSettings())
+    val favs by (server?.id?.let { repo.store.favoriteCards(it) } ?: kotlinx.coroutines.flow.flowOf(emptySet())).collectAsStateWithLifecycle(initialValue = emptySet())
+    val view = effectiveView(prefs.phoneView, state?.view)
     var uptime by remember { mutableStateOf<Uptime?>(null) }
     var sparks by remember { mutableStateOf<Map<String, List<Double?>>>(emptyMap()) }
 
@@ -208,7 +212,8 @@ fun StatusScreen(
                 HorizontalPager(pager, Modifier.fillMaxSize().alpha(if (conn is Conn.Offline) 0.5f else 1f), key = { pages.getOrNull(it)?.id ?: it }) { index ->
                     val page = pages.getOrNull(index)
                     // the page's own columns and density, when the server sets them (⚙ > Dashboard)
-                    val gap = if (page?.compact == true) 6.dp else 10.dp
+                    val compact = page?.compact == true || view == ViewMode.Glance
+                    val gap = if (compact) 6.dp else 10.dp
                     LazyVerticalGrid(
                         CappedAdaptive(158.dp, page?.columns ?: 0),
                         Modifier.fillMaxSize(),
@@ -217,7 +222,10 @@ fun StatusScreen(
                         verticalArrangement = Arrangement.spacedBy(gap),
                     ) {
                         if (page == null) return@LazyVerticalGrid
-                        if (page.games) games(page, server, onGame) else groups(page, byId, server, sparks, uptime, onCard)
+                        if (page.games) games(page, server, onGame) else {
+                            if (index == 0) favorites(favs, byId, server, sparks, uptime, compact, onCard)
+                            groups(page, byId, server, sparks, uptime, compact, onCard)
+                        }
                     }
                 }
             }
@@ -230,7 +238,7 @@ fun StatusScreen(
 }
 
 private fun LazyGridScope.groups(page: Page, byId: Map<String, Card>, server: Server?, sparks: Map<String, List<Double?>>,
-                                 uptime: Uptime?, onCard: (String) -> Unit) {
+                                 uptime: Uptime?, compact: Boolean, onCard: (String) -> Unit) {
     page.groups.forEach { g ->
         val cards = g.cards.mapNotNull { byId[it] }
         if (cards.isEmpty()) return@forEach
@@ -240,8 +248,22 @@ private fun LazyGridScope.groups(page: Page, byId: Map<String, Card>, server: Se
         cards.forEach { c ->
             item(key = "c-${g.id}-${c.id}", span = { GridItemSpan(c.span(maxLineSpan)) }) {
                 HudCard(c, server, sparks = sparks, uptime = uptime?.cards?.get(c.id), percent = uptime?.percent?.get(c.id),
-                    coverage = uptime?.coverage?.get(c.id), compact = page.compact) { onCard(c.id) }
+                    coverage = uptime?.coverage?.get(c.id), compact = compact) { onCard(c.id) }
             }
+        }
+    }
+}
+
+/** The cards starred on this phone, above the first page's groups. */
+private fun LazyGridScope.favorites(favs: Set<String>, byId: Map<String, Card>, server: Server?, sparks: Map<String, List<Double?>>,
+                                    uptime: Uptime?, compact: Boolean, onCard: (String) -> Unit) {
+    val cards = favs.mapNotNull { byId[it] }.sortedBy { it.name.lowercase() }
+    if (cards.isEmpty()) return
+    item(key = "g-fav", span = { GridItemSpan(maxLineSpan) }) { SectionTitle("Favorites", bad = cards.any { it.bad == true }) }
+    cards.forEach { c ->
+        item(key = "c-fav-${c.id}", span = { GridItemSpan(c.span(maxLineSpan)) }) {
+            HudCard(c, server, sparks = sparks, uptime = uptime?.cards?.get(c.id), percent = uptime?.percent?.get(c.id),
+                coverage = uptime?.coverage?.get(c.id), compact = compact) { onCard(c.id) }
         }
     }
 }

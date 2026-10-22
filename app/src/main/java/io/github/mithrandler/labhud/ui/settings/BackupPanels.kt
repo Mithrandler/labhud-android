@@ -66,7 +66,7 @@ fun BackupPanel(
     var deleting by remember { mutableStateOf<BackupFile?>(null) }
     var restoring by remember { mutableStateOf<BackupFile?>(null) }
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Panel("Backup") {
+        Panel("Backup", b.problem ?: (b.last?.let { "Last: ${it.name}" } ?: "No backup yet")) {
             Text("config.toml and LabHUD's data in one file; the secrets (secrets.env, the HTTPS key) only encrypted, with a password.",
                 fontSize = 12.sp, color = Lab.muted, modifier = Modifier.padding(bottom = 6.dp))
             b.problem?.let { Text(it, fontSize = 13.sp, color = Lab.warn) }
@@ -84,7 +84,7 @@ fun BackupPanel(
             }
         }
         if (b.problem == null) {
-            Panel("Daily") {
+            Panel("Daily", if (b.settings.daily) "Every day at ${"%02d".format(b.settings.at)}:00, keep ${b.settings.keep}" else "Off") {
                 val st = b.settings
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f).padding(end = 12.dp)) {
@@ -99,7 +99,7 @@ fun BackupPanel(
                 Text("At", fontSize = 12.sp, color = Lab.muted, modifier = Modifier.padding(top = 4.dp))
                 Chips(listOf(1, 3, 5, 12, 23), st.at, { "%02d:00".format(it) }) { onSettings(st.daily, st.keep, it) }
             }
-            Panel("Kept") {
+            Panel("Kept", "${b.backups.size} file(s)") {
                 if (b.backups.isEmpty()) Text("No backup yet.", color = Lab.muted, fontSize = 14.sp)
                 b.backups.sortedByDescending { it.t }.forEachIndexed { i, f ->
                     if (i > 0) HorizontalDivider(color = Lab.line)
@@ -149,7 +149,7 @@ private fun <T> Chips(options: List<T>, now: T, label: (T) -> String, pick: (T) 
 @Composable
 fun DangerPanel(onRemovePhones: () -> Unit, onNewKeys: () -> Unit) {
     var asking by remember { mutableStateOf<String?>(null) }
-    Panel("Danger zone") {
+    Panel("Danger zone", "Each needs its word typed first") {
         Text("Each needs its word typed first. None of them can be undone.", fontSize = 12.sp, color = Lab.muted, modifier = Modifier.padding(bottom = 6.dp))
         DangerRow("Remove every phone", "Every paired LabHUD app stops working until it is paired again, this one too.") { asking = "REMOVE" }
         HorizontalDivider(color = Lab.line)

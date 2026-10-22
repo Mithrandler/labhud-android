@@ -43,6 +43,10 @@ import io.github.mithrandler.labhud.ui.CardShape
 import io.github.mithrandler.labhud.ui.Lab
 import io.github.mithrandler.labhud.ui.LabIcons
 import io.github.mithrandler.labhud.ui.Panel
+import io.github.mithrandler.labhud.ui.ViewChoice
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.FilterChip
 import kotlinx.coroutines.launch
 
 /** The saved servers list: select, rename, remove, add. */
@@ -134,6 +138,18 @@ fun ThemeSection(repo: LabRepository, nav: SettingsNav) {
                     }
                     Text("Wall mode is always the HUD. Status colours stay green, orange and red.", fontSize = 12.sp, color = Lab.muted,
                         modifier = Modifier.padding(start = 14.dp, end = 14.dp, top = 4.dp, bottom = 6.dp))
+                }
+            }
+        }
+        item {
+            Panel("Opens as", summary = "${settings.phoneView.name}" + if (settings.phoneView == ViewChoice.Auto) " · the board decides for your role" else "") {
+                Text("Auto follows the board's view for this phone's role (labhud 0.1.12): Glance is compact tiles without buttons, " +
+                    "Actions the cards with their buttons, Full everything. The wall page has its own switch in Wall mode.", fontSize = 12.sp, color = Lab.muted)
+                Row(Modifier.fillMaxWidth().padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    ViewChoice.entries.forEach { v ->
+                        FilterChip(selected = v == settings.phoneView, onClick = { scope.launch { repo.store.setPhoneView(v) } }, label = { Text(v.name) },
+                            colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Lab.accent.copy(alpha = 0.2f), selectedLabelColor = Lab.title))
+                    }
                 }
             }
         }

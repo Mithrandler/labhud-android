@@ -45,7 +45,7 @@ class WallActivity : ComponentActivity() {
                 })
                 return@launch
             }
-            val glance = repo.store.settings.first().wallGlance
+            val glance = io.github.mithrandler.labhud.ui.wallGlance(repo.store.settings.first().wallGlance, repo.state.value?.view)
             web = wallWebView(this@WallActivity, server, token, repo.unlockTicket(), glance).also { root.addView(it) }
         }
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {

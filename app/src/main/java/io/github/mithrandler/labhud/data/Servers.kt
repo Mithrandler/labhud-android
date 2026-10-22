@@ -44,6 +44,8 @@ data class AppSettings(
     val wallGlance: Boolean = true,
     val notify: NotifyMode = NotifyMode.Off,
     val theme: ThemeMode = ThemeMode.Hud,
+    /** What this phone opens as (the wall page has its own, [wallGlance]). */
+    val phoneView: io.github.mithrandler.labhud.ui.ViewChoice = io.github.mithrandler.labhud.ui.ViewChoice.Auto,
 )
 
 /**
@@ -64,6 +66,9 @@ class ServerStore(private val context: Context) {
     private val wallBootKey = booleanPreferencesKey("wall_on_boot")
     private val wallGlanceKey = booleanPreferencesKey("wall_glance")
     private val themeKey = stringPreferencesKey("theme_mode")
+    private val phoneViewKey = stringPreferencesKey("phone_view")
+    private val favSectionsKey = androidx.datastore.preferences.core.stringSetPreferencesKey("fav_sections")
+    private fun favCardsKey(id: String) = androidx.datastore.preferences.core.stringSetPreferencesKey("fav_cards_$id")
     private fun tokenKey(id: String) = stringPreferencesKey("token_$id")
     private fun pinKey(id: String) = stringPreferencesKey("pin_$id")
     private fun lastNoteKey(id: String) = androidx.datastore.preferences.core.longPreferencesKey("last_note_$id")
@@ -86,7 +91,9 @@ class ServerStore(private val context: Context) {
             ?: if (p[unlockKey] == true) LockMode.ScreenLock else LockMode.None
         AppSettings(lockMode = mode, wallOnBoot = p[wallBootKey] ?: false, wallGlance = p[wallGlanceKey] ?: true,
             notify = p[notifyKey]?.let { runCatching { NotifyMode.valueOf(it) }.getOrNull() } ?: NotifyMode.Off,
-            theme = p[themeKey]?.let { runCatching { ThemeMode.valueOf(it) }.getOrNull() } ?: ThemeMode.Hud)
+            theme = p[themeKey]?.let { runCatching { ThemeMode.valueOf(it) }.getOrNull() } ?: ThemeMode.Hud,
+            phoneView = p[phoneViewKey]?.let { runCatching { io.github.mithrandler.labhud.ui.ViewChoice.valueOf(it) }.getOrNull() }
+                ?: io.github.mithrandler.labhud.ui.ViewChoice.Auto)
     }
 
     suspend fun currentNow(): Server? = current.first()
@@ -107,6 +114,7 @@ class ServerStore(private val context: Context) {
             p.remove(pinKey(id))
             p.remove(lastNoteKey(id))
             p.remove(clearedNotesKey(id))
+            p.remove(favCardsKey(id))
             if (p[currentKey] == id) p.remove(currentKey)
         }
     }
@@ -144,6 +152,21 @@ class ServerStore(private val context: Context) {
     suspend fun setTheme(mode: ThemeMode) = context.store.edit { it[themeKey] = mode.name }
     suspend fun setWallOnBoot(on: Boolean) = context.store.edit { it[wallBootKey] = on }
     suspend fun setWallGlance(on: Boolean) = context.store.edit { it[wallGlanceKey] = on }
+    suspend fun setPhoneView(v: io.github.mithrandler.labhud.ui.ViewChoice) = context.store.edit { it[phoneViewKey] = v.name }
+
+    /** The settings sections starred on this phone (any server). */
+    val favoriteSections: Flow<Set<String>> = context.store.data.map { it[favSectionsKey] ?: emptySet() }
+    suspend fun toggleFavoriteSection(id: String) = context.store.edit {
+        val now = it[favSectionsKey] ?: emptySet()
+        it[favSectionsKey] = if (id in now) now - id else now + id
+    }
+
+    /** The cards starred on this phone for one server, shown first. */
+    fun favoriteCards(serverId: String): Flow<Set<String>> = context.store.data.map { it[favCardsKey(serverId)] ?: emptySet() }
+    suspend fun toggleFavoriteCard(serverId: String, card: String) = context.store.edit {
+        val now = it[favCardsKey(serverId)] ?: emptySet()
+        it[favCardsKey(serverId)] = if (card in now) now - card else now + card
+    }
 }
 
 /**

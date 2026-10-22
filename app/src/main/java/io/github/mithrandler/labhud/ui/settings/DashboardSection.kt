@@ -77,7 +77,7 @@ fun DashboardSection(repo: LabRepository, nav: SettingsNav) {
         if (message.isNotEmpty()) item { Text(message, color = Lab.warn, fontSize = 13.sp) }
         list?.let { l ->
             item {
-                Panel("Discovered · to approve") {
+                Panel("Discovered · to approve", if (l.items.isEmpty()) "Nothing new" else "${l.items.size} to approve") {
                     Text("Found, with no card yet. A card added here lands on the page \"discovered\"; move it from the wall's ⚙ > Dashboard.",
                         fontSize = 13.sp, color = Lab.sub)
                     if (l.items.isEmpty()) Text("Nothing new.", color = Lab.muted, fontSize = 14.sp, modifier = Modifier.padding(top = 8.dp))

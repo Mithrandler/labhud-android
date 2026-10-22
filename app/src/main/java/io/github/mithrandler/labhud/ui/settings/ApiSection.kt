@@ -95,7 +95,7 @@ fun ApiSection(repo: LabRepository, nav: SettingsNav) {
         if (message.isNotEmpty()) item { Text(message, color = Lab.warn, fontSize = 13.sp) }
         tokens?.let { list ->
             item {
-                Panel("API tokens") {
+                Panel("API tokens", if (!enabled) "Need a data folder" else if (list.isEmpty()) "None yet" else "${list.size} token(s)") {
                     Text("For scripts: Authorization: Bearer lh_…. read sees the state, act also presses the cards' buttons, admin also changes settings.",
                         fontSize = 12.sp, color = Lab.muted, modifier = Modifier.padding(bottom = 6.dp))
                     if (!enabled) Text("Tokens need LABHUD_DATA (a folder LabHUD can write).", color = Lab.muted, fontSize = 14.sp)
@@ -105,7 +105,7 @@ fun ApiSection(repo: LabRepository, nav: SettingsNav) {
                 }
             }
             item {
-                Panel("Audit log") {
+                Panel("Audit log", "Who did what, kept 90 days") {
                     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         listOf(false to "All", true to "Refused").forEach { (refused, label) ->
                             FilterChip(selected = onlyRefused == refused, onClick = { onlyRefused = refused; loadAudit() }, label = { Text(label) },

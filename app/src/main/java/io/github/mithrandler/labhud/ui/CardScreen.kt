@@ -25,7 +25,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.foundation.clickable
 import androidx.compose.material3.Icon
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -86,6 +88,9 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
     var notesText by remember { mutableStateOf<String?>(null) }
     var range by remember { mutableStateOf(0) }
     val server by repo.server.collectAsStateWithLifecycle()
+    val prefs by repo.store.settings.collectAsStateWithLifecycle(initialValue = io.github.mithrandler.labhud.data.AppSettings())
+    val showButtons = effectiveView(prefs.phoneView, state?.view).buttons()
+    val favs by (server?.id?.let { repo.store.favoriteCards(it) } ?: kotlinx.coroutines.flow.flowOf(emptySet())).collectAsStateWithLifecycle(initialValue = emptySet())
     val info by repo.info.collectAsStateWithLifecycle()
     var week by remember { mutableStateOf(false) }
     var uptimeDay by remember { mutableStateOf<io.github.mithrandler.labhud.data.Uptime?>(null) }
@@ -138,6 +143,12 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Lab.bg),
                 navigationIcon = { IconButton(onClick = onBack) { Icon(LabIcons.back, "Back") } },
                 title = { Text(live?.name ?: "", fontWeight = FontWeight.SemiBold) },
+                actions = {
+                    val sid = server?.id
+                    if (sid != null && live != null) IconButton(onClick = { scope.launch { repo.store.toggleFavoriteCard(sid, id) } }) {
+                        Text(if (id in favs) "★" else "☆", fontSize = 22.sp, color = if (id in favs) Lab.title else Lab.muted)
+                    }
+                },
             )
         },
     ) { pad ->
@@ -172,14 +183,14 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
                         modifier = Modifier.fillMaxWidth().padding(12.dp))
                 }
             }
-            val buttons = rights.admin && (c.actions.isNotEmpty() || c.maintenanceButton)
+            val buttons = showButtons && rights.admin && (c.actions.isNotEmpty() || c.maintenanceButton)
             if (c.resources().isNotEmpty()) item {
                 OutlinedButton(onClick = { onHistory(c.id) }) { Text("Resources over time") }
             }
             if (buttons || c.url.isNotEmpty() || c.links.isNotEmpty()) item {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (rights.admin) c.actions.forEach { a -> ActionButton(a) { gate.press { ask = a } } }
-                    if (rights.admin && c.maintenanceButton) {
+                    if (showButtons && rights.admin) c.actions.forEach { a -> ActionButton(a) { gate.press { ask = a } } }
+                    if (showButtons && rights.admin && c.maintenanceButton) {
                         OutlinedButton(onClick = { gate.press { askMaint = true } }) { Text(if (c.maintenanceUntil != null) "Maintenance ✓" else "Maintenance") }
                     }
                     (listOfNotNull(c.url.takeIf { it.isNotEmpty() }?.let { "Web UI" to it }) + c.links.map { it.label to it.url }).forEach { (label, url) ->
@@ -484,12 +495,29 @@ private fun StatusHeader(c: Card, server: io.github.mithrandler.labhud.data.Serv
     }
 }
 
+/**
+ * A card with a title and its content. With a [summary] it is folded to one line (title and summary)
+ * and opens on a tap, so a section with many panels stays short; without one it is always open.
+ */
 @Composable
-fun Panel(title: String, content: @Composable () -> Unit) {
+fun Panel(title: String, summary: String? = null, content: @Composable () -> Unit) {
+    var open by rememberSaveable(title) { mutableStateOf(summary == null) }
     Surface(shape = CardShape, color = Lab.card, border = BorderStroke(1.dp, Lab.line)) {
-        Column(Modifier.fillMaxWidth().padding(14.dp)) {
-            if (title.isNotEmpty()) Text(title.uppercase(), style = Heading, modifier = Modifier.padding(bottom = 6.dp))
-            content()
+        Column(Modifier.fillMaxWidth()) {
+            if (summary != null) Row(
+                Modifier.fillMaxWidth().clickable { open = !open }.padding(horizontal = 14.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(title, fontWeight = FontWeight.Medium, fontSize = 15.sp, color = Lab.text)
+                    if (summary.isNotEmpty()) Text(summary, fontSize = 12.sp, color = Lab.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+                Icon(if (open) LabIcons.chevronDown else LabIcons.chevronRight, null, tint = Lab.muted, modifier = Modifier.size(20.dp))
+            }
+            if (open) Column(Modifier.fillMaxWidth().padding(start = 14.dp, end = 14.dp, bottom = 14.dp, top = if (summary == null) 14.dp else 0.dp)) {
+                if (summary == null && title.isNotEmpty()) Text(title.uppercase(), style = Heading, modifier = Modifier.padding(bottom = 6.dp))
+                content()
+            }
         }
     }
 }

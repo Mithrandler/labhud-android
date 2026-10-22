@@ -38,7 +38,7 @@ import io.github.mithrandler.labhud.ui.Panel
 fun RegistriesPanel(r: Registries, onSave: (String, String, String) -> Unit, onRemove: (Registry) -> Unit) {
     var editing by remember { mutableStateOf<Registry?>(null) }
     var removing by remember { mutableStateOf<Registry?>(null) }
-    Panel("Registries") {
+    Panel("Registries", if (r.registries.isEmpty()) "None: public images only" else r.registries.joinToString(", ") { it.host }) {
         Text("Sign-ins for private images: the agents pull and check updates with them. The token is kept in secrets.env.",
             fontSize = 12.sp, color = Lab.muted, modifier = Modifier.padding(bottom = 6.dp))
         if (!r.managed) Text("Needs the config file taken over (on the wall: ⚙ > System > Take over).", fontSize = 13.sp, color = Lab.warn)
@@ -106,7 +106,7 @@ private fun RegistryDialog(reg: Registry, onDismiss: () -> Unit, onSave: (String
  */
 @Composable
 fun ScansPanel(r: Registries, onHold: (Boolean) -> Unit) {
-    Panel("Vulnerabilities (CVE)") {
+    Panel("Vulnerabilities (CVE)", if (r.scanners.isEmpty()) "No agent can scan" else "Can scan: " + r.scanners.joinToString(", ") { it.agent }) {
         Text(scannersLine(r), fontSize = 12.sp, color = Lab.muted, modifier = Modifier.padding(bottom = 6.dp))
         Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f).padding(end = 12.dp)) {

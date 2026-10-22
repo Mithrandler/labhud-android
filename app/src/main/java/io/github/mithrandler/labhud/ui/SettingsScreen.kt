@@ -57,6 +57,8 @@ fun SettingsScreen(repo: LabRepository, onOpen: (String) -> Unit, signInFirst: B
     var signingIn by remember { mutableStateOf(signInFirst) }
     var query by rememberSaveable { mutableStateOf("") }
     val shown = visibleSections(rights.admin, query)
+    val favs by repo.store.favoriteSections.collectAsStateWithLifecycle(initialValue = emptySet())
+    val star: (String) -> Unit = { id -> scope.launch { repo.store.toggleFavoriteSection(id) } }
 
     val barScroll = rememberLabBarScroll()
     Scaffold(
@@ -87,11 +89,16 @@ fun SettingsScreen(repo: LabRepository, onOpen: (String) -> Unit, signInFirst: B
             if (!rights.admin && query.isBlank()) item {
                 AccountPanel(admin = false, pin = rights.pin, onSignIn = { signingIn = true }, onSignOut = { scope.launch { repo.signOut() } })
             }
+            val starred = shown.filter { it.id in favs }
+            if (query.isBlank() && starred.isNotEmpty()) {
+                item(key = "g-fav") { Text("FAVORITES", style = Heading, modifier = Modifier.padding(top = 10.dp)) }
+                item(key = "s-fav") { SectionGroup(starred, favs, onOpen, star) }
+            }
             GROUPS.forEach { (group, title) ->
                 val rows = shown.filter { it.group == group }
                 if (rows.isEmpty()) return@forEach
                 item(key = "g-$group") { Text(title, style = Heading, modifier = Modifier.padding(top = 10.dp)) }
-                item(key = "s-$group") { SectionGroup(rows, onOpen) }
+                item(key = "s-$group") { SectionGroup(rows, favs, onOpen, star) }
             }
             if (shown.isEmpty()) item { Text("Nothing called \"$query\".", color = Lab.muted, fontSize = 14.sp) }
             item {
@@ -106,7 +113,7 @@ fun SettingsScreen(repo: LabRepository, onOpen: (String) -> Unit, signInFirst: B
 
 /** One group's sections in one card, divided by thin lines, like a phone's own settings. */
 @Composable
-private fun SectionGroup(rows: List<Section>, onOpen: (String) -> Unit) {
+private fun SectionGroup(rows: List<Section>, favs: Set<String>, onOpen: (String) -> Unit, onStar: (String) -> Unit) {
     Surface(shape = CardShape, color = Lab.card, border = BorderStroke(1.dp, Lab.line)) {
         Column {
             rows.forEachIndexed { i, s ->
@@ -121,7 +128,9 @@ private fun SectionGroup(rows: List<Section>, onOpen: (String) -> Unit) {
                         Text(s.title, fontWeight = FontWeight.Medium, fontSize = 15.sp, color = Lab.text)
                         Text(s.hint, fontSize = 12.sp, color = Lab.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
-                    Icon(LabIcons.chevronRight, null, tint = Lab.muted, modifier = Modifier.padding(start = 6.dp).size(20.dp))
+                    Text(if (s.id in favs) "★" else "☆", fontSize = 20.sp, color = if (s.id in favs) Lab.title else Lab.muted,
+                        modifier = Modifier.clickable { onStar(s.id) }.padding(horizontal = 8.dp, vertical = 4.dp))
+                    Icon(LabIcons.chevronRight, null, tint = Lab.muted, modifier = Modifier.size(20.dp))
                 }
             }
         }

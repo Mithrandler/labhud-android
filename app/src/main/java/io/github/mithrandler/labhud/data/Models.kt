@@ -385,6 +385,8 @@ data class LabState(
     val search: String = "",
     /** viewer / operator / admin: what this token or phone is (labhud 0.1.1); `pages` already holds only its pages. */
     val role: String = "",
+    /** `[roles.<role>] view`: glance, actions or full; "" when the board sets none (labhud 0.1.12). */
+    val view: String = "",
     /** Only in GET /api/v1/state, not in the stream: see [Info]. */
     @SerialName("device_admin") val deviceAdmin: Boolean? = null,
     val pin: Boolean? = null,

@@ -85,7 +85,7 @@ fun ChannelsPanel(
 ) {
     var editing by remember { mutableStateOf<String?>(null) }
     var forgetting by remember { mutableStateOf<String?>(null) }
-    Panel("Channels") {
+    Panel("Channels", ch.order.filter { it == "app" || ch.channels[it]?.set == true }.joinToString(" · ").ifEmpty { "None set" }) {
         Text("Each with its own test. Passwords, addresses and tokens go to secrets.env and are not shown again.",
             fontSize = 12.sp, color = Lab.muted, modifier = Modifier.padding(bottom = 6.dp))
         if (!ch.managed) Text("Email and Gotify need the config file taken over (on the wall: ⚙ > System > Take over).", fontSize = 13.sp, color = Lab.warn)
@@ -170,7 +170,7 @@ fun secretSaved(name: String, key: String, c: Channel): Boolean = when ("$name.$
 @Composable
 fun MatrixPanel(ch: Channels, onChange: (Map<String, List<String>>) -> Unit) {
     val shown = ch.order.filter { it == "app" || it == "ntfy" || ch.channels[it]?.set == true }
-    Panel("Which news goes where") {
+    Panel("Which news goes where", if (ch.explicit) "As ticked here" else "Not chosen yet") {
         Text(if (ch.explicit) "As ticked here." else "Not chosen yet: the bad news goes everywhere that is set; updates and sign-ins nowhere until ticked.",
             fontSize = 12.sp, color = Lab.muted, modifier = Modifier.padding(bottom = 6.dp))
         ch.events.forEachIndexed { i, ev ->
