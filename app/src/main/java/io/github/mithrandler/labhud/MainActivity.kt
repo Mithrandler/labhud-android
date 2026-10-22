@@ -63,6 +63,7 @@ import io.github.mithrandler.labhud.ui.settings.BrandMark
 import io.github.mithrandler.labhud.ui.settings.SettingsNav
 import io.github.mithrandler.labhud.ui.settings.section
 import io.github.mithrandler.labhud.ui.StatusScreen
+import io.github.mithrandler.labhud.ui.ZoneScreen
 import io.github.mithrandler.labhud.ui.HostHistoryScreen
 import io.github.mithrandler.labhud.ui.Lab
 import io.github.mithrandler.labhud.ui.LabTheme
@@ -202,6 +203,7 @@ class MainActivity : FragmentActivity() {
                         onCard = { id -> nav.navigate("card/$id") })
                 }
                 composable("devices") { DevicesScreen(repo, bar) }
+                composable("zone") { ZoneScreen(repo, bar, onSignIn = { nav.navigate("signin") }) }
                 composable("activity") { ActivityScreen(repo, bar) }
                 composable(SETTINGS) { Settings(nav, bar, signIn = false) }
                 // Settings opened over a card or a game by "Sign in" from a button: Back returns there
@@ -256,6 +258,7 @@ private const val SETTINGS = "settings"
 private val TABS = listOf(
     Tab("home", "Status", LabIcons.status),
     Tab("devices", "Devices", LabIcons.devices),
+    Tab("zone", "Servers", LabIcons.servers),
     Tab("activity", "Activity", LabIcons.activity),
     Tab(SETTINGS, "Settings", LabIcons.settings),
 )

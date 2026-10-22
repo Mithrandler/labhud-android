@@ -86,6 +86,15 @@ class LabApi(val baseUrl: String, private val token: String?, fingerprint: Strin
         }
     }
 
+    /** For the zone Servers (ZoneApi.kt): its refusals say why in JSON, also a 401 (the session ended) and a 429 (blocked for a while). */
+    internal suspend fun zoneAnswer(path: String, json: String, seconds: Long = 0): String = withContext(Dispatchers.IO) {
+        val c = if (seconds > 0) client.newBuilder().readTimeout(seconds, TimeUnit.SECONDS).callTimeout(seconds + 5, TimeUnit.SECONDS).build() else client
+        c.newCall(request(path).post(json.toRequestBody(JSON)).build()).execute().use { r ->
+            val text = r.body.string()
+            if (r.code in listOf(200, 400, 401, 403, 404, 409, 429, 502) && text.startsWith("{")) text else body(r)
+        }
+    }
+
     private suspend fun get(path: String) = call(request(path).get().build())
     private suspend fun post(path: String, json: String) = call(request(path).post(json.toRequestBody(JSON)).build())
 

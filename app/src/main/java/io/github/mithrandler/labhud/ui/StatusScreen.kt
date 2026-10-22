@@ -60,6 +60,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.sp
 import io.github.mithrandler.labhud.data.AppSettings
 import io.github.mithrandler.labhud.data.Card
@@ -184,7 +186,10 @@ fun StatusScreen(
             PullToRefreshBox(isRefreshing = conn == Conn.Connecting, onRefresh = { repo.retry() }, modifier = Modifier.fillMaxSize()) {
                 // swipe left and right between the wall's pages, as on the wall itself
                 // offline: the last numbers stay, dimmed, so they are not taken for live ones
-                HorizontalPager(pager, Modifier.fillMaxSize().alpha(if (conn is Conn.Offline) 0.5f else 1f), key = { pages.getOrNull(it)?.id ?: it }) { index ->
+                // a swipe is not the pager's own: the top half moves between the pages (General, Network...), the bottom half between
+                // the screens of a page (the dots), so each hand has one place to go (see the gesture on the Column below)
+                HorizontalPager(pager, Modifier.fillMaxSize().alpha(if (conn is Conn.Offline) 0.5f else 1f), userScrollEnabled = false,
+                    key = { pages.getOrNull(it)?.id ?: it }) { index ->
                     val page = pages.getOrNull(index)
                     // the page's own columns and density, when the server sets them (⚙ > Dashboard)
                     val compact = page?.compact == true || view == ViewMode.Glance
@@ -203,7 +208,23 @@ fun StatusScreen(
                         }
                         var asked by rememberSaveable(page?.id) { mutableIntStateOf(0) }
                         val cur = asked.coerceIn(0, screens.size - 1)
-                        Column(Modifier.fillMaxSize()) {
+                        Column(Modifier.fillMaxSize().pointerInput(index, screens.size, cur, pages.size) {
+                            var top = true
+                            var total = 0f
+                            detectHorizontalDragGestures(
+                                onDragStart = { total = 0f; top = it.y < size.height / 2 },
+                                onDragCancel = { total = 0f },
+                                onDragEnd = {
+                                    val step = swipeStep(total, size.width.toFloat())
+                                    if (step != 0) {
+                                        // a page with one screen has nothing below to swipe to: the swipe moves between pages there too
+                                        if (top || screens.size == 1) scope.launch { pager.animateScrollToPage((pager.currentPage + step).coerceIn(0, pages.size - 1)) }
+                                        else asked = (cur + step).coerceIn(0, screens.size - 1)
+                                    }
+                                },
+                                onHorizontalDrag = { _, dx -> total += dx },
+                            )
+                        }) {
                             LazyVerticalGrid(
                                 androidx.compose.foundation.lazy.grid.GridCells.Fixed(cols),
                                 Modifier.weight(1f).fillMaxWidth(),
@@ -232,6 +253,13 @@ fun StatusScreen(
             }
         }
     }
+}
+
+/** What a horizontal drag of [total] px on a screen [width] px wide asks for: 1 (next), -1 (previous) or 0 (too short to mean it). */
+internal fun swipeStep(total: Float, width: Float): Int = when {
+    total < -width * 0.15f -> 1
+    total > width * 0.15f -> -1
+    else -> 0
 }
 
 /** One thing on a Status screen: a card (or a game server) with a key for its grid cell. */
