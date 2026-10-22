@@ -21,8 +21,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
+import androidx.compose.foundation.layout.fillMaxHeight
+import io.github.mithrandler.labhud.ui.CompactTabs
 import androidx.compose.material3.Scaffold
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.foundation.layout.WindowInsets
@@ -171,26 +171,21 @@ class MainActivity : FragmentActivity() {
             onLock = if (AppLock.on) ({ AppLock.lockNow() }) else null,
         )
         val route = nav.currentBackStackEntryAsState().value?.destination?.route
+        val landscape = androidx.compose.ui.platform.LocalConfiguration.current.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
+        val tabsShown = TABS.any { it.route == route }
+        androidx.compose.runtime.CompositionLocalProvider(io.github.mithrandler.labhud.ui.LocalTileH provides (if (landscape) 84.dp else 112.dp)) {
         Scaffold(
             containerColor = Lab.bg,
             contentWindowInsets = WindowInsets(0),
-            bottomBar = {
-                if (TABS.any { it.route == route }) NavigationBar(containerColor = Lab.card) {
-                    TABS.forEach { t ->
-                        NavigationBarItem(
-                            selected = route == t.route,
-                            onClick = { nav.tab(t.route) },
-                            icon = { Icon(t.icon, null) },
-                            label = { Text(t.label) },
-                        )
-                    }
-                }
-            },
+            // icons only and thin; on a wide screen they stand in a column at the side, so the height is the cards'
+            bottomBar = { if (tabsShown && !landscape) CompactTabs(TABS.map { Triple(it.route, it.label, it.icon) }, route, false) { nav.tab(it) } },
         ) { pad ->
+          androidx.compose.foundation.layout.Row(Modifier.fillMaxSize().padding(pad).consumeWindowInsets(pad)) {
+            if (tabsShown && landscape) CompactTabs(TABS.map { Triple(it.route, it.label, it.icon) }, route, true) { nav.tab(it) }
             NavHost(nav, startDestination = "home",
                 enterTransition = { EnterTransition.None }, exitTransition = { ExitTransition.None },
                 popEnterTransition = { EnterTransition.None }, popExitTransition = { ExitTransition.None },
-                modifier = Modifier.background(Lab.bg).padding(pad).consumeWindowInsets(pad)) {
+                modifier = Modifier.weight(1f).fillMaxHeight().background(Lab.bg)) {
                 composable("home") {
                     StatusScreen(repo, bar, onGame = { nav.navigate("game/$it") }, onServers = { nav.navigate("settings/servers") })
                 }
@@ -231,6 +226,8 @@ class MainActivity : FragmentActivity() {
                     AddServerScreen(repo, pairLink, onBack = { nav.popBackStack() }, onDone = { pairLink = null; nav.back(to = "home") })
                 }
             }
+          }
+        }
         }
     }
 

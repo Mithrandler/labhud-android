@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -76,13 +77,19 @@ fun <T> packGrid(items: List<T>, span: (T) -> Int, height: (T) -> Float, cells: 
     return out.ifEmpty { listOf(emptyList()) }
 }
 
+/** The height of a [PageBar]: thin on a wide, low screen where the height is the cards'. */
+@Composable
+fun pageBarHeight(): androidx.compose.ui.unit.Dp =
+    if (LocalConfiguration.current.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE) 36.dp else 48.dp
+
 /** "‹  ● ○ ○  1/3  ›" under a paged list; nothing for a single page. */
 @Composable
 fun PageBar(page: Int, pages: Int, onPage: (Int) -> Unit, modifier: Modifier = Modifier) {
     if (pages <= 1) return
-    Row(modifier.fillMaxWidth().padding(vertical = 2.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-        TextButton(onClick = { onPage(page - 1) }, enabled = page > 0) { Text("‹", fontSize = 26.sp) }
-        if (pages <= 7) Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+    val h = pageBarHeight()
+    Row(modifier.fillMaxWidth().height(h), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+        TextButton(onClick = { onPage(page - 1) }, enabled = page > 0, modifier = Modifier.height(h)) { Text("‹", fontSize = 24.sp) }
+        if (pages <= 7) Row(horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.CenterVertically) {
             repeat(pages) { i ->
                 // a dot is a big enough target for a thumb: 28 dp of space around an 8 dp dot
                 Row(Modifier.size(28.dp).clickable { onPage(i) }, horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
@@ -91,7 +98,7 @@ fun PageBar(page: Int, pages: Int, onPage: (Int) -> Unit, modifier: Modifier = M
             }
         }
         Text("${page + 1}/$pages", fontSize = 13.sp, color = Lab.muted, modifier = Modifier.padding(horizontal = 8.dp))
-        TextButton(onClick = { onPage(page + 1) }, enabled = page < pages - 1) { Text("›", fontSize = 26.sp) }
+        TextButton(onClick = { onPage(page + 1) }, enabled = page < pages - 1, modifier = Modifier.height(h)) { Text("›", fontSize = 24.sp) }
     }
 }
 

@@ -190,36 +190,39 @@ fun StatusScreen(
                     val compact = page?.compact == true || view == ViewMode.Glance
                     val gap = if (compact) 6.dp else 10.dp
                     androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxSize()) {
-                        // the cards of this page cut into screens by height; a bar under them moves between the screens
-                        val cells = (((maxWidth.value - 32f + 10f) / 168f).toInt().coerceAtLeast(1)) * 3
+                        // equal cells: [cols] to a row (3 on a phone, up to 6 when wide), the same gap between them and to the edges
+                        val gapDp = 12.dp
+                        val tile = LocalTileH.current.value
+                        val cols = (page?.columns?.takeIf { it > 0 } ?: (((maxWidth.value - 24f + 12f) / (104f + 12f)).toInt())).coerceIn(2, 6)
                         val slots = if (page == null) emptyList() else if (page.games) page.servers.map { Slot("game-" + it.id.ifEmpty { it.name }, game = it) } else
                             (if (index == 0) favs.mapNotNull { byId[it] }.sortedBy { it.name.lowercase() }.map { Slot("c-fav-${it.id}", it) } else emptyList()) +
                                 page.groups.flatMap { g -> g.cards.mapNotNull { byId[it] }.map { Slot("c-${g.id}-${it.id}", it) } }
-                        val screens = remember(slots, cells, maxHeight) {
-                            packGrid(slots, { it.span(cells) }, { it.height() }, cells, gap.value, maxHeight.value - 96f)
+                        val barH = pageBarHeight().value
+                        val screens = remember(slots, cols, maxHeight, barH) {
+                            packGrid(slots, { it.span(cols) }, { it.height(tile) }, cols, 12f, maxHeight.value - 24f - barH)
                         }
                         var asked by rememberSaveable(page?.id) { mutableIntStateOf(0) }
                         val cur = asked.coerceIn(0, screens.size - 1)
                         Column(Modifier.fillMaxSize()) {
                             LazyVerticalGrid(
-                                CappedAdaptive(158.dp, page?.columns ?: 0, split = 3),
+                                androidx.compose.foundation.lazy.grid.GridCells.Fixed(cols),
                                 Modifier.weight(1f).fillMaxWidth(),
-                                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
-                                horizontalArrangement = Arrangement.spacedBy(gap),
-                                verticalArrangement = Arrangement.spacedBy(gap),
+                                contentPadding = PaddingValues(12.dp),
+                                horizontalArrangement = Arrangement.spacedBy(gapDp),
+                                verticalArrangement = Arrangement.spacedBy(gapDp),
                             ) {
                                 if (page == null) return@LazyVerticalGrid
                                 if (slots.isEmpty() && page.games) item(span = { GridItemSpan(maxLineSpan) }) { Text("No game servers known yet.", color = Lab.muted) }
                                 screens[cur].forEach { sl ->
                                     val c = sl.card
-                                    if (c != null) item(key = sl.key, span = { GridItemSpan(c.statusSpan(maxLineSpan)) }) {
-                                        if (c.kind == "guest") MiniCard(c, server, chip = boxChips[c.id]) { onCard(c.id) }
-                                        else HudCard(c, server, sparks = sparks, uptime = uptime?.cards?.get(c.id), percent = uptime?.percent?.get(c.id),
+                                    if (c != null) item(key = sl.key, span = { GridItemSpan(sl.span(maxLineSpan)) }) {
+                                        if (c.isBig()) HudCard(c, server, Modifier.height(sl.height(tile).dp), sparks = sparks, uptime = uptime?.cards?.get(c.id), percent = uptime?.percent?.get(c.id),
                                             coverage = uptime?.coverage?.get(c.id), compact = compact,
                                             chips = listOfNotNull(boxChips[c.id])) { onCard(c.id) }
+                                        else MiniCard(c, server, chip = boxChips[c.id]) { onCard(c.id) }
                                     }
                                     val g = sl.game
-                                    if (g != null) item(key = sl.key, span = { GridItemSpan(3.coerceAtMost(maxLineSpan)) }) { GameTile(g, server) { if (g.id.isNotEmpty()) onGame(g.id) } }
+                                    if (g != null) item(key = sl.key, span = { GridItemSpan(sl.span(maxLineSpan)) }) { GameTile(g, server) { if (g.id.isNotEmpty()) onGame(g.id) } }
                                 }
                             }
                             PageBar(cur, screens.size, { asked = it.coerceIn(0, screens.size - 1) })
@@ -233,25 +236,16 @@ fun StatusScreen(
 
 /** One thing on a Status screen: a card (or a game server) with a key for its grid cell. */
 private class Slot(val key: String, val card: Card? = null, val game: GameServer? = null) {
-    /** Cells it takes in a line of [cells]. */
-    fun span(cells: Int): Int = card?.statusSpan(cells) ?: 3.coerceAtMost(cells)
+    /** Cells it takes in a line of [cols]: a card by its kind, a game server one cell on a wide screen, else half a line or more. */
+    fun span(cols: Int): Int = card?.tileSpan(cols) ?: if (cols >= 4) 1 else cols
 
-    /** About how tall it is, in dp. */
-    fun height(): Float {
-        val c = card ?: return 92f
-        return when {
-            c.kind == "guest" -> 165f
-            c.size == "xl" -> 270f
-            c.size == "m" || c.size == "l" -> 235f
-            c.kind == "list" && c.size.isEmpty() -> 230f
-            else -> 140f
-        }
-    }
+    /** How tall it is, in dp: a cell, or two cells and the gap between them. */
+    fun height(tile: Float): Float = (card?.tileRows() ?: 1).let { tile * it + 12f * (it - 1) }
 }
 
 @Composable
 private fun GameTile(g: GameServer, server: Server?, onClick: () -> Unit) {
-    Surface(onClick = onClick, shape = CardShape, color = Lab.card, border = BorderStroke(1.dp, Lab.line), modifier = Modifier.heightIn(min = 92.dp)) {
+    Surface(onClick = onClick, shape = CardShape, color = Lab.card, border = BorderStroke(1.dp, Lab.line), modifier = Modifier.fillMaxWidth().height(LocalTileH.current)) {
         Column(Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.size(9.dp).clip(CircleShape).background(if (g.running) Lab.green else Lab.border))

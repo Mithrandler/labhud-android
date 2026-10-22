@@ -393,15 +393,30 @@ fun SectionTitle(title: String, bad: Boolean = false, modifier: Modifier = Modif
 }
 
 
+/** The height of every small card on Status: the same everywhere (112 dp, 84 dp on a wide, low screen), so the grid has the same gap in every direction. */
+val LocalTileH = androidx.compose.runtime.compositionLocalOf { 112.dp }
+
+/** How a card sits in the grid of equal cells: [span] cells wide ([cols] to a row), [rows] cells tall. */
+fun Card.tileSpan(cols: Int): Int = when {
+    isBig() -> cols
+    size == "m" -> 2.coerceAtMost(cols)
+    else -> 1
+}
+
+fun Card.tileRows(): Int = if (isBig()) 2 else 1
+
+/** The cards that need more than a cell: a machine's rings, and the widgets that draw themselves (clock, calendar, a frame). Lists, notes and links are cells too. */
+fun Card.isBig(): Boolean = kind != "guest" && (type == "proxmox" || type == "nas" || widget.isNotEmpty() || frame.isNotEmpty())
+
 /**
- * A guest (VM, LXC) as a small card, three to a row: its name and dot, then CPU, RAM and disk as thin
- * bars and how long it has run. A guest that is not running says so instead of the bars.
+ * A small card, one cell of the grid: always [LocalTileH] high. Its name and dot, how long it has run as a
+ * chip beside the name (nothing when it has none: the card does not change size), then three thin bars
+ * (CPU, RAM, disk, or its first percentages), or what it says about itself when it has no percentages.
  */
 @Composable
 fun MiniCard(c: Card, server: Server?, modifier: Modifier = Modifier, chip: String? = null, onClick: () -> Unit) {
-    val sev = c.severity()
     Surface(
-        onClick = onClick, modifier = modifier.fillMaxWidth(), shape = CardShape, color = Lab.card,
+        onClick = onClick, modifier = modifier.fillMaxWidth().height(LocalTileH.current), shape = CardShape, color = Lab.card,
         border = when {
             c.bad == true -> BorderStroke(1.dp, Lab.red.copy(alpha = 0.7f))
             Lab.hud -> BorderStroke(1.dp, Lab.line)
@@ -409,34 +424,40 @@ fun MiniCard(c: Card, server: Server?, modifier: Modifier = Modifier, chip: Stri
         },
         shadowElevation = if (Lab.hud) 0.dp else 1.dp,
     ) {
-        // a guest that is down has no bars to show: its card is as short as its two lines
-        Column(Modifier.heightIn(min = if (c.guest == null) 0.dp else 96.dp).padding(horizontal = 8.dp, vertical = 8.dp)) {
+        Column(Modifier.padding(horizontal = 8.dp, vertical = 7.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                CardIcon(c, server)
+                CardIcon(c, server, 18.dp)
                 Spacer(Modifier.width(6.dp))
                 FitText(c.name, 12.sp, FontWeight.SemiBold, Modifier.weight(1f))
+                val up = c.guest?.uptime?.let { upText(it) } ?: c.metrics.firstOrNull { it.short().equals("uptime", true) }?.value
+                val tag = listOfNotNull(up, chip?.substringBefore(" ")).joinToString(" · ")
+                if (tag.isNotEmpty()) {
+                    Spacer(Modifier.width(4.dp))
+                    Text(tag, fontSize = 9.sp, color = Lab.muted, maxLines = 1, modifier = Modifier.clip(RoundedCornerShape(50)).background(Lab.block).padding(horizontal = 5.dp, vertical = 1.dp))
+                }
                 if (c.status != null || c.bad != null) { Spacer(Modifier.width(4.dp)); StatusDot(c, 8) }
             }
-            val g = c.guest
-            if (g == null) {
-                Text(statusWord(c).ifEmpty { c.summary }, fontSize = 12.sp, color = if (c.status == "down") Lab.red else Lab.muted,
-                    modifier = Modifier.padding(top = 8.dp))
-            } else Column(Modifier.padding(top = 6.dp).alpha(if (c.frozen) 0.45f else 1f)) {
-                g.meters().forEach { m ->
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 1.dp)) {
-                        Text(m.label, fontSize = 9.sp, color = Lab.muted, modifier = Modifier.width(26.dp), maxLines = 1)
+            val bars = c.guest?.meters() ?: c.metrics.filter { it.pct != null && it.value.isNotEmpty() && it.value != "—" }.take(3)
+            Column(Modifier.padding(top = 5.dp).weight(1f).alpha(if (c.frozen) 0.45f else 1f), verticalArrangement = Arrangement.SpaceEvenly) {
+                if (bars.isEmpty()) Text(
+                    statusWord(c).ifEmpty {
+                        c.rows.take(3).joinToString("\n") { it.name.ifEmpty { it.value } }.ifEmpty {
+                            c.notes?.takeIf { it.isNotBlank() } ?: c.bookmarks.take(3).joinToString("\n") { it.name }.ifEmpty { c.summary.ifEmpty { c.subtitle } }
+                        }
+                    },
+                    fontSize = 11.sp, lineHeight = 14.sp, maxLines = 3, overflow = TextOverflow.Ellipsis, color = if (c.status == "down") Lab.red else Lab.muted)
+                else bars.forEach { m ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(m.short(), fontSize = 9.sp, color = Lab.muted, modifier = Modifier.width(26.dp), maxLines = 1)
                         Meter(m.pct ?: 0.0, m.sev, Modifier.weight(1f), height = 4.dp)
-                        Text(m.value, fontSize = 9.sp, color = sevColor(m.sev), maxLines = 1, textAlign = androidx.compose.ui.text.style.TextAlign.End,
-                            modifier = Modifier.width(26.dp))
+                        Text(m.value.ifEmpty { "—" }, fontSize = 9.sp, color = sevColor(m.sev), maxLines = 1, textAlign = androidx.compose.ui.text.style.TextAlign.End,
+                            modifier = Modifier.width(28.dp))
                     }
                 }
-                g.uptime?.let { Text("up " + upText(it), fontSize = 10.sp, color = Lab.muted, modifier = Modifier.padding(top = 3.dp)) }
-                chip?.let { Text(it, fontSize = 10.sp, color = Lab.muted, maxLines = 1) }
             }
         }
     }
 }
-
 
 /**
  * A graphics card in one ring: the load round the outside, the video memory in a thinner ring inside it,
