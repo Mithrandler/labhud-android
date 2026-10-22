@@ -109,9 +109,13 @@ fun ContainersSection(repo: LabRepository, nav: SettingsNav) {
             }
             window?.let { w ->
                 item {
-                    UpdateWindowPanel(w, agentsAuto,
-                        onWindow = { days, at -> change("Not saved") { repo.api()?.updateWindow(days, at)?.let { it.ok to it.error } } },
-                        onAgents = { on -> change("Not saved") { repo.api()?.agentsAutoUpdate(on)?.let { it.ok to it.error } } })
+                    UpdateWindowPanel(w, agentsAuto, true) { days, at, auto ->
+                        change("Not saved") {
+                            val api = repo.api() ?: return@change null
+                            val r = api.updateWindow(days, at)
+                            if (r.ok && auto != agentsAuto) api.agentsAutoUpdate(auto).let { it.ok to it.error } else r.ok to r.error
+                        }
+                    }
                 }
             }
             regs?.let { r ->
@@ -130,12 +134,17 @@ fun ContainersSection(repo: LabRepository, nav: SettingsNav) {
 /**
  * When the containers ticked "update on their own" are updated: the days (tap to tick, one stays
  * on) and the time of day on the server's clock; and whether the agents update themselves.
+ * Kept here until Save sends them.
  */
 @Composable
-private fun UpdateWindowPanel(w: UpdateWindow, agentsAuto: Boolean, onWindow: (List<Int>, String) -> Unit, onAgents: (Boolean) -> Unit) {
+private fun UpdateWindowPanel(w: UpdateWindow, agentsAuto: Boolean, enabled: Boolean, onSave: (List<Int>, String, Boolean) -> Unit) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val names = listOf("M", "T", "W", "T", "F", "S", "S")
-    val days = w.days.toSet()
+    val full = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
+    var days by remember(w) { mutableStateOf(w.days.toSet()) }
+    var at by remember(w) { mutableStateOf(w.at) }
+    var auto by remember(agentsAuto) { mutableStateOf(agentsAuto) }
+    val changed = days != w.days.toSet() || at != w.at || auto != agentsAuto
     Panel("Update window", w.words()) {
         Text("The containers ticked “on their own” are updated then, on the server's clock.", fontSize = 13.sp, color = Lab.sub)
         Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -143,25 +152,29 @@ private fun UpdateWindowPanel(w: UpdateWindow, agentsAuto: Boolean, onWindow: (L
                 val on = i in days
                 androidx.compose.material3.FilterChip(
                     selected = on,
-                    onClick = { val next = if (on) days - i else days + i; if (next.isNotEmpty()) onWindow(next.sorted(), w.at) },
+                    onClick = { val next = if (on) days - i else days + i; if (next.isNotEmpty()) days = next },
                     label = { Text(n) },
-                    modifier = Modifier.semantics { contentDescription = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")[i] },
+                    modifier = Modifier.semantics { contentDescription = full[i] },
                 )
             }
         }
         Row(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             Text("At", fontSize = 13.sp, color = Lab.sub)
             androidx.compose.material3.OutlinedButton(onClick = {
-                val (h, m) = w.at.split(":").let { (it.getOrNull(0)?.toIntOrNull() ?: 4) to (it.getOrNull(1)?.toIntOrNull() ?: 0) }
-                android.app.TimePickerDialog(context, { _, hh, mm -> onWindow(w.days, "%02d:%02d".format(hh, mm)) }, h, m, true).show()
-            }) { Text(w.at) }
+                val (h, m) = at.split(":").let { (it.getOrNull(0)?.toIntOrNull() ?: 4) to (it.getOrNull(1)?.toIntOrNull() ?: 0) }
+                android.app.TimePickerDialog(context, { _, hh, mm -> at = "%02d:%02d".format(hh, mm) }, h, m, true).show()
+            }) { Text(at) }
         }
         Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f).padding(end = 12.dp)) {
                 Text("Update agents too", fontWeight = FontWeight.Medium, fontSize = 14.sp)
                 Text("An agent with an older version updates itself when it dials in.", fontSize = 12.sp, color = Lab.muted)
             }
-            androidx.compose.material3.Switch(checked = agentsAuto, onCheckedChange = onAgents)
+            androidx.compose.material3.Switch(checked = auto, onCheckedChange = { auto = it })
+        }
+        Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            androidx.compose.material3.Button(onClick = { onSave(days.sorted(), at, auto) }, enabled = enabled && changed) { Text("Save") }
+            if (changed) androidx.compose.material3.OutlinedButton(onClick = { days = w.days.toSet(); at = w.at; auto = agentsAuto }, enabled = enabled) { Text("Discard") }
         }
     }
 }

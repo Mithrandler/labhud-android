@@ -104,6 +104,7 @@ object LabIcons {
     val offline: ImageVector by lazy { icon("offline", "M8.5 6.4A6 6 0 0 1 17.9 10.6 3.6 3.6 0 0 1 19.6 17M16 18H7a4 4 0 0 1-1.6-7.7 6 6 0 0 1 .7-1.6" to false, "M3 3l18 18" to false) }
     val back: ImageVector by lazy { icon("back", "M20 12H5M11 6l-6 6 6 6" to false) }
     val chevronRight: ImageVector by lazy { icon("chevron_right", "M9 6l6 6-6 6" to false) }
+    val chevronUp: ImageVector by lazy { icon("chevron_up", "M6 15l6-6 6 6" to false) }
     val chevronDown: ImageVector by lazy { icon("chevron_down", "M6 9l6 6 6-6" to false) }
     val check: ImageVector by lazy { icon("check", "M5 12.5l4.5 4.5L19 7.5" to false) }
     val checkCircle: ImageVector by lazy { icon("check_circle", "M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0Z" to false, "M8 12.5l2.7 2.7L16 10" to false) }

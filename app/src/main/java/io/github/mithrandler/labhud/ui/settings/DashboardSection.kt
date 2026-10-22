@@ -1,5 +1,6 @@
 package io.github.mithrandler.labhud.ui.settings
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -31,7 +32,11 @@ import io.github.mithrandler.labhud.data.LabRepository
 import io.github.mithrandler.labhud.data.discoverApprove
 import io.github.mithrandler.labhud.data.discoverDismiss
 import io.github.mithrandler.labhud.data.discoverRestore
+import io.github.mithrandler.labhud.data.LayoutPage
 import io.github.mithrandler.labhud.data.discovered
+import io.github.mithrandler.labhud.data.kept
+import io.github.mithrandler.labhud.data.layout
+import io.github.mithrandler.labhud.data.saveLayout
 import io.github.mithrandler.labhud.ui.GateDialogs
 import io.github.mithrandler.labhud.ui.Lab
 import io.github.mithrandler.labhud.ui.Panel
@@ -39,7 +44,9 @@ import io.github.mithrandler.labhud.ui.rememberGate
 import kotlinx.coroutines.launch
 
 /**
- * Layout is edited on the wall's ⚙ screen; here, as on the wall, what LabHUD sees and has no card for (Proxmox guests, containers, services a network scan found):
+ * The pages, groups and cards as the wall's ⚙ > Dashboard edits them: order (↑ ↓), titles, icons, sizes, hidden, a card moved to
+ * another group or page. Edits are kept here until Save sends them, all together (the server applies a layout as a whole); Discard
+ * drops them. Under it, what LabHUD sees and has no card for (Proxmox guests, containers, services a network scan found):
  * tick some and add them as cards, or stop offering them. Behind the gate, as every ⚙ change.
  */
 @Composable
@@ -50,9 +57,19 @@ fun DashboardSection(repo: LabRepository, nav: SettingsNav) {
     var picked by remember { mutableStateOf(setOf<String>()) }
     var message by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
+    var saved by remember { mutableStateOf<List<LayoutPage>?>(null) }     // as the server has it
+    var pages by remember { mutableStateOf<List<LayoutPage>?>(null) }     // as edited here
+    var openPage by remember { mutableStateOf<String?>(null) }
+    var moving by remember { mutableStateOf<String?>(null) }
+    val dirty = pages != null && pages != saved
+    BackHandler(openPage != null) { openPage = null }
 
-    fun load() = scope.launch {
+    fun load(force: Boolean = false) = scope.launch {
         val api = repo.api() ?: return@launch
+        runCatching { api.layout() }.onSuccess { l ->
+            if (l.ok) { if (force || !dirty) pages = l.pages; saved = l.pages; if (openPage != null && l.pages.none { it.id == openPage }) openPage = null }
+            else message = l.error.ifBlank { "Layout refused." }
+        }
         runCatching { api.discovered() }.onSuccess { r ->
             if (r.ok) { list = r; picked = picked.filter { k -> r.items.any { it.key == k } }.toSet() } else message = r.error.ifBlank { "Refused." }
         }.onFailure { message = it.message ?: "Not loaded." }
@@ -71,10 +88,38 @@ fun DashboardSection(repo: LabRepository, nav: SettingsNav) {
     }
     LaunchedEffect(Unit) { gate.press { load() } }
 
+    fun save() = gate.press {
+        val send = pages?.kept() ?: return@press
+        busy = true
+        scope.launch {
+            val r = repo.api()?.let { api -> runCatching { api.saveLayout(send) }.getOrNull() }
+            message = if (r?.ok == true) "" else "Not saved: " + (r?.error?.ifBlank { null } ?: "refused")
+            if (r?.ok == true) { pages = null; saved = null }
+            load(force = true).join()
+            busy = false
+        }
+    }
+
     SettingsPage(section("dashboard")!!, nav) {
-        item { WallOnly("⚙ > Dashboard", listOf("Pages and their rotation", "Groups and cards, dragged into place", "Which cards the screen shows", "Icon and size per card and per page")) }
-        if (list == null) item { Unlock { gate.press { load() } } }
+        if (list == null && pages == null) item { Unlock { gate.press { load() } } }
         if (message.isNotEmpty()) item { Text(message, color = Lab.warn, fontSize = 13.sp) }
+        if (dirty) item {
+            Panel("") {
+                Text("Changes not saved yet.", fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(onClick = { save() }, enabled = !busy) { Text("Save") }
+                    OutlinedButton(onClick = { pages = saved }, enabled = !busy) { Text("Discard") }
+                }
+            }
+        }
+        pages?.let { ps ->
+            val open = openPage
+            if (open == null) pagesList(ps, !busy, { pages = it }) { openPage = it }
+            else {
+                item { TextButton(onClick = { openPage = null }) { Text("‹ All pages") } }
+                pageEditor(ps, open, !busy, { pages = it }) { moving = it }
+            }
+        }
         list?.let { l ->
             item {
                 Panel("Discovered · to approve", if (l.items.isEmpty()) "Nothing new" else "${l.items.size} to approve") {
@@ -114,5 +159,6 @@ fun DashboardSection(repo: LabRepository, nav: SettingsNav) {
             }
         }
     }
+    moving?.let { id -> pages?.let { ps -> MoveCardDialog(ps, id, { pages = it; moving = null }) { moving = null } } }
     GateDialogs(gate, nav.signIn)
 }
