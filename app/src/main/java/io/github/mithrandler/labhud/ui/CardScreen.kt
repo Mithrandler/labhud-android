@@ -280,7 +280,7 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
             secs.filterNot { it.title.lowercase() in smallTitles }.forEach { s ->
                 val name = s.title.replaceFirstChar { it.uppercase() }.let { if (it == "History") "Events" else it }
                 add(CTab(name) {
-                    if (s.title.equals("storage", true)) gridRows(s.rows, cols) { r -> RowCell(r, Modifier.weight(1f)) }
+                    if (s.title.lowercase() in setOf("storage", "backup", "datastores")) gridRows(s.rows, cols) { r -> RowCell(r, Modifier.weight(1f)) }
                     else item { Panel("") { s.rows.forEach { ListRow(it, server) } } }
                 })
             }
@@ -510,7 +510,7 @@ private fun <T> LazyListScope.gridRows(items: List<T>, cols: Int, keyPrefix: Str
 private fun ContainerCell(b: io.github.mithrandler.labhud.data.Container, server: io.github.mithrandler.labhud.data.Server?, modifier: Modifier, onClick: () -> Unit) {
     Surface(onClick = onClick, modifier = modifier, shape = CardShape, color = Lab.card,
         border = if (b.up) BorderStroke(1.dp, Lab.line) else BorderStroke(1.dp, Lab.red.copy(alpha = 0.7f))) {
-        Column(Modifier.padding(horizontal = 10.dp, vertical = 8.dp)) {
+        Column(Modifier.heightIn(min = 84.dp).padding(horizontal = 10.dp, vertical = 8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 androidx.compose.foundation.layout.Box(Modifier.size(8.dp).clip(androidx.compose.foundation.shape.CircleShape).background(if (b.up) Lab.green else Lab.red))
                 Spacer(Modifier.width(6.dp))

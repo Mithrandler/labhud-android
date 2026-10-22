@@ -377,7 +377,7 @@ fun SectionTitle(title: String, bad: Boolean = false, modifier: Modifier = Modif
  * bars and how long it has run. A guest that is not running says so instead of the bars.
  */
 @Composable
-fun MiniCard(c: Card, server: Server?, modifier: Modifier = Modifier, onClick: () -> Unit) {
+fun MiniCard(c: Card, server: Server?, modifier: Modifier = Modifier, chip: String? = null, onClick: () -> Unit) {
     val sev = c.severity()
     Surface(
         onClick = onClick, modifier = modifier.fillMaxWidth(), shape = CardShape, color = Lab.card,
@@ -410,6 +410,7 @@ fun MiniCard(c: Card, server: Server?, modifier: Modifier = Modifier, onClick: (
                     }
                 }
                 g.uptime?.let { Text("up " + upText(it), fontSize = 10.sp, color = Lab.muted, modifier = Modifier.padding(top = 3.dp)) }
+                chip?.let { Text(it, fontSize = 10.sp, color = Lab.muted, maxLines = 1) }
             }
         }
     }

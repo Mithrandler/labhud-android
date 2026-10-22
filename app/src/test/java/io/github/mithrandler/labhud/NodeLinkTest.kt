@@ -35,3 +35,22 @@ class NodeLinkTest {
         assertEquals("warn", m[1].sev)
     }
 }
+
+/** The GPUs and a mini-card's number of containers as the server sends them. */
+class GpuStateTest {
+    @Test fun gpusWithAndWithoutVideoMemory() {
+        val c = LabJson.decodeFromString<Card>("""{"id":"h","gpus":[{"util":20.5,"mem":30,"temp":46},{"util":1}]}""")
+        assertEquals(2, c.gpus.size)
+        assertEquals(30.0, c.gpus[0].mem!!, 0.0)
+        assertEquals(null, c.gpus[1].mem)
+        assertEquals(null, c.gpus[1].temp)
+    }
+
+    @Test fun guestUptimeAndIds() {
+        val g = LabJson.decodeFromString<Guest>("""{"cpu":1.5,"mem":40,"uptime":90061,"node":"pve","vmid":"100"}""")
+        assertEquals("pve", g.node)
+        assertEquals("100", g.vmid)
+        assertEquals(90061L, g.uptime)
+        assertEquals(listOf("CPU", "RAM"), g.meters().map { it.label })
+    }
+}

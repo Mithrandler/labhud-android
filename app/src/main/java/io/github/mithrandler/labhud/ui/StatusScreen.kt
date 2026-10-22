@@ -214,7 +214,7 @@ private fun LazyGridScope.groups(page: Page, byId: Map<String, Card>, server: Se
         if (cards.isEmpty()) return@forEach
         cards.forEach { c ->
             item(key = "c-${g.id}-${c.id}", span = { GridItemSpan(c.statusSpan(maxLineSpan)) }) {
-                if (c.kind == "guest") MiniCard(c, server) { onCard(c.id) }
+                if (c.kind == "guest") MiniCard(c, server, chip = boxChips[c.id]) { onCard(c.id) }
                 else HudCard(c, server, sparks = sparks, uptime = uptime?.cards?.get(c.id), percent = uptime?.percent?.get(c.id),
                     coverage = uptime?.coverage?.get(c.id), compact = compact,
                     chips = listOfNotNull(boxChips[c.id])) { onCard(c.id) }
@@ -231,7 +231,7 @@ private fun LazyGridScope.favorites(favs: Set<String>, byId: Map<String, Card>, 
     item(key = "g-fav", span = { GridItemSpan(maxLineSpan) }) { SectionTitle("Favorites", bad = cards.any { it.bad == true }) }
     cards.forEach { c ->
         item(key = "c-fav-${c.id}", span = { GridItemSpan(c.statusSpan(maxLineSpan)) }) {
-            if (c.kind == "guest") MiniCard(c, server) { onCard(c.id) }
+            if (c.kind == "guest") MiniCard(c, server, chip = boxChips[c.id]) { onCard(c.id) }
             else HudCard(c, server, sparks = sparks, uptime = uptime?.cards?.get(c.id), percent = uptime?.percent?.get(c.id),
                 coverage = uptime?.coverage?.get(c.id), compact = compact,
                     chips = listOfNotNull(boxChips[c.id])) { onCard(c.id) }
