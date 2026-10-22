@@ -26,6 +26,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -143,7 +144,7 @@ private fun StackSheet(host: String, stack: ZoneStack, isNew: Boolean, ask: Zone
         }
     }
 
-    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 20.dp).heightIn(max = 640.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 20.dp).heightIn(max = (LocalConfiguration.current.screenHeightDp * 0.9f).dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(stack.name, fontSize = 20.sp, fontWeight = FontWeight.SemiBold, color = Lab.text, modifier = Modifier.padding(end = 48.dp))
         Text(if (!kept) "new stack: nothing is written until Save" else stack.line(), fontSize = 13.sp, color = Lab.muted)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -162,11 +163,6 @@ private fun StackSheet(host: String, stack: ZoneStack, isNew: Boolean, ask: Zone
         else when (tab) {
             "compose", "env" -> {
                 val isEnv = tab == "env"
-                OutlinedTextField(
-                    if (isEnv) env else compose, { if (isEnv) env = it.take(48 * 1024) else compose = it.take(48 * 1024) },
-                    textStyle = MONO, modifier = Modifier.fillMaxWidth().heightIn(min = 220.dp, max = 360.dp),
-                )
-                if (isEnv) Text("Values stay on the host and show as $mask. Leave a line as it is to keep its value; type a new value to change it.", fontSize = 12.sp, color = Lab.muted)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(enabled = !busy, onClick = { run("Validate", { zoneStackValidate(host, stack.name, compose, env) }) }) { Text("Validate") }
                     Button(enabled = dirty && !busy, onClick = {
@@ -176,6 +172,11 @@ private fun StackSheet(host: String, stack: ZoneStack, isNew: Boolean, ask: Zone
                     }) { Text("Save") }
                     OutlinedButton(enabled = dirty && !busy, onClick = { compose = compose0; env = env0; say("") }) { Text("Discard") }
                 }
+                OutlinedTextField(
+                    if (isEnv) env else compose, { if (isEnv) env = it.take(48 * 1024) else compose = it.take(48 * 1024) },
+                    textStyle = MONO, modifier = Modifier.fillMaxWidth().heightIn(min = 220.dp, max = 360.dp),
+                )
+                if (isEnv) Text("Values stay on the host and show as $mask. Leave a line as it is to keep its value; type a new value to change it.", fontSize = 12.sp, color = Lab.muted)
             }
             "history" -> {
                 Text("Each save and deploy keeps the files it replaces (the last 10). Restore writes an older version back; it does not deploy.", fontSize = 12.sp, color = Lab.muted)
