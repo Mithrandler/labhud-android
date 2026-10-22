@@ -9,6 +9,8 @@ All notable changes to LabHUD for Android. The format follows
 Needs labhud 0.1.12 for the admin's name, the sessions list and the glance view; with an older server the app works as before (those parts stay hidden or say so).
 
 ### Added
+- **Add / Ignore on "discovered" notifications** (Activity > Notifications): the buttons the server sends in `actions`, answered through the discovery calls (admin with the PIN typed; anything else says so). Only `/api/discover/*` paths are accepted.
+- Hosts and Containers in Settings: the list of hosts is a foldable panel with a one-line summary.
 - **Account** (Settings, first, also when only looking): who is signed in, Sign in / Sign out / single sign-on, **Lock now**, the admin's **Sessions** (sign one out, or every browser) and **Paired phones** (Remove), as panels that open on a tap.
 - **Wall mode keeps your unlock**: the PIN you unlocked with in the app is handed to the wall page, so it does not ask again while the ticket lives (the same 2 minutes).
 - **Glance view** in Wall mode (on by default, a switch in Settings > Wall mode): `?glance=1`, big coloured tiles with one number each.
