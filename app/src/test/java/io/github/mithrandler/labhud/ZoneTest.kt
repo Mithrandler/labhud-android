@@ -18,6 +18,7 @@ import io.github.mithrandler.labhud.data.usedText
 import io.github.mithrandler.labhud.data.volumeSize
 import io.github.mithrandler.labhud.data.filtered
 import io.github.mithrandler.labhud.data.line
+import io.github.mithrandler.labhud.data.ordered
 import io.github.mithrandler.labhud.data.plainTerminal
 import io.github.mithrandler.labhud.data.refusal
 import io.github.mithrandler.labhud.data.stackDirty
@@ -228,5 +229,42 @@ class ZoneObjectsTest {
 
     @Test fun aVersionIsShownInTheGivenZoneWithoutALocale() {
         assertEquals("2023-11-14 22:13", versionText(1700000000L, java.time.ZoneId.of("UTC")))
+    }
+
+    @Test fun guestHelpersAreAsTheHostTakesThem() {
+        assertEquals(true, io.github.mithrandler.labhud.data.snapNameOk("before-upgrade"))
+        assertEquals(true, io.github.mithrandler.labhud.data.snapNameOk("a"))
+        for (bad in listOf("", "1abc", "-x", "a b", "a;b", "a".repeat(41))) assertEquals(bad, false, io.github.mithrandler.labhud.data.snapNameOk(bad))
+        assertEquals("pbs", io.github.mithrandler.labhud.data.snapConfirmWord("rollback", "pbs", "s1"))
+        assertEquals("s1", io.github.mithrandler.labhud.data.snapConfirmWord("delete", "pbs", "s1"))
+        assertEquals("9 d", io.github.mithrandler.labhud.data.upText(9 * 86400L))
+        assertEquals("5 h", io.github.mithrandler.labhud.data.upText(5 * 3600L))
+        assertEquals("12 min", io.github.mithrandler.labhud.data.upText(12 * 60L))
+    }
+
+    @Test fun guestsAreOrderedAndReadFromTheAnswer() {
+        val r = LabJson.decodeFromString<ZoneAnswer>(
+            """{"ok":true,"enabled":true,"node":"pve2","guests":[
+                {"id":"900","name":"tpl","type":"qemu","template":true,"ticked":true},
+                {"id":"201","name":"rea","type":"qemu","running":false,"ticked":true},
+                {"id":"113","name":"web","type":"lxc","running":true,"cpu":1.4,"mem":22.0,"uptime":400000,"ticked":true,"can":["start","shutdown","reboot"]},
+                {"id":"101","name":"pbs","type":"qemu","running":true,"ticked":true}]}""")
+        val ordered = r.guests.ordered()
+        assertEquals(listOf("101", "113", "201", "900"), ordered.map { it.id })
+        assertEquals("LXC · 1% · 22% · 4 d", ordered[1].line())
+        assertEquals("VM · stopped", ordered[2].line())
+        assertEquals("template · stopped", ordered[3].line())
+        assertEquals("vm/101/x", io.github.mithrandler.labhud.data.ZoneBackup(volid = "pbs:backup/vm/101/x").title())
+    }
+
+    @Test fun theUpdateCheckSpeaksPlainly() {
+        val about = { json: String -> LabJson.decodeFromString<io.github.mithrandler.labhud.data.About>(json) }
+        assertEquals("Not checked yet.", io.github.mithrandler.labhud.ui.updateWords(null, false))
+        assertEquals("Could not ask the server.", io.github.mithrandler.labhud.ui.updateWords(null, true))
+        assertEquals(true, io.github.mithrandler.labhud.ui.updateWords(about("""{"enabled":false}"""), false).contains("switched off"))
+        assertEquals("A newer version is out.", io.github.mithrandler.labhud.ui.updateWords(
+            about("""{"enabled":true,"update":true,"latest":{"server":"v0.2.0"}}"""), false))
+        assertEquals(true, io.github.mithrandler.labhud.ui.updateWords(
+            about("""{"enabled":true,"latest":{"server":"v0.1.2","app":"v0.1.2"}}"""), false).startsWith("You are up to date."))
     }
 }

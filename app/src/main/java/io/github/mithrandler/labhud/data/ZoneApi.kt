@@ -19,6 +19,7 @@ data class ZoneHost(
     val version: String = "",
     val update: Boolean = false,
     val docker: Boolean = false,
+    val pve: Boolean = false,
     val containers: ZoneCount = ZoneCount(),
     val cpu: Double = 0.0,
     val mem: Double = 0.0,
@@ -104,6 +105,28 @@ data class ZoneStack(
     val source: ZoneStackSource? = null, val hook: Boolean = false,
 )
 
+@Serializable
+data class ZoneGuest(
+    val id: String = "", val name: String = "", val type: String = "", val running: Boolean = false, val template: Boolean = false,
+    val cpu: Double = 0.0, val mem: Double = 0.0, val uptime: Long = 0, val tags: List<String> = emptyList(),
+    /** Ticked for this host: only then may it be opened and acted on. */
+    val ticked: Boolean = false,
+    /** The verbs it may be sent (start, shutdown, reboot). */
+    val can: List<String> = emptyList(),
+)
+
+@Serializable
+data class ZoneConfigLine(val key: String = "", val value: String = "")
+
+@Serializable
+data class ZoneSnapshot(val name: String = "", val description: String = "", val parent: String = "", val time: Long = 0, val vmstate: Boolean = false)
+
+@Serializable
+data class ZoneBackup(val storage: String = "", val volid: String = "", val size: Long = 0, val time: Long = 0, val format: String = "", val notes: String = "", val protected: Boolean = false)
+
+@Serializable
+data class ZoneTask(val type: String = "", val status: String = "", val user: String = "", val start: Long = 0, val end: Long = 0)
+
 /** One answer for every route: what a route does not send stays empty. [resume] is a session that ended: start it again with the PIN. */
 @Serializable
 data class ZoneAnswer(
@@ -140,6 +163,12 @@ data class ZoneAnswer(
     val versions: List<Long> = emptyList(),
     val mask: String = "********",
     val output: String = "",
+    val node: String = "",
+    val guests: List<ZoneGuest> = emptyList(),
+    val config: List<ZoneConfigLine> = emptyList(),
+    val snapshots: List<ZoneSnapshot> = emptyList(),
+    val backups: List<ZoneBackup> = emptyList(),
+    val tasks: List<ZoneTask> = emptyList(),
 )
 
 /** The words for a refusal: labhud's, or why a wait is asked. */
@@ -199,6 +228,20 @@ suspend fun LabApi.zoneStackForget(agent: String, name: String) = zone("stack-so
 suspend fun LabApi.zoneStackHook(agent: String, name: String) = zone("stack-hook", 35) { put("agent", agent); put("name", name) }
 suspend fun LabApi.zoneStackSync(agent: String, name: String, token: String) =
     zone("stack-sync", 340) { put("agent", agent); put("name", name); if (token.isNotEmpty()) put("token", token) }
+suspend fun LabApi.zoneGuests(agent: String) = zone("guests", 35) { put("agent", agent) }
+suspend fun LabApi.zoneGuestConfig(agent: String, id: String) = zone("guest-config", 45) { put("agent", agent); put("id", id) }
+suspend fun LabApi.zoneGuestSnapshots(agent: String, id: String) = zone("guest-snapshots", 45) { put("agent", agent); put("id", id) }
+suspend fun LabApi.zoneGuestBackups(agent: String, id: String) = zone("guest-backups", 45) { put("agent", agent); put("id", id) }
+suspend fun LabApi.zoneGuestTasks(agent: String, id: String) = zone("guest-tasks", 45) { put("agent", agent); put("id", id) }
+/** [verb] is start, shutdown or reboot. */
+suspend fun LabApi.zoneGuestAct(agent: String, id: String, verb: String) = zone("guest-act", 60) { put("agent", agent); put("id", id); put("verb", verb) }
+suspend fun LabApi.zoneSnapCreate(agent: String, id: String, name: String) = zone("snap-create", 340) { put("agent", agent); put("id", id); put("name", name) }
+/** [confirm] is the guest's name. */
+suspend fun LabApi.zoneSnapRollback(agent: String, id: String, name: String, confirm: String) =
+    zone("snap-rollback", 340) { put("agent", agent); put("id", id); put("name", name); put("confirm", confirm) }
+/** [confirm] is the snapshot's name. */
+suspend fun LabApi.zoneSnapDelete(agent: String, id: String, name: String, confirm: String) =
+    zone("snap-delete", 340) { put("agent", agent); put("id", id); put("name", name); put("confirm", confirm) }
 suspend fun LabApi.zoneClose(id: String) { runCatching { zone("stream-close") { put("id", id) } } }
 
 // --- what the screens make of it, pure ---
@@ -320,3 +363,29 @@ fun ZoneStack.line(): String = (if (services > 0) "$running / $services running"
 /** A saved version's id is its unix time: shown as year-month-day hour:minute in the phone's zone (no locale). */
 fun versionText(unix: Long, zone: java.time.ZoneId = java.time.ZoneId.systemDefault()): String =
     java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm", java.util.Locale.ROOT).format(java.time.Instant.ofEpochSecond(unix).atZone(zone))
+
+// --- VMs & LXC, pure ---
+
+/** A snapshot's name as Proxmox takes it: a letter first, then letters, digits, - and _, up to 40. */
+fun snapNameOk(name: String): Boolean = Regex("[A-Za-z][A-Za-z0-9_-]{0,39}").matches(name)
+
+/** What the admin types to confirm: a rollback endangers the guest, so its name; a delete the snapshot, so its name. */
+fun snapConfirmWord(verb: String, guest: String, snapshot: String): String = if (verb == "rollback") guest else snapshot
+
+/** "9 d", "5 h", "12 min": how long a guest has been up. */
+fun upText(seconds: Long): String = when {
+    seconds >= 86400 -> "${seconds / 86400} d"
+    seconds >= 3600 -> "${seconds / 3600} h"
+    else -> "${seconds / 60} min"
+}
+
+fun ZoneGuest.kind(): String = if (template) "template" else if (type == "lxc") "LXC" else "VM"
+
+/** The row's second line: kind, then what it uses while it runs. */
+fun ZoneGuest.line(): String = kind() + if (running) " · ${cpu.toInt()}% · ${mem.toInt()}% · ${upText(uptime)}" else " · stopped"
+
+/** Running ones first, then by number; templates last. */
+fun List<ZoneGuest>.ordered(): List<ZoneGuest> = sortedWith(compareBy({ it.template }, { !it.running }, { it.id.toLongOrNull() ?: 0L }))
+
+/** The part of a backup's volume id that tells them apart: "vm/101/2026-10-22T02:00:03Z", not the whole "storage:backup/...". */
+fun ZoneBackup.title(): String = volid.substringAfter("backup/", volid)

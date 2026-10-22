@@ -53,6 +53,7 @@ import androidx.navigation.compose.rememberNavController
 import io.github.mithrandler.labhud.lock.AppLock
 import io.github.mithrandler.labhud.ui.AddServerScreen
 import io.github.mithrandler.labhud.ui.CardScreen
+import io.github.mithrandler.labhud.ui.AboutScreen
 import io.github.mithrandler.labhud.ui.ActivityScreen
 import io.github.mithrandler.labhud.ui.AgentScreen
 import io.github.mithrandler.labhud.ui.BarNav
@@ -169,6 +170,8 @@ class MainActivity : FragmentActivity() {
             onSettings = { nav.navigate("settings/$it") },
             onAction = { card, action -> nav.navigate("card/$card?ask=" + Uri.encode(action)) },
             onWall = { startActivity(Intent(this@MainActivity, WallActivity::class.java)) },
+            onOpenSettings = { nav.navigate(SETTINGS) { launchSingleTop = true } },
+            onAbout = { nav.navigate("about") { launchSingleTop = true } },
             onLock = if (AppLock.on) ({ AppLock.lockNow() }) else null,
         )
         val route = nav.currentBackStackEntryAsState().value?.destination?.route
@@ -205,6 +208,7 @@ class MainActivity : FragmentActivity() {
                 composable("devices") { DevicesScreen(repo, bar) }
                 composable("zone") { ZoneScreen(repo, bar, onSignIn = { nav.navigate("signin") }) }
                 composable("activity") { ActivityScreen(repo, bar) }
+                composable("about") { AboutScreen(repo, onBack = { nav.popBackStack() }) }
                 composable(SETTINGS) { Settings(nav, bar, signIn = false) }
                 // Settings opened over a card or a game by "Sign in" from a button: Back returns there
                 composable("signin") { Settings(nav, bar, signIn = true) }
@@ -250,7 +254,7 @@ class MainActivity : FragmentActivity() {
     }
 }
 
-/** The four places of the bottom bar; a card or "add a server" opens over them, without the bar. */
+/** The places of the bottom bar (Settings, Wall mode and About are in the top bar's menu); a card or "add a server" opens over them, without the bar. */
 private class Tab(val route: String, val label: String, val icon: ImageVector)
 
 private const val SETTINGS = "settings"
@@ -260,7 +264,6 @@ private val TABS = listOf(
     Tab("devices", "Devices", LabIcons.devices),
     Tab("zone", "Servers", LabIcons.servers),
     Tab("activity", "Activity", LabIcons.activity),
-    Tab(SETTINGS, "Settings", LabIcons.settings),
 )
 
 /** Switches tab the usual way: one copy of each, Back from any tab goes Home, each keeps its scroll. */

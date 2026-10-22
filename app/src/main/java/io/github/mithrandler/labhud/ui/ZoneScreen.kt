@@ -188,7 +188,7 @@ private fun HostList(hosts: List<ZoneHost>?, message: String, onOpen: (String) -
     }
 }
 
-private val TABS = listOf("overview" to "Overview", "containers" to "Containers", "stacks" to "Stacks", "images" to "Images", "volumes" to "Volumes", "networks" to "Networks")
+private val TABS = listOf("overview" to "Overview", "containers" to "Containers", "stacks" to "Stacks", "images" to "Images", "volumes" to "Volumes", "networks" to "Networks", "vms" to "VMs & LXC")
 
 @Composable
 private fun HostScreen(h: ZoneHost, ask: suspend (suspend LabApi.() -> ZoneAnswer) -> ZoneAnswer, repo: LabRepository, gate: Gate) {
@@ -200,16 +200,18 @@ private fun HostScreen(h: ZoneHost, ask: suspend (suspend LabApi.() -> ZoneAnswe
         "images" -> ImagesTab(h, ask, gate)
         "volumes" -> VolumesTab(h, ask, gate)
         "networks" -> NetworksTab(h, ask, gate)
+        "vms" -> GuestsTab(h, ask, gate)
         else -> ContainersTab(h, ask, repo, gate)
     }
+    val tabs = TABS.filter { it.first != "vms" || h.pve }
     if (wide) Row(Modifier.fillMaxSize()) {
-        Column(Modifier.width(140.dp).padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            TABS.forEach { (id, label) -> FilterChip(selected = tab == id, onClick = { tab = id }, label = { Text(label) }, modifier = Modifier.fillMaxWidth()) }
+        Column(Modifier.width(140.dp).verticalScroll(rememberScrollState()).padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            tabs.forEach { (id, label) -> FilterChip(selected = tab == id, onClick = { tab = id }, label = { Text(label) }, modifier = Modifier.fillMaxWidth()) }
         }
         Box(Modifier.weight(1f)) { content() }
     } else Column(Modifier.fillMaxSize()) {
         Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            TABS.forEach { (id, label) -> FilterChip(selected = tab == id, onClick = { tab = id }, label = { Text(label) }) }
+            tabs.forEach { (id, label) -> FilterChip(selected = tab == id, onClick = { tab = id }, label = { Text(label) }) }
         }
         Box(Modifier.weight(1f)) { content() }
     }

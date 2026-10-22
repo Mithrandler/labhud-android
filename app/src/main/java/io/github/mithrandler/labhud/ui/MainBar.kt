@@ -37,6 +37,9 @@ class BarNav(
     /** A card's button from the palette: its screen opens and asks there. */
     val onAction: (card: String, action: String) -> Unit,
     val onWall: () -> Unit,
+    /** The ⚙ list itself (Settings moved from the bottom bar into the menu) and the About screen. */
+    val onOpenSettings: () -> Unit,
+    val onAbout: () -> Unit,
     val onLock: (() -> Unit)?,
 )
 
@@ -81,8 +84,12 @@ fun MainTopBar(
             }
             IconButton(onClick = { menu = true }) { Icon(LabIcons.more, "More") }
             DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+                DropdownMenuItem(text = { Text("Settings") }, leadingIcon = { Icon(LabIcons.settings, null) },
+                    onClick = { menu = false; nav.onOpenSettings() })
                 DropdownMenuItem(text = { Text("Wall mode") }, leadingIcon = { Icon(LabIcons.wall, null) },
                     onClick = { menu = false; nav.onWall() })
+                DropdownMenuItem(text = { Text("About") }, leadingIcon = { Icon(LabIcons.info, null) },
+                    onClick = { menu = false; nav.onAbout() })
                 nav.onLock?.let { lock ->
                     DropdownMenuItem(text = { Text("Lock now") }, leadingIcon = { Icon(LabIcons.lock, null) },
                         onClick = { menu = false; lock() })
