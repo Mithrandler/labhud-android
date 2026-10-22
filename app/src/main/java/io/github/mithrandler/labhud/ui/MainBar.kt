@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -82,8 +84,11 @@ fun MainTopBar(
                     Icon(LabIcons.bell, "Alerts")
                 }
             }
+            // button and menu in one Box: the menu opens from the dots, its right edge on theirs
+            Box {
             IconButton(onClick = { menu = true }) { Icon(LabIcons.more, "More") }
-            DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+            DropdownMenu(expanded = menu, onDismissRequest = { menu = false }, containerColor = Lab.card,
+                border = BorderStroke(1.dp, Lab.line)) {
                 DropdownMenuItem(text = { Text("Settings") }, leadingIcon = { Icon(LabIcons.settings, null) },
                     onClick = { menu = false; nav.onOpenSettings() })
                 DropdownMenuItem(text = { Text("Wall mode") }, leadingIcon = { Icon(LabIcons.wall, null) },
@@ -94,6 +99,7 @@ fun MainTopBar(
                     DropdownMenuItem(text = { Text("Lock now") }, leadingIcon = { Icon(LabIcons.lock, null) },
                         onClick = { menu = false; lock() })
                 }
+            }
             }
             if (bell && s != null) BellSheet(s, onDismiss = { bell = false }, onCard = { bell = false; nav.onCard(it) })
             if (search && s != null) PaletteSheet(s, rights.admin, server, onDismiss = { search = false },
