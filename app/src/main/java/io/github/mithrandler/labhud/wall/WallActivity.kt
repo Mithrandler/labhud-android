@@ -35,6 +35,7 @@ class WallActivity : ComponentActivity() {
         }
         val root = FrameLayout(this).apply { setBackgroundColor(android.graphics.Color.BLACK) }
         setContentView(root)
+        root.addView(exitButton())
         val repo = (application as LabHudApp).repo
         lifecycleScope.launch {
             val server = repo.store.currentNow()
@@ -48,20 +49,55 @@ class WallActivity : ComponentActivity() {
                 return@launch
             }
             val glance = io.github.mithrandler.labhud.ui.wallGlance(repo.store.settings.first().wallGlance, repo.state.value?.view)
-            web = wallWebView(this@WallActivity, server, token, repo.unlockTicket(), glance).also { root.addView(it) }
+            web = wallWebView(this@WallActivity, server, token, repo.unlockTicket(), glance).also { root.addView(it); exit?.bringToFront() }
         }
         watchSchedule(repo)
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
-            override fun handleOnBackPressed() {
-                if (isTaskRoot) startActivity(android.content.Intent(this@WallActivity, io.github.mithrandler.labhud.MainActivity::class.java))
-                finish()
-            }
+            override fun handleOnBackPressed() = leave()
         })
+    }
+
+    private fun leave() {
+        if (isTaskRoot) startActivity(android.content.Intent(this, io.github.mithrandler.labhud.MainActivity::class.java))
+        finish()
+    }
+
+    private var exit: TextView? = null
+    private val hideExit = Runnable { exit?.animate()?.alpha(0f)?.withEndAction { exit?.visibility = android.view.View.GONE }?.setDuration(250)?.start() }
+
+    /** A button to leave the wall, there only for a few seconds after a touch: the wall stays clean, and the way out is not a hidden gesture. */
+    private fun exitButton(): TextView {
+        val d = resources.displayMetrics.density
+        return TextView(this).apply {
+            text = "✕  Exit wall mode"
+            setTextColor(android.graphics.Color.WHITE)
+            textSize = 14f
+            setPadding((16 * d).toInt(), (10 * d).toInt(), (16 * d).toInt(), (10 * d).toInt())
+            background = android.graphics.drawable.GradientDrawable().apply {
+                cornerRadius = 24 * d
+                setColor(0xCC202020.toInt())
+            }
+            layoutParams = FrameLayout.LayoutParams(FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT,
+                android.view.Gravity.BOTTOM or android.view.Gravity.START).apply { setMargins((16 * d).toInt(), 0, 0, (28 * d).toInt()) }
+            visibility = android.view.View.GONE
+            setOnClickListener { leave() }
+            exit = this
+        }
+    }
+
+    private fun showExit() {
+        val b = exit ?: return
+        b.removeCallbacks(hideExit)
+        b.animate().cancel()
+        b.alpha = 1f
+        b.visibility = android.view.View.VISIBLE
+        b.postDelayed(hideExit, 4_000)
     }
 
     /** A touch anywhere restarts the minute the screen stays awake; the page still gets the touch. */
     override fun dispatchTouchEvent(ev: android.view.MotionEvent): Boolean {
         touchedAt = android.os.SystemClock.elapsedRealtime()
+        if (ev.actionMasked == android.view.MotionEvent.ACTION_DOWN) showExit()
         applyBrightness(repo())
         return super.dispatchTouchEvent(ev)
     }

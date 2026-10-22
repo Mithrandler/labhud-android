@@ -61,12 +61,12 @@ private fun Card.matches(f: Filter): Boolean = when (f) {
     Filter.Problems -> bad == true
 }
 
-private val TYPE_ORDER = listOf(
-    "proxmox" to "Proxmox",
-    "nas" to "NAS & backup",
-    "docker" to "Docker hosts",
-    "vm" to "VMs & LXC",
-    "pc" to "PCs & other",
+/** The sections, each with the types it holds in order: the Proxmox hosts, then the VMs and LXC they run (indented). */
+private val SECTIONS = listOf(
+    "Proxmox" to listOf("proxmox", "vm"),
+    "NAS & backup" to listOf("nas"),
+    "Docker hosts" to listOf("docker"),
+    "PCs & other" to listOf("pc"),
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -81,8 +81,11 @@ fun DevicesScreen(repo: LabRepository, onCard: (String) -> Unit) {
     val filtered = remember(devices, filter) { devices.filter { it.matches(filter) } }
     // sorted once per change of the state, not on every redraw: the red ones first, then by name
     val grouped = remember(filtered) {
-        TYPE_ORDER.map { (type, title) ->
-            Triple(type, title, filtered.filter { it.type == type }.sortedWith(compareBy({ it.bad != true }, { it.name.lowercase() })))
+        SECTIONS.map { (title, types) ->
+            // by type first (hosts before guests), the red ones first within a type
+            Triple(title, title, types.flatMap { t ->
+                filtered.filter { it.type == t }.sortedWith(compareBy({ it.bad != true }, { it.name.lowercase() }))
+            })
         }.filter { it.third.isNotEmpty() }
     }
     val counts = remember(devices) { Filter.entries.associateWith { f -> devices.count { it.matches(f) } } }
@@ -119,7 +122,7 @@ fun DevicesScreen(repo: LabRepository, onCard: (String) -> Unit) {
             LazyColumn(
                 Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 if (state == null) {
                     item { Text("Connecting…", color = Lab.muted) }
@@ -131,7 +134,7 @@ fun DevicesScreen(repo: LabRepository, onCard: (String) -> Unit) {
                             SectionTitle(title, bad = group.any { it.bad == true })
                         }
                         items(group, key = { "d-" + it.id }) { c ->
-                            DeviceRow(c, server) { onCard(c.id) }
+                            DeviceRow(c, server, indent = c.type == "vm") { onCard(c.id) }
                         }
                     }
                 }
@@ -140,41 +143,36 @@ fun DevicesScreen(repo: LabRepository, onCard: (String) -> Unit) {
     }
 }
 
-/** A machine: its icon, name and line, its state in words, and a bar for each of its percentages. */
+/** A machine on one row: its icon, name, CPU and RAM in a few words, its state, the dot. */
 @Composable
-private fun DeviceRow(c: Card, server: Server?, onClick: () -> Unit) {
+private fun DeviceRow(c: Card, server: Server?, indent: Boolean = false, onClick: () -> Unit) {
     val sev = c.severity()
     Surface(
         onClick = onClick,
         shape = CardShape,
         color = Lab.card,
+        modifier = Modifier.padding(start = if (indent) 20.dp else 0.dp),
         border = BorderStroke(1.dp, if (c.bad == true) Lab.red.copy(alpha = 0.7f) else Lab.line),
     ) {
         Row(Modifier.height(IntrinsicSize.Min)) {
             if (sev.isNotEmpty()) Box(Modifier.width(3.dp).fillMaxHeight().background(barColor(sev)))
-            Column(Modifier.weight(1f).padding(horizontal = 14.dp, vertical = 12.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    CardIcon(c, server)
-                    Spacer(Modifier.width(12.dp))
-                    Column(Modifier.weight(1f)) {
-                        Text(c.name, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        val sub = c.subtitle.ifEmpty { c.summary }
-                        if (sub.isNotEmpty()) {
-                            Text(sub, fontSize = 12.sp, color = Lab.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        }
-                    }
-                    val word = statusWord(c)
-                    if (word.isNotEmpty()) {
-                        Text(word, fontSize = 12.sp, color = if (c.status == "down") Lab.red else Lab.muted,
-                            modifier = Modifier.padding(start = 8.dp))
-                    }
-                    Spacer(Modifier.width(8.dp))
-                    StatusDot(c, 10)
+            Row(Modifier.weight(1f).padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                CardIcon(c, server)
+                Spacer(Modifier.width(10.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(c.name, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    // the percentages in a line ("CPU 16% · RAM 58%"), else what the card says about itself
+                    val bars = c.metrics.filter { it.pct != null }.ifEmpty { c.guest?.meters().orEmpty() }.take(3)
+                    val up = c.guest?.uptime?.let { "up " + upText(it) } ?: c.metrics.firstOrNull { it.short().equals("uptime", true) }?.let { "up " + it.value }
+                    val line = if (c.status == "up") (bars.map { it.short() + " " + Math.round(it.pct ?: 0.0) + "%" } + listOfNotNull(up)).joinToString(" · ") else ""
+                    val sub = line.ifEmpty { c.subtitle.ifEmpty { c.summary } }
+                    if (sub.isNotEmpty()) Text(sub, fontSize = 12.sp, color = Lab.muted, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.alpha(if (c.frozen) 0.45f else 1f))
                 }
-                val bars = c.metrics.filter { it.pct != null }.take(3)
-                if (bars.isNotEmpty() && c.status == "up") Column(Modifier.padding(top = 6.dp).alpha(if (c.frozen) 0.45f else 1f)) {
-                    bars.forEach { MeterRow(it) }
-                }
+                val word = statusWord(c)
+                if (word.isNotEmpty()) Text(word, fontSize = 12.sp, color = if (c.status == "down") Lab.red else Lab.muted, modifier = Modifier.padding(start = 8.dp))
+                Spacer(Modifier.width(8.dp))
+                StatusDot(c, 10)
             }
         }
     }

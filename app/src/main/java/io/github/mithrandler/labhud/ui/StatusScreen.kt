@@ -71,6 +71,9 @@ import io.github.mithrandler.labhud.data.Server
 import io.github.mithrandler.labhud.data.Uptime
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import io.github.mithrandler.labhud.data.rateText
 import java.text.DateFormat
 import java.util.Date
 
@@ -147,6 +150,7 @@ fun StatusScreen(
                 },
                 title = { ServerPicker(server, servers, onPick = { scope.launch { repo.store.select(it.id) } }, onManage = onServers) },
                 actions = {
+                    st?.internet?.let { InternetMark(it) }
                     if (st != null) LiveMark(st, conn)
                     IconButton(onClick = { search = true }) { Icon(LabIcons.search, "Search") }
                     IconButton(onClick = { bell = true }) {
@@ -173,6 +177,10 @@ fun StatusScreen(
                 return@Column
             }
             val byId = st.byId
+            // 12/14 containers on a host whose agent has Docker
+            val boxChips = remember(st) {
+                st.containers.groupBy { it.card }.mapValues { (_, l) -> "${l.count { it.up }}/${l.size} containers" }
+            }
             // problems are in the bell (its badge counts them), not in a band over the cards
             val pages = st.pages
             val start = pages.indexOfFirst { it.id == pageId }.coerceAtLeast(0)
@@ -215,7 +223,7 @@ fun StatusScreen(
                     val compact = page?.compact == true || view == ViewMode.Glance
                     val gap = if (compact) 6.dp else 10.dp
                     LazyVerticalGrid(
-                        CappedAdaptive(158.dp, page?.columns ?: 0),
+                        CappedAdaptive(158.dp, page?.columns ?: 0, split = 3),
                         Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp),
                         horizontalArrangement = Arrangement.spacedBy(gap),
@@ -223,8 +231,8 @@ fun StatusScreen(
                     ) {
                         if (page == null) return@LazyVerticalGrid
                         if (page.games) games(page, server, onGame) else {
-                            if (index == 0) favorites(favs, byId, server, sparks, uptime, compact, onCard)
-                            groups(page, byId, server, sparks, uptime, compact, onCard)
+                            if (index == 0) favorites(favs, byId, server, sparks, uptime, compact, onCard, boxChips)
+                            groups(page, byId, server, sparks, uptime, compact, onCard, boxChips)
                         }
                     }
                 }
@@ -238,17 +246,16 @@ fun StatusScreen(
 }
 
 private fun LazyGridScope.groups(page: Page, byId: Map<String, Card>, server: Server?, sparks: Map<String, List<Double?>>,
-                                 uptime: Uptime?, compact: Boolean, onCard: (String) -> Unit) {
+                                 uptime: Uptime?, compact: Boolean, onCard: (String) -> Unit, boxChips: Map<String, String>) {
     page.groups.forEach { g ->
         val cards = g.cards.mapNotNull { byId[it] }
         if (cards.isEmpty()) return@forEach
-        item(key = "g-${g.id}", span = { GridItemSpan(maxLineSpan) }) {
-            SectionTitle(g.title, bad = cards.any { it.bad == true })
-        }
         cards.forEach { c ->
-            item(key = "c-${g.id}-${c.id}", span = { GridItemSpan(c.span(maxLineSpan)) }) {
-                HudCard(c, server, sparks = sparks, uptime = uptime?.cards?.get(c.id), percent = uptime?.percent?.get(c.id),
-                    coverage = uptime?.coverage?.get(c.id), compact = compact) { onCard(c.id) }
+            item(key = "c-${g.id}-${c.id}", span = { GridItemSpan(c.statusSpan(maxLineSpan)) }) {
+                if (c.kind == "guest") MiniCard(c, server) { onCard(c.id) }
+                else HudCard(c, server, sparks = sparks, uptime = uptime?.cards?.get(c.id), percent = uptime?.percent?.get(c.id),
+                    coverage = uptime?.coverage?.get(c.id), compact = compact,
+                    chips = listOfNotNull(boxChips[c.id])) { onCard(c.id) }
             }
         }
     }
@@ -256,14 +263,15 @@ private fun LazyGridScope.groups(page: Page, byId: Map<String, Card>, server: Se
 
 /** The cards starred on this phone, above the first page's groups. */
 private fun LazyGridScope.favorites(favs: Set<String>, byId: Map<String, Card>, server: Server?, sparks: Map<String, List<Double?>>,
-                                    uptime: Uptime?, compact: Boolean, onCard: (String) -> Unit) {
+                                    uptime: Uptime?, compact: Boolean, onCard: (String) -> Unit, boxChips: Map<String, String>) {
     val cards = favs.mapNotNull { byId[it] }.sortedBy { it.name.lowercase() }
     if (cards.isEmpty()) return
     item(key = "g-fav", span = { GridItemSpan(maxLineSpan) }) { SectionTitle("Favorites", bad = cards.any { it.bad == true }) }
     cards.forEach { c ->
-        item(key = "c-fav-${c.id}", span = { GridItemSpan(c.span(maxLineSpan)) }) {
+        item(key = "c-fav-${c.id}", span = { GridItemSpan(c.statusSpan(maxLineSpan)) }) {
             HudCard(c, server, sparks = sparks, uptime = uptime?.cards?.get(c.id), percent = uptime?.percent?.get(c.id),
-                coverage = uptime?.coverage?.get(c.id), compact = compact) { onCard(c.id) }
+                coverage = uptime?.coverage?.get(c.id), compact = compact,
+                    chips = listOfNotNull(boxChips[c.id])) { onCard(c.id) }
         }
     }
 }
@@ -294,9 +302,17 @@ private fun GameTile(g: GameServer, server: Server?, onClick: () -> Unit) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun BellSheet(st: LabState, onDismiss: () -> Unit, onCard: (String) -> Unit) {
-    val time = SHORT_TIME
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Lab.card) {
-        Column(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 32.dp)) {
+        BellContent(st, onCard, Modifier.padding(start = 16.dp, end = 16.dp, bottom = 32.dp))
+    }
+}
+
+/** What the bell holds, also Activity's first tab: the alerts, then the cards in trouble. */
+@Composable
+fun BellContent(st: LabState, onCard: (String) -> Unit, modifier: Modifier = Modifier) {
+    val time = SHORT_TIME
+    run {
+        Column(modifier.fillMaxWidth()) {
             Text("ALERTS", style = Heading, modifier = Modifier.padding(bottom = 6.dp))
             if (st.alerts.isEmpty()) Text("No alert now.", color = Lab.muted, fontSize = 14.sp)
             st.alerts.forEach { a ->
@@ -399,4 +415,18 @@ private fun ServerPicker(server: Server?, servers: List<Server>, onPick: (Server
             DropdownMenuItem(text = { Text("Manage servers…") }, onClick = { open = false; onManage() })
         }
     }
+}
+
+/** The internet's download and upload in the top bar, green while something flows (as the wall's strip). */
+@Composable
+private fun InternetMark(n: io.github.mithrandler.labhud.data.Internet) {
+    val flowing = n.dn + n.up > 64 * 1024
+    Text(
+        "↓${rateText(n.dn)} ↑${rateText(n.up)}",
+        color = if (flowing) Lab.green else Lab.muted,
+        fontWeight = FontWeight.Bold,
+        style = androidx.compose.material3.MaterialTheme.typography.labelLarge,
+        maxLines = 1,
+        modifier = Modifier.padding(end = 4.dp).semantics { contentDescription = "Internet: download ${rateText(n.dn)}, upload ${rateText(n.up)}" },
+    )
 }

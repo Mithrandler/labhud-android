@@ -62,6 +62,7 @@ fun ActivityScreen(repo: LabRepository, onCard: (String) -> Unit) {
     var tab by rememberSaveable { mutableStateOf(0) }
     var cleared by remember { mutableStateOf(0L) }
     val server by repo.server.collectAsStateWithLifecycle()
+    val state by repo.state.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     LaunchedEffect(server?.id) { server?.let { cleared = repo.store.clearedNotes(it.id) } }
     val shown = remember(notes, cleared) { notes?.filter { it.time > cleared } }
@@ -82,7 +83,7 @@ fun ActivityScreen(repo: LabRepository, onCard: (String) -> Unit) {
                 scroll = barScroll,
                 title = { Text("Activity") },
                 actions = {
-                    if (tab == 1 && !shown.isNullOrEmpty()) TextButton(onClick = {
+                    if (tab == 2 && !shown.isNullOrEmpty()) TextButton(onClick = {
                         val id = server?.id ?: return@TextButton
                         val last = notes.orEmpty().maxOf { it.time }
                         cleared = last
@@ -94,11 +95,19 @@ fun ActivityScreen(repo: LabRepository, onCard: (String) -> Unit) {
     ) { pad ->
       Column(Modifier.padding(pad).fillMaxSize()) {
         SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
-            listOf("Timeline", "Notifications").forEachIndexed { i, label ->
-                SegmentedButton(selected = tab == i, onClick = { tab = i }, shape = SegmentedButtonDefaults.itemShape(i, 2)) { Text(label) }
+            listOf("Alerts", "Timeline", "Notifications").forEachIndexed { i, label ->
+                SegmentedButton(selected = tab == i, onClick = { tab = i }, shape = SegmentedButtonDefaults.itemShape(i, 3)) { Text(label) }
             }
         }
-        if (tab == 1) {
+        if (tab == 0) {
+            val st = state
+            if (st == null) Text("Connecting…", color = Lab.muted, modifier = Modifier.padding(24.dp))
+            else androidx.compose.foundation.lazy.LazyColumn(Modifier.fillMaxSize()) {
+                item { BellContent(st, onCard, Modifier.padding(16.dp)) }
+            }
+            return@Column
+        }
+        if (tab == 2) {
             NotesList(shown, error, onCard, repo)
             return@Column
         }

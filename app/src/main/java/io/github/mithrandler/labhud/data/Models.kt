@@ -217,6 +217,15 @@ data class FleetUpdate(
     val scan: Scan? = null,
 )
 
+/** One graphics card: load and video memory in percent, the temperature in celsius; null when not reported. */
+@Serializable
+data class Gpu(val util: Double = 0.0, val mem: Double? = null, val temp: Double? = null)
+
+/** A running Proxmox guest's numbers: percent (null when not known), uptime in seconds. */
+@Serializable
+data class Guest(val cpu: Double? = null, val mem: Double? = null, val disk: Double? = null, val uptime: Long? = null,
+                 val node: String = "", val vmid: String = "")
+
 /** A single metric on a card. */
 @Serializable
 data class Metric(
@@ -297,6 +306,10 @@ data class Card(
     val bad: Boolean? = null,
     val summary: String = "",
     val frozen: Boolean = false,
+    /** A running Proxmox guest's CPU, RAM and disk in percent and its uptime (labhud 0.1.12); null for any other card. */
+    val guest: Guest? = null,
+    /** A host's graphics cards (labhud 0.1.12): load, video memory and temperature. */
+    val gpus: List<Gpu> = emptyList(),
     val note: String = "",
     @SerialName("note_kind") val noteKind: String = "",
     val metrics: List<Metric> = emptyList(),
@@ -367,6 +380,17 @@ data class BoardTheme(val base: String = "oled", val accent: String = "blue") {
     }
 }
 
+/** The internet's rates in bytes per second (`internet` in the state). */
+@Serializable
+data class Internet(val dn: Double = 0.0, val up: Double = 0.0)
+
+/** A rate as the wall writes it: 0, 340K, 1.8M (bytes per second). */
+fun rateText(bytesPerSec: Double): String = when {
+    bytesPerSec.isNaN() || bytesPerSec < 1024 -> "0"
+    bytesPerSec < 1024 * 1024 -> "${Math.round(bytesPerSec / 1024)}K"
+    else -> String.format(java.util.Locale.US, "%.1fM", bytesPerSec / 1048576)
+}
+
 /** The full lab state document. */
 @Serializable
 data class LabState(
@@ -387,6 +411,8 @@ data class LabState(
     val role: String = "",
     /** `[roles.<role>] view`: glance, actions or full; "" when the board sets none (labhud 0.1.12). */
     val view: String = "",
+    /** The router's WAN rates; null when no router reports them or the server is older than labhud 0.1.12. */
+    val internet: Internet? = null,
     /** Only in GET /api/v1/state, not in the stream: see [Info]. */
     @SerialName("device_admin") val deviceAdmin: Boolean? = null,
     val pin: Boolean? = null,

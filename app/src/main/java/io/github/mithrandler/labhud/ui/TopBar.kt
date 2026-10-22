@@ -2,8 +2,6 @@ package io.github.mithrandler.labhud.ui
 
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.LargeTopAppBar
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
@@ -21,8 +19,8 @@ fun rememberLabBarScroll(): TopAppBarScrollBehavior = TopAppBarDefaults.exitUnti
 fun Modifier.labBarScroll(scroll: TopAppBarScrollBehavior): Modifier = nestedScroll(scroll.nestedScrollConnection)
 
 /**
- * The top bar of a list screen: Material's large one in a Material theme, the HUD's small one on
- * the wall's black, as before.
+ * The top bar of every screen: the small one, the same height everywhere (the large Material one that
+ * folded on scroll took a third of the screen before the first row). [scroll] stays for the callers.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -32,11 +30,8 @@ fun LabTopBar(
     navigationIcon: @Composable () -> Unit = {},
     actions: @Composable RowScope.() -> Unit = {},
 ) {
-    if (Lab.hud) TopAppBar(
+    TopAppBar(
         title = title, navigationIcon = navigationIcon, actions = actions,
         colors = TopAppBarDefaults.topAppBarColors(containerColor = Lab.bg),
-    ) else LargeTopAppBar(
-        title = title, navigationIcon = navigationIcon, actions = actions, scrollBehavior = scroll,
-        colors = TopAppBarDefaults.largeTopAppBarColors(containerColor = Lab.bg, scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer),
     )
 }

@@ -3,12 +3,16 @@ package io.github.mithrandler.labhud.ui
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -29,9 +33,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import io.github.mithrandler.labhud.data.Card
 import io.github.mithrandler.labhud.data.Metric
 import io.github.mithrandler.labhud.data.Server
@@ -63,9 +70,10 @@ fun gridColumns(available: Int, spacing: Int, min: Int, cap: Int): Int {
 }
 
 /** Like GridCells.Adaptive(min), but a page may cap the columns. */
-class CappedAdaptive(private val min: androidx.compose.ui.unit.Dp, private val cap: Int) : androidx.compose.foundation.lazy.grid.GridCells {
+class CappedAdaptive(private val min: androidx.compose.ui.unit.Dp, private val cap: Int, private val split: Int = 1) : androidx.compose.foundation.lazy.grid.GridCells {
     override fun androidx.compose.ui.unit.Density.calculateCrossAxisCellSizes(availableSize: Int, spacing: Int): List<Int> {
-        val n = gridColumns(availableSize, spacing, min.roundToPx(), cap)
+        // split: each column cut in this many cells, so a card can take a third of what a card took before
+        val n = gridColumns(availableSize, spacing, min.roundToPx(), cap) * split
         val usable = availableSize - spacing * (n - 1)
         val each = usable / n
         return List(n) { if (it < usable % n) each + 1 else each }
@@ -78,6 +86,15 @@ fun Card.span(maxLine: Int): Int = when {
     size == "m" || size == "l" -> 2
     size.isEmpty() && kind == "list" -> maxLine
     else -> 1
+}.coerceIn(1, maxLine)
+
+/** The span of a card in the Status grid, whose cells are a third of a column: a guest is a mini-card (a third of the row on a phone). */
+fun Card.statusSpan(maxLine: Int): Int = when {
+    kind == "guest" -> 2
+    size == "xl" -> maxLine
+    size == "m" || size == "l" -> 6
+    size.isEmpty() && kind == "list" -> maxLine
+    else -> 3
 }.coerceIn(1, maxLine)
 
 /** The worst of the card: crit when red, warn when one of its numbers is past its mark, else "". */
@@ -111,9 +128,13 @@ fun HudCard(
     percent: Double? = null,
     coverage: Double? = null,
     compact: Boolean = false,
+    /** Small facts under the numbers, as chips: 12/14 containers. */
+    chips: List<String> = emptyList(),
     onClick: () -> Unit,
 ) {
     val sev = c.severity()
+    // the host's graph and 24 h bar live in its panel: on the card they cost a third of its height
+    val bigMachine = c.type == "proxmox" || c.type == "nas"
     Surface(
         onClick = onClick, modifier = modifier.fillMaxWidth(), shape = CardShape, color = Lab.card,
         // HUD: a thin edge on black, as the wall; Material: raised as an ElevatedCard, the edge only when in trouble
@@ -130,14 +151,14 @@ fun HudCard(
                 .padding(horizontal = LabScale.space3, vertical = if (compact) 6.dp else 10.dp)) {
                 CardHead(c, server)
                 val fade = Modifier.alpha(if (c.frozen) 0.45f else 1f)
-                CardBody(c, fade, server)
+                CardBody(c, fade, server, chips)
                 if (c.note.isNotEmpty()) {
                     Text(c.note, fontSize = LabScale.textXs, color = if (c.noteKind == "error" || c.noteKind == "stale") Lab.warn else Lab.muted,
                         maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = LabScale.space1))
                 }
                 Spacer(Modifier.weight(1f))
                 val main = c.metrics.firstOrNull { it.trend && sparks[it.key]?.count { v -> v != null }?.let { n -> n >= 2 } == true }
-                if (main != null && !c.frozen) {
+                if (main != null && !c.frozen && !bigMachine) {
                     Row(Modifier.padding(top = LabScale.space2), verticalAlignment = Alignment.CenterVertically) {
                         Text(main.short(), fontSize = LabScale.textXs, color = Lab.muted, maxLines = 1, modifier = Modifier.widthIn(max = 56.dp))
                         Spacer(Modifier.width(LabScale.space2))
@@ -145,7 +166,7 @@ fun HudCard(
                             Modifier.weight(1f).height(18.dp))
                     }
                 }
-                if (!uptime.isNullOrEmpty()) {
+                if (!uptime.isNullOrEmpty() && !bigMachine) {
                     UptimeBar(uptime, Modifier.fillMaxWidth().padding(top = LabScale.space2).height(LabScale.bar), slices = 24)
                     val words = uptimeText(percent, coverage)
                     if (words.isNotEmpty()) Text("24 h · $words", fontSize = LabScale.textXs, color = Lab.muted, maxLines = 1,
@@ -172,11 +193,15 @@ fun CardHead(c: Card, server: Server?) {
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun CardBody(c: Card, fade: Modifier, server: Server? = null) {
+private fun CardBody(c: Card, fade: Modifier, server: Server? = null, chips: List<String> = emptyList()) {
     val word = statusWord(c)
     val most = when (c.size) { "xl" -> 8; "l" -> 6; "m" -> 4; else -> 2 }
-    val shown = c.metrics.filter { it.value.isNotEmpty() && it.value != "—" }.take(most)
+    // a guest has no metrics of its own: its CPU, RAM and disk come from the server's `guest`
+    val own = c.metrics.filter { it.value.isNotEmpty() && it.value != "—" }.ifEmpty { c.guest?.meters().orEmpty() }
+    // a machine shows all of its numbers (rings, temperatures, counts); a plain card only the first few
+    val shown = if (c.type.isNotEmpty() || own.count { it.pct != null } >= 2) own.take(10) else own.take(most)
     // the state in words stays clear; only the numbers that are not live are dimmed
     if (word.isNotEmpty() && c.status != "up") {
         Text(word, fontSize = LabScale.textSm, color = if (c.status == "down") Lab.red else Lab.muted, modifier = Modifier.padding(top = LabScale.space2))
@@ -188,12 +213,19 @@ private fun CardBody(c: Card, fade: Modifier, server: Server? = null) {
             c.widget == "calendar" -> CalendarWidget()
             c.frame.isNotEmpty() -> FrameWidget(c.frame, c.frameHeight)
             shown.isNotEmpty() -> {
-                shown.filter { it.pct != null }.forEach { MeterRow(it) }
-                shown.filter { it.pct == null }.chunked(2).forEach { pair ->
-                    Row(Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
-                        pair.forEach { m -> PairCell(m, Modifier.weight(1f)) }
-                        if (pair.size == 1) Spacer(Modifier.weight(1f))
-                    }
+                val (rings, others) = ringsAndChips(shown)
+                // two or more percentages: rings side by side, a temperature under its number; one alone keeps its bar
+                if (rings.size >= 2 && c.type == "proxmox") Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
+                    rings.take(4).forEach { (m, t) -> Ring(m, Modifier.weight(1f), t) }
+                    c.gpus.take(2).forEachIndexed { i, g -> GpuRing(g, if (c.gpus.size > 1) "GPU${i + 1}" else "GPU", Modifier.weight(1f)) }
+                } else rings.forEach { (m, t) -> MeterRow(m, thin = true); if (t != null) Chip(t) }
+                // the GPU's temperature is in its own ring
+                val facts = others.filter { c.gpus.isEmpty() || !(it.format == "celsius" && "gpu" in (it.label + it.key).lowercase()) } + listOfNotNull(c.guest?.uptime?.let { Metric(label = "up", value = upText(it)) }) +
+                    chips.map { Metric(value = it) }
+                if (facts.isNotEmpty()) FlowRow(Modifier.fillMaxWidth().padding(top = 2.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    facts.forEach { Chip(it) }
                 }
             }
             c.kind == "list" && c.rows.isNotEmpty() -> {
@@ -209,33 +241,63 @@ private fun CardBody(c: Card, fade: Modifier, server: Server? = null) {
     }
 }
 
-/** A number that is not a percentage: its label over its value. */
+/** A number that is not a percentage, as a small chip: its label, then its value. */
 @Composable
-private fun PairCell(m: Metric, modifier: Modifier) {
-    Column(modifier.padding(end = LabScale.space2)) {
+private fun Chip(m: Metric) {
+    Row(Modifier.clip(RoundedCornerShape(50)).background(Lab.block).padding(horizontal = 10.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically) {
+        if (m.label.isNotEmpty() || m.key.isNotEmpty()) {
+            Text(m.short(), fontSize = LabScale.textXs, color = Lab.muted, maxLines = 1)
+            Spacer(Modifier.width(6.dp))
+        }
+        Text(m.value, fontSize = LabScale.textSm, fontWeight = FontWeight.Medium, color = sevColor(m.sev), maxLines = 1)
+    }
+}
+
+/** A percentage as a ring (orange and red past its marks) with the number in the middle and its label under it. */
+@Composable
+fun Ring(m: Metric, modifier: Modifier = Modifier, temp: Metric? = null) {
+    val pct = (m.pct ?: 0.0).coerceIn(0.0, 100.0)
+    val sev = if (temp == null) m.sev else worseSev(m.sev, temp.sev)
+    val color = barColor(sev)
+    val track = Lab.block
+    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(Modifier.size(64.dp), contentAlignment = Alignment.Center) {
+            Canvas(Modifier.fillMaxSize()) {
+                val w = 6.dp.toPx()
+                val box = Size(size.width - w, size.height - w)
+                val at = Offset(w / 2, w / 2)
+                drawArc(track, 0f, 360f, false, topLeft = at, size = box, style = Stroke(w))
+                if (pct > 0) drawArc(color, -90f, (360 * pct / 100).toFloat(), false, topLeft = at, size = box,
+                    style = Stroke(w, cap = StrokeCap.Round))
+            }
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("${Math.round(pct)}%", fontSize = LabScale.textXs, fontWeight = FontWeight.SemiBold, color = sevColor(m.sev))
+                if (temp != null) Text(temp.value, fontSize = 10.sp, color = sevColor(temp.sev), maxLines = 1)
+            }
+        }
         Text(m.short(), fontSize = LabScale.textXs, color = Lab.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Text(m.value, fontSize = LabScale.textMd, fontWeight = FontWeight.Medium, color = sevColor(m.sev), maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
 /** A percentage as a bar: its label and value on one line, the bar (orange and red past its marks) under them. */
 @Composable
-fun MeterRow(m: Metric, modifier: Modifier = Modifier) {
-    Column(modifier.fillMaxWidth().padding(vertical = 3.dp)) {
+fun MeterRow(m: Metric, modifier: Modifier = Modifier, thin: Boolean = false) {
+    Column(modifier.fillMaxWidth().padding(vertical = if (thin) 1.dp else 3.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(m.short(), fontSize = LabScale.textXs, color = Lab.muted, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
             Text(m.value, fontSize = LabScale.textSm, fontWeight = FontWeight.Medium, color = sevColor(m.sev), maxLines = 1,
                 modifier = Modifier.padding(start = LabScale.space2))
         }
-        Meter(m.pct ?: 0.0, m.sev, Modifier.fillMaxWidth().padding(top = 3.dp))
+        Meter(m.pct ?: 0.0, m.sev, Modifier.fillMaxWidth().padding(top = if (thin) 1.dp else 3.dp), height = if (thin) 4.dp else LabScale.bar)
     }
 }
 
 /** The bar alone: [pct] of 0..100 filled in the severity's colour, on the block colour. */
 @Composable
-fun Meter(pct: Double, sev: String, modifier: Modifier = Modifier) {
+fun Meter(pct: Double, sev: String, modifier: Modifier = Modifier, height: androidx.compose.ui.unit.Dp = LabScale.bar) {
     val color = barColor(sev)
-    Canvas(modifier.height(LabScale.bar)) {
+    Canvas(modifier.height(height)) {
         val r = CornerRadius(size.height / 2)
         drawRoundRect(Lab.block, cornerRadius = r)
         val w = (size.width * (pct.coerceIn(0.0, 100.0) / 100.0)).toFloat()
@@ -302,5 +364,86 @@ fun SectionTitle(title: String, bad: Boolean = false, modifier: Modifier = Modif
         Text(title.uppercase(), style = Heading, maxLines = 1, overflow = TextOverflow.Ellipsis)
         Spacer(Modifier.width(LabScale.space2))
         Box(Modifier.weight(1f).height(1.dp).background(Lab.line))
+    }
+}
+
+
+/**
+ * A guest (VM, LXC) as a small card, three to a row: its name and dot, then CPU, RAM and disk as thin
+ * bars and how long it has run. A guest that is not running says so instead of the bars.
+ */
+@Composable
+fun MiniCard(c: Card, server: Server?, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    val sev = c.severity()
+    Surface(
+        onClick = onClick, modifier = modifier.fillMaxWidth(), shape = CardShape, color = Lab.card,
+        border = when {
+            c.bad == true -> BorderStroke(1.dp, Lab.red.copy(alpha = 0.7f))
+            Lab.hud -> BorderStroke(1.dp, Lab.line)
+            else -> null
+        },
+        shadowElevation = if (Lab.hud) 0.dp else 1.dp,
+    ) {
+        Column(Modifier.heightIn(min = 96.dp).padding(horizontal = 8.dp, vertical = 8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                CardIcon(c, server)
+                Spacer(Modifier.width(6.dp))
+                Text(c.name, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                if (c.status != null || c.bad != null) { Spacer(Modifier.width(4.dp)); StatusDot(c, 8) }
+            }
+            val g = c.guest
+            if (g == null) {
+                Text(statusWord(c).ifEmpty { c.summary }, fontSize = 12.sp, color = if (c.status == "down") Lab.red else Lab.muted,
+                    modifier = Modifier.padding(top = 8.dp))
+            } else Column(Modifier.padding(top = 6.dp).alpha(if (c.frozen) 0.45f else 1f)) {
+                g.meters().forEach { m ->
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 1.dp)) {
+                        Text(m.label, fontSize = 9.sp, color = Lab.muted, modifier = Modifier.width(26.dp), maxLines = 1)
+                        Meter(m.pct ?: 0.0, m.sev, Modifier.weight(1f), height = 4.dp)
+                        Text(m.value, fontSize = 9.sp, color = sevColor(m.sev), maxLines = 1, textAlign = androidx.compose.ui.text.style.TextAlign.End,
+                            modifier = Modifier.width(26.dp))
+                    }
+                }
+                g.uptime?.let { Text("up " + upText(it), fontSize = 10.sp, color = Lab.muted, modifier = Modifier.padding(top = 3.dp)) }
+            }
+        }
+    }
+}
+
+
+/**
+ * A graphics card in one ring: the load round the outside, the video memory in a thinner ring inside it,
+ * the load and the temperature in the middle, "VRAM 30%" under the name.
+ */
+@Composable
+fun GpuRing(g: io.github.mithrandler.labhud.data.Gpu, name: String, modifier: Modifier = Modifier) {
+    val util = g.util.coerceIn(0.0, 100.0)
+    val mem = g.mem?.coerceIn(0.0, 100.0)
+    val track = Lab.block
+    val loadColor = if (util >= 92) Lab.red else if (util >= 80) Lab.warn else Lab.accent
+    val memColor = if ((mem ?: 0.0) >= 92) Lab.red else if ((mem ?: 0.0) >= 80) Lab.warn else Lab.accent.copy(alpha = 0.55f)
+    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(Modifier.size(64.dp), contentAlignment = Alignment.Center) {
+            Canvas(Modifier.fillMaxSize()) {
+                val w = 6.dp.toPx(); val w2 = 4.dp.toPx()
+                val outer = Size(size.width - w, size.height - w)
+                drawArc(track, 0f, 360f, false, topLeft = Offset(w / 2, w / 2), size = outer, style = Stroke(w))
+                if (util > 0) drawArc(loadColor, -90f, (360 * util / 100).toFloat(), false, topLeft = Offset(w / 2, w / 2), size = outer,
+                    style = Stroke(w, cap = StrokeCap.Round))
+                if (mem != null) {
+                    val inset = w + 2.dp.toPx() + w2 / 2
+                    val inner = Size(size.width - 2 * inset, size.height - 2 * inset)
+                    drawArc(track, 0f, 360f, false, topLeft = Offset(inset, inset), size = inner, style = Stroke(w2))
+                    if (mem > 0) drawArc(memColor, -90f, (360 * mem / 100).toFloat(), false, topLeft = Offset(inset, inset), size = inner,
+                        style = Stroke(w2, cap = StrokeCap.Round))
+                }
+            }
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("${Math.round(util)}%", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = if (util >= 80) loadColor else Lab.text)
+                g.temp?.let { Text("${Math.round(it)}°", fontSize = 10.sp, color = Lab.muted, maxLines = 1) }
+            }
+        }
+        Text(name, fontSize = LabScale.textXs, color = Lab.muted, maxLines = 1)
+        mem?.let { Text("VRAM ${Math.round(it)}%", fontSize = 10.sp, color = Lab.muted, maxLines = 1) }
     }
 }
