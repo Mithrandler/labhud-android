@@ -69,6 +69,18 @@ private val SECTIONS = listOf(
     "PCs & other" to listOf("pc"),
 )
 
+/** The red ones first, then by name. */
+private val RED_FIRST = compareBy<Card>({ it.bad != true }, { it.name.lowercase() })
+
+/** Each Proxmox host followed by the VMs and LXC that run on it (by their `node`); guests of no listed host come last. */
+internal fun hostsWithGuests(cards: List<Card>): List<Card> {
+    val hosts = cards.filter { it.type == "proxmox" }.sortedWith(RED_FIRST)
+    val guests = cards.filter { it.type == "vm" }
+    val nodes = hosts.map { it.node }.filter { it.isNotEmpty() }.toSet()
+    return hosts.flatMap { h -> listOf(h) + if (h.node.isEmpty()) emptyList() else guests.filter { it.node == h.node }.sortedWith(RED_FIRST) } +
+        guests.filter { it.node !in nodes }.sortedWith(RED_FIRST)
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DevicesScreen(repo: LabRepository, bar: BarNav) {
@@ -84,7 +96,7 @@ fun DevicesScreen(repo: LabRepository, bar: BarNav) {
     val grouped = remember(filtered) {
         SECTIONS.map { (title, types) ->
             // by type first (hosts before guests), the red ones first within a type
-            Triple(title, title, types.flatMap { t ->
+            Triple(title, title, if (types == listOf("proxmox", "vm")) hostsWithGuests(filtered) else types.flatMap { t ->
                 filtered.filter { it.type == t }.sortedWith(compareBy({ it.bad != true }, { it.name.lowercase() }))
             })
         }.filter { it.third.isNotEmpty() }
