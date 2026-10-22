@@ -57,6 +57,8 @@ data class Info(
     @SerialName("device_admin") val deviceAdmin: Boolean = false,
     val pin: Boolean = false,
     val unlocked: Boolean = false,
+    /** The admin's name, for a phone signed in as the admin (labhud 0.1.12); null before, and when only looking. */
+    val user: String? = null,
 )
 
 /** Answer of /api/v1/admin-login, admin-logout and unlock. */
@@ -70,6 +72,27 @@ data class AdminAnswer(
     val ticket: String? = null,
     val idle: Int = 120,
     val wait: Double = 0.0,
+    val user: String? = null,
+)
+
+/** One of the admin's sessions, from GET /api/v1/sessions (no ticket in it). */
+@Serializable
+data class AdminSession(
+    val id: String = "",
+    val made: Double = 0.0,
+    val last: Double = 0.0,
+    val where: String = "",
+    val what: String = "",
+)
+
+/** Answer of GET /api/v1/sessions: the live browser sessions, which one is this, the phones that are the admin. */
+@Serializable
+data class SessionsAnswer(
+    val ok: Boolean = false,
+    val error: String = "",
+    val sessions: List<AdminSession> = emptyList(),
+    val current: String = "",
+    val phones: List<Phone> = emptyList(),
 )
 
 /** Response from POST /api/v1/pair. */
@@ -472,6 +495,9 @@ data class AgentRow(
 
 @Serializable
 data class Agents(
+    /** False (with `error`) when labhud refused: the list is then empty for a reason, not because there is no agent. */
+    val ok: Boolean = true,
+    val error: String = "",
     val agents: List<AgentRow> = emptyList(),
     /** Every capability an agent can have, in labhud's order. */
     val caps: List<String> = emptyList(),

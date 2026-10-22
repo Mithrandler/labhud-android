@@ -72,18 +72,21 @@ fun SecuritySection(repo: LabRepository, nav: SettingsNav) {
     }
 
     SettingsPage(section("security")!!, nav) {
-        heading("This phone")
         item {
-            AccountPanel(rights.admin, rights.pin, onSignIn = { signingIn = true }, onSignOut = { scope.launch { repo.signOut() } },
-                onSso = if (sso && !rights.admin) ({ scope.launch { Sso.start(context, repo)?.let { message = it } } }) else null)
+            AccountPanel(rights.admin, rights.pin, rights.user, onSignIn = { signingIn = true }, onSignOut = { scope.launch { repo.signOut() } },
+                onSso = if (sso && !rights.admin) ({ scope.launch { Sso.start(context, repo)?.let { message = it } } }) else null,
+                onLock = if (rights.admin && rights.pin) ({ repo.lockNow(); message = "Locked: the next button asks for the PIN." }) else null)
         }
         if (message.isNotEmpty()) item { Text(message, color = Lab.warn, fontSize = 13.sp) }
-        heading("The wall")
+        if (rights.admin) {
+            item { SessionsPanel(repo, gate) }
+            item { PairedPhonesPanel(repo, gate) }
+        }
         item {
-            Panel("") {
-                Text(if (rights.pin) "The screen has a PIN" else "No PIN on the screen", fontWeight = FontWeight.Medium)
+            CollapsiblePanel("PIN on the wall", if (rights.pin) "Set: ${state?.pinMinutes ?: 2} min without a press" else "None") {
                 Text(
-                    if (rights.pin) "Buttons and settings ask for it (or your fingerprint, once kept), and it lasts ${state?.pinMinutes ?: 2} min without a press."
+                    if (rights.pin) "Buttons and settings ask for it (or your fingerprint, once kept), and it lasts ${state?.pinMinutes ?: 2} min without a press. " +
+                        "Wall mode on this phone uses the same unlock."
                     else "Anyone at the screen can use its buttons.",
                     fontSize = 12.sp, color = Lab.muted,
                 )
@@ -93,26 +96,25 @@ fun SecuritySection(repo: LabRepository, nav: SettingsNav) {
             val st = state
             if (st == null) item { Unlock { gate.press { load() } } }
             else {
-                heading("Single sign-on")
-                item { SsoPanel(st) }
-                heading("Session timeout")
+                item { CollapsiblePanel("Single sign-on", if (st.oidc != null) "On" else "Off") { SsoPanel(st) } }
                 item {
-                    TimeoutPanel(st) { hours, minutes ->
-                        gate.press {
-                            scope.launch {
-                                val r = runCatching { repo.api()?.saveTimeouts(hours, minutes) }.getOrNull()
-                                message = if (r?.ok == true) "Saved." else r?.error?.ifBlank { null } ?: "Not saved."
-                                if (r?.ok == true) state = st.copy(sessionHours = hours, pinMinutes = minutes)
+                    CollapsiblePanel("Session timeout", "${st.sessionHours} h browser · ${st.pinMinutes} min PIN") {
+                        TimeoutPanel(st) { hours, minutes ->
+                            gate.press {
+                                scope.launch {
+                                    val r = runCatching { repo.api()?.saveTimeouts(hours, minutes) }.getOrNull()
+                                    message = if (r?.ok == true) "Saved." else r?.error?.ifBlank { null } ?: "Not saved."
+                                    if (r?.ok == true) state = st.copy(sessionHours = hours, pinMinutes = minutes)
+                                }
                             }
                         }
                     }
                 }
-                heading("Trusted networks")
-                item { NetworksPanel(st) }
+                item { CollapsiblePanel("Trusted networks", "This phone comes from ${st.yourIp}") { NetworksPanel(st) } }
             }
         }
-        item { WallOnly("⚙ > Security", listOf("The admin account and its authenticator (TOTP)", "Setting or removing the PIN",
-            "Signing out the other sessions", "The single sign-on provider and the networks")) }
+        item { WallOnly("⚙ > Security", listOf("The admin's password and authenticator (TOTP): `labhud admin` on the server", "Setting or removing the PIN",
+            "The single sign-on provider and the networks")) }
     }
     if (signingIn) SignInDialog(repo, onDone = { signingIn = false })
     GateDialogs(gate, nav.signIn)
@@ -174,9 +176,10 @@ private fun NetworksPanel(st: SecurityState) {
 
 /** Signed in as the admin or only looking, with the one button that changes it. */
 @Composable
-internal fun AccountPanel(admin: Boolean, pin: Boolean, onSignIn: () -> Unit, onSignOut: () -> Unit, onSso: (() -> Unit)? = null) {
+internal fun AccountPanel(admin: Boolean, pin: Boolean, user: String = "", onSignIn: () -> Unit, onSignOut: () -> Unit,
+                          onSso: (() -> Unit)? = null, onLock: (() -> Unit)? = null) {
     Panel("") {
-        Text(if (admin) "Signed in as the admin" else "Only looking", fontWeight = FontWeight.Medium)
+        Text(accountSummary(admin, user), fontWeight = FontWeight.Medium)
         Text(
             if (admin) "The buttons work here" + (if (pin) ", after the wall's PIN (or your fingerprint)." else ".")
             else "Sign in as LabHUD's admin (user, password and the authenticator code) for the buttons and the rest of the settings.",
@@ -185,6 +188,7 @@ internal fun AccountPanel(admin: Boolean, pin: Boolean, onSignIn: () -> Unit, on
         Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             if (admin) TextButton(onClick = onSignOut) { Text("Sign out", color = Lab.red) }
             else Button(onClick = onSignIn) { Text("Sign in") }
+            if (admin && onLock != null) OutlinedButton(onClick = onLock) { Text("Lock now") }
             if (!admin && onSso != null) OutlinedButton(onClick = onSso) { Text("Single sign-on") }
         }
     }

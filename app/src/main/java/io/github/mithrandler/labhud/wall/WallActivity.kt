@@ -12,6 +12,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
 import io.github.mithrandler.labhud.LabHudApp
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 /**
@@ -44,7 +45,8 @@ class WallActivity : ComponentActivity() {
                 })
                 return@launch
             }
-            web = wallWebView(this@WallActivity, server, token).also { root.addView(it) }
+            val glance = repo.store.settings.first().wallGlance
+            web = wallWebView(this@WallActivity, server, token, repo.unlockTicket(), glance).also { root.addView(it) }
         }
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {

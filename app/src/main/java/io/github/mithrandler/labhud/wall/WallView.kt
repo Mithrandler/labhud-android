@@ -11,6 +11,8 @@ import android.webkit.SslErrorHandler
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import androidx.webkit.WebViewCompat
+import androidx.webkit.WebViewFeature
 import io.github.mithrandler.labhud.data.LabApi
 import io.github.mithrandler.labhud.data.Server
 
@@ -21,7 +23,7 @@ import io.github.mithrandler.labhud.data.Server
  * the WebView's TLS error is overridden only for exactly that certificate.
  */
 @SuppressLint("SetJavaScriptEnabled")
-fun wallWebView(context: Context, server: Server, token: String): WebView {
+fun wallWebView(context: Context, server: Server, token: String, ticket: String? = null, glance: Boolean = false): WebView {
     val base = Uri.parse(server.url)
     CookieManager.getInstance().apply {
         setAcceptCookie(true)
@@ -50,6 +52,19 @@ fun wallWebView(context: Context, server: Server, token: String): WebView {
                 else handler.cancel()
             }
         }
-        loadUrl(server.url + "/")
+        // the app's unlock ticket (if there is one) goes in before the page's scripts, only for labhud's own origin
+        val script = unlockScript(ticket)
+        val origin = "${base.scheme}://${base.authority}"
+        val early = script != null && WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)
+        if (early) WebViewCompat.addDocumentStartJavaScript(this, script!!, setOf(origin))
+        else if (script != null) {
+            val before = webViewClient
+            webViewClient = object : WebViewClient() {
+                override fun onPageStarted(view: WebView, url: String?, favicon: android.graphics.Bitmap?) { view.evaluateJavascript(script, null) }
+                override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest) = before.shouldOverrideUrlLoading(view, request)
+                override fun onReceivedSslError(view: WebView, handler: SslErrorHandler, error: SslError) = before.onReceivedSslError(view, handler, error)
+            }
+        }
+        loadUrl(wallAddress(server.url, glance))
     }
 }

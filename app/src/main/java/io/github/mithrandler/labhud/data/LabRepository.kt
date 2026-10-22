@@ -30,7 +30,7 @@ sealed interface Conn {
 }
 
 /** What this phone may do on the shown server: signed in as its admin, and whether it has a PIN. */
-data class Rights(val admin: Boolean = false, val pin: Boolean = false)
+data class Rights(val admin: Boolean = false, val pin: Boolean = false, val user: String = "")
 
 /**
  * The shown server's state: the last one kept on disk at once, then live through the stream for
@@ -95,7 +95,7 @@ class LabRepository(private val context: Context, val store: ServerStore) {
                 // after a failure the reason stays on screen while the next try runs
                 _conn.value = (_conn.value as? Conn.Offline)?.takeIf { !it.fatal }?.copy(trying = true, retryAt = 0) ?: Conn.Connecting
                 try {
-                    api.info().also { _info.value = it; _rights.value = Rights(it.deviceAdmin, it.pin) }
+                    api.info().also { _info.value = it; _rights.value = Rights(it.deviceAdmin, it.pin, it.user.orEmpty()) }
                     api.stream().collect { st ->
                         _conn.value = Conn.Live
                         _liveAt.value = System.currentTimeMillis()
@@ -154,6 +154,12 @@ class LabRepository(private val context: Context, val store: ServerStore) {
         return t
     }
 
+    /** The live unlock ticket, for the wall page in Wall mode (it is the same PIN, the same idle time). Null without one. */
+    fun unlockTicket(): String? = liveTicket()
+
+    /** Locks the buttons again at once (the ticket is forgotten); the admin sign-in stays. */
+    fun lockNow() = dropTicket()
+
     private fun dropTicket() {
         ticket = null
         ticketUntil = 0L
@@ -167,6 +173,7 @@ class LabRepository(private val context: Context, val store: ServerStore) {
         ticketIdle = r.idle * 1000L
         ticket = r.ticket
         ticketUntil = android.os.SystemClock.elapsedRealtime() + ticketIdle
+        r.user?.let { u -> _rights.value = _rights.value.copy(user = u) }
         return null
     }
 
@@ -175,7 +182,7 @@ class LabRepository(private val context: Context, val store: ServerStore) {
         val api = api() ?: return "No server paired."
         val r = runCatching { api.adminLogin(user, password, code) }.getOrElse { return it.message ?: "Could not reach LabHUD." }
         if (!r.ok) return if (r.wait > 0) "Wrong user, password or code. Wait ${r.wait.toInt() + 1} s." else r.error.ifBlank { "Refused." }
-        _rights.value = Rights(r.deviceAdmin, r.pin)
+        _rights.value = Rights(r.deviceAdmin, r.pin, r.user.orEmpty())
         return null
     }
 
@@ -189,7 +196,7 @@ class LabRepository(private val context: Context, val store: ServerStore) {
 
     /** Reads the rights again (after the admin changed on the server, a PIN set…). */
     suspend fun refreshRights() {
-        runCatching { api()?.info() }.getOrNull()?.let { _info.value = it; _rights.value = Rights(it.deviceAdmin, it.pin) }
+        runCatching { api()?.info() }.getOrNull()?.let { _info.value = it; _rights.value = Rights(it.deviceAdmin, it.pin, it.user.orEmpty()) }
     }
 
     suspend fun servers(): List<Server> = store.servers.first()

@@ -64,7 +64,7 @@ fun GateDialogs(gate: Gate, onSignIn: () -> Unit) {
     if (gate.notAdmin) AlertDialog(
         onDismissRequest = { gate.notAdmin = false },
         title = { Text("Only the admin") },
-        text = { Text("This phone only looks. Sign in as LabHUD's admin (Settings > Security) to use the buttons.") },
+        text = { Text("This phone only looks. Sign in as LabHUD's admin (Settings > Account) to use the buttons.") },
         confirmButton = { TextButton(onClick = { gate.notAdmin = false; onSignIn() }) { Text("Sign in") } },
         dismissButton = { TextButton(onClick = { gate.notAdmin = false }) { Text("Cancel") } },
     )

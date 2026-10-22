@@ -40,6 +40,8 @@ enum class ThemeMode { System, Dark, Light, Hud }
 data class AppSettings(
     val lockMode: LockMode = LockMode.None,
     val wallOnBoot: Boolean = false,
+    /** Wall mode shows the glance view (?glance=1): big tiles, one number each. */
+    val wallGlance: Boolean = true,
     val notify: NotifyMode = NotifyMode.Off,
     val theme: ThemeMode = ThemeMode.Hud,
 )
@@ -60,6 +62,7 @@ class ServerStore(private val context: Context) {
     private val unlockKey = booleanPreferencesKey("require_unlock")
     private val lockKey = stringPreferencesKey("lock_mode")
     private val wallBootKey = booleanPreferencesKey("wall_on_boot")
+    private val wallGlanceKey = booleanPreferencesKey("wall_glance")
     private val themeKey = stringPreferencesKey("theme_mode")
     private fun tokenKey(id: String) = stringPreferencesKey("token_$id")
     private fun pinKey(id: String) = stringPreferencesKey("pin_$id")
@@ -81,7 +84,7 @@ class ServerStore(private val context: Context) {
     val settings: Flow<AppSettings> = context.store.data.map { p ->
         val mode = p[lockKey]?.let { runCatching { LockMode.valueOf(it) }.getOrNull() }
             ?: if (p[unlockKey] == true) LockMode.ScreenLock else LockMode.None
-        AppSettings(lockMode = mode, wallOnBoot = p[wallBootKey] ?: false,
+        AppSettings(lockMode = mode, wallOnBoot = p[wallBootKey] ?: false, wallGlance = p[wallGlanceKey] ?: true,
             notify = p[notifyKey]?.let { runCatching { NotifyMode.valueOf(it) }.getOrNull() } ?: NotifyMode.Off,
             theme = p[themeKey]?.let { runCatching { ThemeMode.valueOf(it) }.getOrNull() } ?: ThemeMode.Hud)
     }
@@ -140,6 +143,7 @@ class ServerStore(private val context: Context) {
     suspend fun setLockMode(mode: LockMode) = context.store.edit { it[lockKey] = mode.name }
     suspend fun setTheme(mode: ThemeMode) = context.store.edit { it[themeKey] = mode.name }
     suspend fun setWallOnBoot(on: Boolean) = context.store.edit { it[wallBootKey] = on }
+    suspend fun setWallGlance(on: Boolean) = context.store.edit { it[wallGlanceKey] = on }
 }
 
 /**

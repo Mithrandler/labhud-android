@@ -27,10 +27,8 @@ suspend fun sendAction(repo: LabRepository, name: String, label: String): String
     val api = repo.api() ?: return "$label: no server paired"
     val r = api.action(name)
     api.actionLog(name, if (r.ok) "accepted" else "refused", 0)
-    return if (r.ok) "$label: sent" else "$label: " + when (r.error) {
-        "", "forbidden" -> if (repo.rights.value.admin) "refused (unlock with the PIN again)" else "refused: sign in as the admin in Settings"
-        else -> r.error
-    }
+    if (!r.ok && isRefusal(r.error)) repo.refreshRights()   // the rights this phone shows may be old
+    return if (r.ok) "$label: sent" else "$label: " + refusalText(r.error, repo.rights.value)
 }
 
 /** "Are you sure?" for an action: one Yes, or one button per choice (a VM's start/shutdown/reboot). */

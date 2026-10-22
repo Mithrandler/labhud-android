@@ -6,7 +6,7 @@ import io.github.mithrandler.labhud.data.LabRepository
 import io.github.mithrandler.labhud.ui.LabIcons
 
 /**
- * The settings, as on the wall's ⚙: the same four groups and sections (same ids, so a
+ * The settings, as on the wall's ⚙: the same sections (Phones now lives in Account, as "Paired phones") (same ids, so a
  * labhud://settings/<id> link or a "see ⚙ > X" hint means the same place), plus THIS PHONE.
  *
  * A new section is one file in ui/settings/ with a `@Composable fun XSection(repo, nav)` and one
@@ -38,14 +38,18 @@ class SettingsNav(
 
 /** The groups in order: the wall's four, then this phone's own. */
 val GROUPS = listOf(
-    "display" to "DISPLAY",
+    "account" to "ACCOUNT",
+    "display" to "BOARD",
     "infra" to "INFRASTRUCTURE",
-    "monitor" to "MONITORING",
+    "monitor" to "ALERTS",
     "system" to "SYSTEM",
     "phone" to "THIS PHONE",
 )
 
 val SECTIONS: List<Section> = listOf(
+    Section("security", "account", "Account", "Who is signed in, PIN, sessions, paired phones", { LabIcons.security },
+        admin = false, keywords = "admin sign in sign out pin lock totp oidc sso sessions security phones paired devices pair unpair remove tokens") { r, n -> SecuritySection(r, n) },
+
     Section("look", "display", "Look", "Theme, font, density, night and calm", { LabIcons.look },
         keywords = "theme colour font text size night calm density") { r, n -> LookSection(r, n) },
     Section("dashboard", "display", "Dashboard", "Pages, groups and cards, rotation", { LabIcons.pages },
@@ -63,10 +67,6 @@ val SECTIONS: List<Section> = listOf(
     Section("notifications", "monitor", "Notifications", "On this phone, and where LabHUD sends its news", { LabIcons.bell },
         admin = false, keywords = "ntfy push instant unifiedpush email webhook discord gotify") { r, n -> NotifySection(r, n) },
 
-    Section("security", "system", "Security", "The admin account, PIN, sign in", { LabIcons.security },
-        admin = false, keywords = "admin sign in sign out pin totp oidc sessions account") { r, n -> SecuritySection(r, n) },
-    Section("phones", "system", "Phones", "Paired phones", { LabIcons.phone },
-        keywords = "pair devices tokens remove") { r, n -> PhonesSection(r, n) },
     Section("api", "system", "API and audit", "Tokens and the log of who did what", { LabIcons.key },
         keywords = "tokens audit log bearer scope who history") { r, n -> ApiSection(r, n) },
     Section("system", "system", "System", "config.toml, about, backup", { LabIcons.advanced },

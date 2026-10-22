@@ -161,8 +161,14 @@ fun WallSection(repo: LabRepository, nav: SettingsNav) {
         item {
             Panel("") {
                 Text("The whole wall page on this screen, kept on, for an old phone or tablet on the wall. " +
-                    "Back leaves it.", fontSize = 13.sp, color = Lab.sub)
+                    "It is the admin of this phone, and the PIN you unlocked with here carries over. Back leaves it.", fontSize = 13.sp, color = Lab.sub)
                 OutlinedButton(onClick = nav.wall, modifier = Modifier.padding(top = 8.dp)) { Text("Open wall mode") }
+            }
+        }
+        item {
+            Setting("Glance view", "Big coloured tiles with one number each, the group's count in its title, a large clock. The details open on a tap. " +
+                "Needs LabHUD 0.1.12 or later; an older one shows its normal wall.", settings.wallGlance) {
+                scope.launch { repo.store.setWallGlance(it) }
             }
         }
         item {

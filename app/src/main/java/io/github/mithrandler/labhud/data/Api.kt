@@ -157,6 +157,12 @@ class LabApi(val baseUrl: String, private val token: String?, fingerprint: Strin
     suspend fun unlock(pin: String): AdminAnswer =
         LabJson.decodeFromString(answer("/api/v1/unlock", buildJsonObject { put("pin", pin) }.toString()))
 
+    /** The admin's sessions (labhud 0.1.12); a 403 for a phone that only looks or is locked, a 404 on an older server. */
+    suspend fun sessions(): SessionsAnswer = LabJson.decodeFromString(get("/api/v1/sessions"))
+    suspend fun revokeSession(id: String): ActionAnswer =
+        LabJson.decodeFromString(answer("/api/v1/sessions/revoke", buildJsonObject { put("id", id) }.toString()))
+    suspend fun logoutAllSessions(): ActionAnswer = LabJson.decodeFromString(answer("/api/v1/sessions/logout-all", "{}"))
+
     /** This phone's UnifiedPush endpoint, "" to forget it. */
     suspend fun push(endpoint: String): ActionAnswer =
         LabJson.decodeFromString(answer("/api/v1/push", buildJsonObject { put("endpoint", endpoint) }.toString()))

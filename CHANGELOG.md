@@ -6,6 +6,18 @@ All notable changes to LabHUD for Android. The format follows
 
 ## [Unreleased]
 
+Needs labhud 0.1.12 for the admin's name, the sessions list and the glance view; with an older server the app works as before (those parts stay hidden or say so).
+
+### Added
+- **Account** (Settings, first, also when only looking): who is signed in, Sign in / Sign out / single sign-on, **Lock now**, the admin's **Sessions** (sign one out, or every browser) and **Paired phones** (Remove), as panels that open on a tap.
+- **Wall mode keeps your unlock**: the PIN you unlocked with in the app is handed to the wall page, so it does not ask again while the ticket lives (the same 2 minutes).
+- **Glance view** in Wall mode (on by default, a switch in Settings > Wall mode): `?glance=1`, big coloured tiles with one number each.
+
+### Changed
+- Settings groups are Account, Board, Infrastructure, Alerts, System and This phone; **Phones** is no longer under System (it is Account > Paired phones, and still found by the search).
+- A refusal ("forbidden") now says what to do: sign in as the admin, or unlock with the PIN. **Containers** no longer says "No agent runs Docker yet" when LabHUD refused the list; it reads the rights again.
+- The red "N problems" band over the cards is gone: problems are in the bell, which keeps its badge.
+
 ## [0.1.22] - 2026-10-22
 
 Needs labhud 0.1.11 for the new palette entries; with an older server the app works as before.

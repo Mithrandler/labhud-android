@@ -169,8 +169,7 @@ fun StatusScreen(
                 return@Column
             }
             val byId = st.byId
-            val problems = st.problems.mapNotNull { byId[it] }
-            if (problems.isNotEmpty()) ProblemsBar(problems) { bell = true }
+            // problems are in the bell (its badge counts them), not in a band over the cards
             val pages = st.pages
             val start = pages.indexOfFirst { it.id == pageId }.coerceAtLeast(0)
             val pager = rememberPagerState(initialPage = start) { pages.size }
@@ -320,22 +319,6 @@ private fun LiveMark(st: LabState, conn: Conn) {
         Spacer(Modifier.width(6.dp))
         Text(when (conn) { Conn.Live -> "Live $time"; is Conn.Offline -> "Offline · $time"; else -> time },
             fontSize = 12.sp, color = if (conn is Conn.Offline) Lab.warn else Lab.sub)
-    }
-}
-
-/** Only while something is wrong: one thin line naming it, which opens the bell. */
-@Composable
-private fun ProblemsBar(problems: List<Card>, onClick: () -> Unit) {
-    Surface(onClick = onClick, color = Lab.red.copy(alpha = 0.14f), modifier = Modifier.fillMaxWidth()) {
-        Row(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.width(3.dp).height(16.dp).background(Lab.red))
-            Spacer(Modifier.width(10.dp))
-            Text(
-                (if (problems.size == 1) "1 problem" else "${problems.size} problems") + " · " + problems.joinToString(", ") { it.name },
-                fontSize = 13.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f),
-            )
-            Icon(LabIcons.chevronRight, null, tint = Lab.red, modifier = Modifier.size(18.dp))
-        }
     }
 }
 

@@ -33,6 +33,8 @@ import io.github.mithrandler.labhud.ui.GateDialogs
 import io.github.mithrandler.labhud.ui.Lab
 import io.github.mithrandler.labhud.ui.LabIcons
 import io.github.mithrandler.labhud.ui.Panel
+import io.github.mithrandler.labhud.ui.isRefusal
+import io.github.mithrandler.labhud.ui.refusalText
 import io.github.mithrandler.labhud.ui.rememberGate
 import kotlinx.coroutines.launch
 
@@ -52,7 +54,13 @@ fun ContainersSection(repo: LabRepository, nav: SettingsNav) {
     fun load() = scope.launch {
         val api = repo.api() ?: return@launch
         message = ""
-        runCatching { api.agents().agents.filter { "docker" in it.caps } }.onSuccess { agents = it }.onFailure { message = it.message ?: "Not loaded." }
+        runCatching { api.agents() }.onSuccess { a ->
+            if (a.ok) agents = a.agents.filter { "docker" in it.caps }
+            else {   // a refusal is not "no agent": say what to do, and read the rights again
+                message = refusalText(a.error, repo.rights.value)
+                if (isRefusal(a.error)) repo.refreshRights()
+            }
+        }.onFailure { message = it.message ?: "Not loaded." }
         runCatching { api.registries() }.onSuccess { r -> if (r.ok) regs = r else message = r.error.ifBlank { "Registries refused." } }
     }
     /** A change behind the gate: its refusal in the message line, else the section anew. */
