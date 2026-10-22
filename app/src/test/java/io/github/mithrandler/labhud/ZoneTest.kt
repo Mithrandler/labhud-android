@@ -267,4 +267,15 @@ class ZoneObjectsTest {
         assertEquals(true, io.github.mithrandler.labhud.ui.updateWords(
             about("""{"enabled":true,"latest":{"server":"v0.1.2","app":"v0.1.2"}}"""), false).startsWith("You are up to date."))
     }
+
+    @Test fun an_images_cves_read_the_same_everywhere() {
+        val bad = io.github.mithrandler.labhud.data.ZoneScan(2, 5, "trivy", 1700000000, listOf("web"))
+        assertEquals("● 2 crit · 5 high", io.github.mithrandler.labhud.data.cveText(bad))
+        assertEquals("● 3 high", io.github.mithrandler.labhud.data.cveText(bad.copy(critical = 0, high = 3)))
+        assertEquals("● clean", io.github.mithrandler.labhud.data.cveText(bad.copy(critical = 0, high = 0)))
+        assertEquals("○ not scanned", io.github.mithrandler.labhud.data.cveText(null))
+        assertEquals(listOf(2, 1, 0, -1), listOf(bad, bad.copy(critical = 0), bad.copy(critical = 0, high = 0), null).map { io.github.mithrandler.labhud.data.cveLevel(it) })
+        assertEquals("trivy · scanned 2023-11-14 22:13", io.github.mithrandler.labhud.data.scanWhen(bad, java.time.ZoneOffset.UTC))
+        assertEquals("? · scanned ?", io.github.mithrandler.labhud.data.scanWhen(io.github.mithrandler.labhud.data.ZoneScan(), java.time.ZoneOffset.UTC))
+    }
 }

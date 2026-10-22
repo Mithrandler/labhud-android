@@ -41,6 +41,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -53,6 +54,9 @@ import io.github.mithrandler.labhud.data.ZoneImage
 import io.github.mithrandler.labhud.data.ZoneNetwork
 import io.github.mithrandler.labhud.data.ZoneVolume
 import io.github.mithrandler.labhud.data.bytesText
+import io.github.mithrandler.labhud.data.cveLevel
+import io.github.mithrandler.labhud.data.cveText
+import io.github.mithrandler.labhud.data.scanWhen
 import io.github.mithrandler.labhud.data.childOf
 import io.github.mithrandler.labhud.data.crumbs
 import io.github.mithrandler.labhud.data.filteredImages
@@ -95,7 +99,7 @@ internal fun TypedConfirm(title: String, word: String, button: String, onOk: () 
 internal fun Said(text: String) { if (text.isNotEmpty()) Text(text, color = Lab.warn, fontSize = 13.sp, modifier = Modifier.padding(vertical = 6.dp)) }
 
 @Composable
-internal fun Row2(title: String, sub: String, right: String, rightSub: String = "", tone: Int = 0, onClick: () -> Unit) {
+internal fun Row2(title: String, sub: String, right: String, rightSub: String = "", tone: Int = 0, rightSubColor: Color = Lab.muted, onClick: () -> Unit) {
     Row(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
             Text(title, fontSize = 15.sp, color = Lab.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -103,7 +107,7 @@ internal fun Row2(title: String, sub: String, right: String, rightSub: String = 
         }
         Column(horizontalAlignment = Alignment.End) {
             Text(right, fontSize = 13.sp, color = Lab.sub)
-            if (rightSub.isNotEmpty()) Text(rightSub, fontSize = 11.sp, color = Lab.muted)
+            if (rightSub.isNotEmpty()) Text(rightSub, fontSize = 11.sp, color = rightSubColor)
         }
     }
     HorizontalDivider(color = Lab.line)
@@ -146,8 +150,8 @@ internal fun ImagesTab(h: ZoneHost, ask: ZoneAsk, gate: Gate) {
             if (rows == null && message.isEmpty()) Text("Loading…", color = Lab.muted)
             LazyColumn(Modifier.fillMaxSize()) {
                 items(rows.orEmpty().filteredImages(query), key = { it.id }) { i ->
-                    Row2(i.title() + if (i.tags.size > 1) "  +${i.tags.size - 1}" else "", usedText(i.used, i.usedBy), bytesText(i.size.toDouble()),
-                        if (i.dangling) "untagged" else "", tone = if (i.used == 0) 1 else 0) { open = i.id }
+                    Row2(i.title() + if (i.tags.size > 1) "  +${i.tags.size - 1}" else "", usedText(i.used, i.usedBy) + if (i.dangling) " · untagged" else "", bytesText(i.size.toDouble()),
+                        cveText(i.scan), tone = if (i.used == 0) 1 else 0, rightSubColor = cveColor(i.scan)) { open = i.id }
                 }
             }
         }
@@ -166,6 +170,13 @@ internal fun ImagesTab(h: ZoneHost, ask: ZoneAsk, gate: Gate) {
     }
 }
 
+private fun cveColor(s: io.github.mithrandler.labhud.data.ZoneScan?): Color = when (cveLevel(s)) {
+    2 -> Lab.red
+    1 -> Lab.warn
+    0 -> Lab.green
+    else -> Lab.muted
+}
+
 @Composable
 private fun PullDialog(onDismiss: () -> Unit, onPull: (String) -> Unit) {
     var ref by remember { mutableStateOf("") }
@@ -182,6 +193,14 @@ private fun ImageSheet(i: ZoneImage, host: String, ask: ZoneAsk, gate: Gate, don
     Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 20.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(i.title(), fontSize = 20.sp, fontWeight = FontWeight.SemiBold, color = Lab.text)
         Text("${bytesText(i.size.toDouble())} · ${i.id} · ${usedText(i.used, i.usedBy)}", fontSize = 13.sp, color = Lab.muted)
+        Text("Vulnerabilities", fontSize = 12.sp, color = Lab.muted, modifier = Modifier.padding(top = 10.dp))
+        Text(cveText(i.scan), fontSize = 14.sp, color = cveColor(i.scan))
+        val sc = i.scan
+        if (sc == null) Text("Not scanned: the host needs the scan capability and a ticked container that runs this image.", fontSize = 12.sp, color = Lab.muted)
+        else {
+            Text(scanWhen(sc), fontSize = 12.sp, color = Lab.muted)
+            if (sc.affects.isNotEmpty()) Text("Affects " + sc.affects.joinToString(", "), fontSize = 12.sp, color = Lab.muted)
+        }
         Text("Remove", fontSize = 12.sp, color = Lab.muted, modifier = Modifier.padding(top = 10.dp))
         val names = i.tags.ifEmpty { listOf(i.id) }
         names.forEach { n ->

@@ -7,6 +7,7 @@ All notable changes to LabHUD for Android. The format follows
 ## [Unreleased]
 
 ### Added
+- **CVEs on an image** (Servers > Images): a coloured line on each image row ("2 crit · 5 high", "clean", "not scanned") and a Vulnerabilities section in its sheet with the scanner, the time and the affected containers.
 - **Hosts and agents, done on the phone**: *Add agent* makes a one-time pairing code (with its minutes left), the install line and the container line, each with a Copy button, and the install line as a QR code; the list refreshes when the agent dials in. On an agent's screen: *Rename* and *Remove…* (type its name to confirm). Rename needs labhud 0.1.15.
 - **Containers, done on the phone**: *Update window* (the days as chips, the time, and whether agents update themselves) and, on an agent's Docker part, a webhook per ticked container (shown once with Copy; Remove; New replaces the old).
 - **Dashboard, done on the phone**: the pages in order (↑ ↓), and on a page its look (title, icon, columns, density) and every group with its cards: reorder, size S-XL, icon, hide a card or a group, and *Move to…* another page or group (or a new group). Edits wait behind *Save* / *Discard*; the server keeps only groups with a card, and a refusal comes back as a line, never a half-applied layout. The containers' update window waits behind *Save* too.

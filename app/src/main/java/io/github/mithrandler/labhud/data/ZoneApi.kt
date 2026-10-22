@@ -68,6 +68,14 @@ data class ZoneImage(
     val id: String = "", val tags: List<String> = emptyList(), val size: Long = 0, val created: Long = 0,
     val used: Int = 0, val dangling: Boolean = false,
     @SerialName("used_by") val usedBy: List<String> = emptyList(),
+    /** The agent's scan (trivy/grype) of the containers that run it; null when none was scanned. */
+    val scan: ZoneScan? = null,
+)
+
+@Serializable
+data class ZoneScan(
+    val critical: Int = 0, val high: Int = 0, val tool: String = "", val t: Long = 0,
+    val affects: List<String> = emptyList(),
 )
 
 @Serializable
@@ -310,6 +318,29 @@ class Utf8Stream {
 
 /** The name the admin types to remove it: its first tag, else its id. */
 fun ZoneImage.title(): String = tags.firstOrNull() ?: id
+
+/** An image's CVEs for a row: "● 2 crit · 5 high", "● clean", "○ not scanned". Server image row `cve_text`. */
+fun cveText(s: ZoneScan?): String = when {
+    s == null -> "○ not scanned"
+    s.critical > 0 -> "● ${s.critical} crit · ${s.high} high"
+    s.high > 0 -> "● ${s.high} high"
+    else -> "● clean"
+}
+
+/** "trivy · scanned 2026-10-23 09:30": the scanner and when (the zone is the device's). */
+fun scanWhen(s: ZoneScan, zone: java.time.ZoneId = java.time.ZoneId.systemDefault()): String {
+    val at = if (s.t > 0) java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm", java.util.Locale.ROOT)
+        .format(java.time.Instant.ofEpochSecond(s.t).atZone(zone)) else "?"
+    return (s.tool.ifEmpty { "?" }) + " · scanned " + at
+}
+
+/** 2 = critical, 1 = high only, 0 = clean, -1 = not scanned: what colours it. */
+fun cveLevel(s: ZoneScan?): Int = when {
+    s == null -> -1
+    s.critical > 0 -> 2
+    s.high > 0 -> 1
+    else -> 0
+}
 
 /** "used by web, web2" / "unused": what is shown beside it. */
 fun usedText(used: Int, by: List<String>): String = when {
