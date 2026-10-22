@@ -195,7 +195,16 @@ data class ZoneAnswer(
     val jobs: List<ZoneJob> = emptyList(),
     val kinds: List<String> = emptyList(),
     val job: ZoneJob? = null,
+    val updates: ZoneUpdates? = null,
 )
+
+/** The host's pending packages, from the agent's `apt-get -s` (apt hosts only). */
+@Serializable
+data class ZoneUpdates(val pending: Int = 0, val security: Int = 0, val names: List<String> = emptyList())
+
+/** "up to date", "12 pending (3 security): libssl3, curl…". */
+fun updatesText(u: ZoneUpdates): String = if (u.pending == 0) "up to date" else
+    "${u.pending} pending" + (if (u.security > 0) " (${u.security} security)" else "") + (if (u.names.isNotEmpty()) ": " + u.names.take(5).joinToString(", ") + (if (u.pending > 5) "…" else "") else "")
 
 @Serializable
 data class ZoneJobLast(val day: String = "", val t: Long = 0, val ok: Boolean = false, val text: String = "")
@@ -204,17 +213,21 @@ data class ZoneJobLast(val day: String = "", val t: Long = 0, val ok: Boolean = 
 data class ZoneJob(
     val id: String = "", val name: String = "", val kind: String = "update", val agent: String = "*",
     val days: List<Int> = emptyList(), val at: String = "04:00", val enabled: Boolean = true, val last: ZoneJobLast = ZoneJobLast(),
+    /** A backup job only: the guests (numbers), the storage and the mode (snapshot, suspend, stop). */
+    val vmids: List<String> = emptyList(), val storage: String = "", val mode: String = "snapshot",
 )
 
 const val UPDATE_JOB = "00000001"      // the old update window, the scheduler's first job
-val JOB_KINDS = mapOf("update" to "Update containers", "prune" to "Prune unused images", "host-update" to "Update OS")
+val JOB_KINDS = mapOf("update" to "Update containers", "prune" to "Prune unused images", "host-update" to "Update OS", "backup" to "Backup Proxmox guests")
 private val DAY_NAMES = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
 
 /** "every day", "Mon Wed Fri": a job's days. Web `days_text`. */
 fun daysText(days: List<Int>): String = if (days.toSet().size == 7) "every day" else days.sorted().mapNotNull { DAY_NAMES.getOrNull(it) }.joinToString(" ")
 
 /** Whether the editor's values make a job the server takes (the server checks again). */
-fun jobOk(name: String, at: String, days: Set<Int>) = name.isNotBlank() && days.isNotEmpty() && Regex("([01][0-9]|2[0-3]):[0-5][0-9]").matches(at)
+fun jobOk(name: String, at: String, days: Set<Int>, kind: String = "prune", vmids: Set<String> = emptySet(), storage: String = "") =
+    name.isNotBlank() && days.isNotEmpty() && Regex("([01][0-9]|2[0-3]):[0-5][0-9]").matches(at) &&
+        (kind != "backup" || (vmids.isNotEmpty() && Regex("[A-Za-z0-9][A-Za-z0-9_.-]{0,39}").matches(storage)))
 
 @Serializable
 data class ZoneSystem(val hostname: String = "", val os: String = "", val kernel: String = "", val arch: String = "")
@@ -226,7 +239,7 @@ data class ZoneHostCan(val update: Boolean = false, val power: Boolean = false)
 data class ZoneUnit(val name: String = "", val active: String = "", val sub: String = "", val description: String = "", val ticked: Boolean = false)
 
 @Serializable
-data class ZoneActivity(val ts: String = "", val who: String = "", val action: String = "", val target: String = "", val ok: Boolean = false)
+data class ZoneActivity(val ts: String = "", val who: String = "", val action: String = "", val target: String = "", val ok: Boolean = false, val source: String = "server")
 
 /** "12d 0h", "3h 5m", "7m", "–": a host's uptime. Server `uptime_text`. */
 fun uptimeText(s: Long): String {
@@ -236,7 +249,7 @@ fun uptimeText(s: Long): String {
 }
 
 /** "unit-restart" for "servers/unit-restart", with " (refused)" when it was not allowed. */
-fun activityText(e: ZoneActivity) = e.action.removePrefix("servers/") + if (e.ok) "" else " (refused)"
+fun activityText(e: ZoneActivity) = e.action.removePrefix("servers/").replace("agent/", "agent: ") + if (e.ok) "" else if (e.source == "agent") " (failed)" else " (refused)"
 
 /** The words for a refusal: labhud's, or why a wait is asked. */
 fun ZoneAnswer.refusal(): String = when {
@@ -267,6 +280,7 @@ suspend fun LabApi.zoneJobSave(j: ZoneJob) = zone("job-save", 35) {
         if (j.id.isNotEmpty()) put("id", j.id)
         put("name", j.name); put("kind", j.kind); put("agent", j.agent); put("at", j.at); put("enabled", j.enabled)
         put("days", buildJsonArray { j.days.sorted().forEach { add(it) } })
+        if (j.kind == "backup") { put("vmids", buildJsonArray { j.vmids.forEach { add(it) } }); put("storage", j.storage); put("mode", j.mode) }
     })
 }
 suspend fun LabApi.zoneJobDelete(id: String, confirm: String) = zone("job-delete", 35) { put("id", id); put("confirm", confirm) }

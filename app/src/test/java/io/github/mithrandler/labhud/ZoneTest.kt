@@ -295,4 +295,16 @@ class ZoneObjectsTest {
         assertEquals(false, io.github.mithrandler.labhud.data.jobOk("Prune", "24:00", setOf(6)))
         assertEquals(false, io.github.mithrandler.labhud.data.jobOk("Prune", "03:30", emptySet()))
     }
+
+    @Test fun a_backup_job_needs_guests_and_a_storage_and_the_agents_history_reads_as_the_agents() {
+        assertEquals(true, io.github.mithrandler.labhud.data.jobOk("B", "02:00", setOf(0), "backup", setOf("101"), "local"))
+        assertEquals(false, io.github.mithrandler.labhud.data.jobOk("B", "02:00", setOf(0), "backup", emptySet(), "local"))
+        assertEquals(false, io.github.mithrandler.labhud.data.jobOk("B", "02:00", setOf(0), "backup", setOf("101"), "a b"))
+        assertEquals(true, io.github.mithrandler.labhud.data.jobOk("P", "02:00", setOf(0)))     // other kinds need none of it
+        val a = io.github.mithrandler.labhud.data.ZoneActivity("t", "agent", "agent/crash", "h/web", false, "agent")
+        assertEquals("agent: crash (failed)", io.github.mithrandler.labhud.data.activityText(a))
+        val u = io.github.mithrandler.labhud.data.ZoneUpdates(12, 3, listOf("libssl3", "curl"))
+        assertEquals("12 pending (3 security): libssl3, curl…", io.github.mithrandler.labhud.data.updatesText(u))
+        assertEquals("up to date", io.github.mithrandler.labhud.data.updatesText(io.github.mithrandler.labhud.data.ZoneUpdates()))
+    }
 }

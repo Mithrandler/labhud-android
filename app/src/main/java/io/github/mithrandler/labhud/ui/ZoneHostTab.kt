@@ -38,6 +38,9 @@ import io.github.mithrandler.labhud.data.JOB_KINDS
 import io.github.mithrandler.labhud.data.UPDATE_JOB
 import io.github.mithrandler.labhud.data.ZoneHost
 import io.github.mithrandler.labhud.data.ZoneJob
+import io.github.mithrandler.labhud.data.ZoneGuest
+import io.github.mithrandler.labhud.data.updatesText
+import io.github.mithrandler.labhud.data.zoneGuests
 import io.github.mithrandler.labhud.data.daysText
 import io.github.mithrandler.labhud.data.jobOk
 import io.github.mithrandler.labhud.data.zoneJobDelete
@@ -92,8 +95,9 @@ internal fun HostTab(h: ZoneHost, ask: ZoneAsk, gate: Gate) {
         if (r == null) { if (message.isEmpty()) Text("Loading…", color = Lab.muted, modifier = Modifier.padding(top = 12.dp)); return@Column }
         val sys = r.host
         listOf("Host" to (sys?.hostname?.ifEmpty { h.name } ?: h.name), "System" to (sys?.os.orEmpty().ifEmpty { "–" }), "Kernel" to (sys?.kernel.orEmpty().ifEmpty { "–" }),
-            "Arch" to (sys?.arch.orEmpty().ifEmpty { "–" }), "Up" to uptimeText(r.uptime), "Agent" to r.version.ifEmpty { "–" }).forEach { (k, v) ->
-            Row { Text(k, fontSize = 13.sp, color = Lab.muted, modifier = Modifier.padding(end = 12.dp).fillMaxWidth(0.25f)); Text(v, fontSize = 13.sp, color = Lab.text) }
+            "Arch" to (sys?.arch.orEmpty().ifEmpty { "–" }), "Up" to uptimeText(r.uptime), "Agent" to r.version.ifEmpty { "–" })
+            .plus(listOfNotNull(r.updates?.let { "Updates" to updatesText(it) })).forEach { (k, v) ->
+            Row { Text(k, fontSize = 13.sp, color = if (k == "Updates" && r.updates?.pending != 0) Lab.red else Lab.muted, modifier = Modifier.padding(end = 12.dp).fillMaxWidth(0.25f)); Text(v, fontSize = 13.sp, color = Lab.text) }
         }
         Row(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedButton(enabled = r.can?.update == true, onClick = { typing = "update" }) { Text("Update OS") }
@@ -166,6 +170,11 @@ private fun JobSheet(job: ZoneJob, host: String, ask: ZoneAsk, gate: Gate, onDon
     var allHosts by remember(job.id) { mutableStateOf(job.agent == "*") }
     var said by remember(job.id) { mutableStateOf("") }
     var deleting by remember(job.id) { mutableStateOf(false) }
+    var vmids by remember(job.id) { mutableStateOf(job.vmids.toSet()) }
+    var storage by remember(job.id) { mutableStateOf(job.storage) }
+    var mode by remember(job.id) { mutableStateOf(job.mode) }
+    var guests by remember(job.id) { mutableStateOf<List<ZoneGuest>>(emptyList()) }
+    LaunchedEffect(kind) { if (kind == "backup") { val g = ask { zoneGuests(host) }; if (g.ok) guests = g.guests.filter { it.ticked && !it.template } } }
     val agent = if (kind == "update" && allHosts) "*" else if (job.agent == "*") host else job.agent
     Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 20.dp).heightIn(max = (LocalConfiguration.current.screenHeightDp * 0.9f).dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(if (isNew) "New job" else job.name, fontSize = 20.sp, fontWeight = FontWeight.SemiBold, color = Lab.text, modifier = Modifier.padding(end = 48.dp))
@@ -176,6 +185,20 @@ private fun JobSheet(job: ZoneJob, host: String, ask: ZoneAsk, gate: Gate, onDon
         if (kind == "update") Row(verticalAlignment = Alignment.CenterVertically) {
             Switch(allHosts, { allHosts = it }, enabled = job.id != UPDATE_JOB)
             Text("  Every host" + if (allHosts) "" else " (only $host)", color = Lab.text, fontSize = 14.sp)
+        }
+        if (kind == "backup") {
+            Text("Guests to back up", fontSize = 13.sp, color = Lab.muted)
+            if (guests.isEmpty()) Text("No ticked guest on this host.", fontSize = 12.sp, color = Lab.muted)
+            guests.forEach { g ->
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(g.id in vmids, { vmids = if (it) vmids + g.id else vmids - g.id })
+                    Text("${g.id} ${g.name}", fontSize = 13.sp, color = Lab.text)
+                }
+            }
+            OutlinedTextField(storage, { storage = it.take(40) }, singleLine = true, label = { Text("Backup storage (e.g. local)") }, modifier = Modifier.fillMaxWidth())
+            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf("snapshot", "suspend", "stop").forEach { m -> FilterChip(selected = mode == m, onClick = { mode = m }, label = { Text(m) }) }
+            }
         }
         OutlinedTextField(at, { at = it.take(5) }, singleLine = true, label = { Text("Time (HH:MM, the server's clock)") }, modifier = Modifier.fillMaxWidth())
         Row(Modifier.horizontalScroll(rememberScrollState()), verticalAlignment = Alignment.CenterVertically) {
@@ -188,9 +211,9 @@ private fun JobSheet(job: ZoneJob, host: String, ask: ZoneAsk, gate: Gate, onDon
         if (!isNew && job.last.t > 0) Text("Last run: ${job.last.day} · " + (if (job.last.ok) "ok" else "failed") + " · ${job.last.text}", fontSize = 12.sp, color = Lab.muted)
         Said(said)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton(enabled = jobOk(name, at, days), onClick = {
+            OutlinedButton(enabled = jobOk(name, at, days, kind, vmids, storage), onClick = {
                 gate.press { scope.launch {
-                    val r = ask { zoneJobSave(job.copy(name = name.trim(), kind = kind, agent = agent, at = at, days = days.sorted(), enabled = enabled)) }
+                    val r = ask { zoneJobSave(job.copy(name = name.trim(), kind = kind, agent = agent, at = at, days = days.sorted(), enabled = enabled, vmids = vmids.toList(), storage = storage.trim(), mode = mode)) }
                     if (r.ok) onDone() else said = "Save: ${r.refusal()}"
                 } }
             }) { Text("Save") }

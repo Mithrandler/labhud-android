@@ -7,6 +7,9 @@ All notable changes to LabHUD for Android. The format follows
 ## [Unreleased]
 
 ### Added
+- **Servers > Host**: a *Backup Proxmox guests* job in the Scheduler editor (ticked guests, storage, mode), pending OS updates in the summary, and the agent's own history marked in Activity.
+
+### Added
 - **Servers > Scheduler** (Host tab): the list of jobs for the host (and the ones for every host) and an editor with Save / Discard, Run now and Delete (name typed); the old update window is the first job.
 - **Servers > Host**: facts, Update OS / Reboot / Shutdown (name typed), systemd units with a sheet (Start / Restart / Stop) and the host's Activity with Verify chain.
 - **CVEs on an image** (Servers > Images): a coloured line on each image row ("2 crit · 5 high", "clean", "not scanned") and a Vulnerabilities section in its sheet with the scanner, the time and the affected containers.
