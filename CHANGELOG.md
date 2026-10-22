@@ -6,6 +6,8 @@ All notable changes to LabHUD for Android. The format follows
 
 ## [Unreleased]
 
+## [0.1.26] - 2026-10-22
+
 ### Added
 - **Settings > System, config.toml**: the file as text with *Validate* (asks the server whether it is a good config, nothing written), *Save* and *Discard*, never autosave; *Take over* (the words typed) when the file is mounted from outside. The server's own complaints are shown as they come.
 - **Settings > Account, PIN on the wall**: *Set a PIN*, *Change* and *Remove* (four digits typed twice; the current one is asked to change or remove). The admin's password and authenticator stay on the server (`labhud admin`), on purpose.
@@ -258,7 +260,8 @@ those parts are simply not shown.
   back in the settings or the camera was switched off in Quick Settings. It now asks again, offers
   the system settings after a permanent refusal, and pasting the link or signing in always works.
 
-[Unreleased]: https://github.com/Mithrandler/labhud-android/compare/v0.1.25...HEAD
+[Unreleased]: https://github.com/Mithrandler/labhud-android/compare/v0.1.26...HEAD
+[0.1.26]: https://github.com/Mithrandler/labhud-android/compare/v0.1.25...v0.1.26
 [0.1.25]: https://github.com/Mithrandler/labhud-android/compare/v0.1.24...v0.1.25
 [0.1.24]: https://github.com/Mithrandler/labhud-android/compare/v0.1.23...v0.1.24
 [0.1.23]: https://github.com/Mithrandler/labhud-android/compare/v0.1.22...v0.1.23
