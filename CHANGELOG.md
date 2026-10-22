@@ -7,6 +7,7 @@ All notable changes to LabHUD for Android. The format follows
 ## [Unreleased]
 
 ### Added
+- **Settings > Alerts, native**: the alert rules on hosts as cards (host or all hosts, what it watches, the mark and the minutes; offline and failed services take minutes only) and the quiet hours (a switch and two hours), with Save / Discard, never autosave. What was saved stays on screen (labhud applies a save a moment later). The warn/crit marks of every card and the screen's beep remain on the wall.
 - **Servers > Host**: a *Backup Proxmox guests* job in the Scheduler editor (ticked guests, storage, mode), pending OS updates in the summary, and the agent's own history marked in Activity.
 
 ### Added

@@ -1,5 +1,6 @@
 package io.github.mithrandler.labhud
 
+import io.github.mithrandler.labhud.data.watching
 import io.github.mithrandler.labhud.data.LabJson
 import io.github.mithrandler.labhud.data.Utf8Stream
 import io.github.mithrandler.labhud.data.ZoneAnswer
@@ -306,5 +307,18 @@ class ZoneObjectsTest {
         val u = io.github.mithrandler.labhud.data.ZoneUpdates(12, 3, listOf("libssl3", "curl"))
         assertEquals("12 pending (3 security): libssl3, curl…", io.github.mithrandler.labhud.data.updatesText(u))
         assertEquals("up to date", io.github.mithrandler.labhud.data.updatesText(io.github.mithrandler.labhud.data.ZoneUpdates()))
+    }
+
+    @Test fun alert_rules_read_from_the_server_change_their_what_and_go_back_as_json() {
+        val o = kotlinx.serialization.json.Json.parseToJsonElement("""{"on":"*","what":"cpu","above":90,"minutes":10,"x":1}""") as kotlinx.serialization.json.JsonObject
+        val r = io.github.mithrandler.labhud.data.alertRule(o)!!
+        assertEquals(io.github.mithrandler.labhud.data.AlertRule("*", "cpu", 90, 10), r)
+        val off = r.watching("offline", listOf("offline", "failed"))
+        assertEquals(null, off.above)
+        assertEquals("""{"on":"*","what":"offline","minutes":10}""", off.json().toString())
+        assertEquals(85, off.watching("temp", listOf("offline", "failed")).above)       // a mark again: the usual one
+        assertEquals(150, io.github.mithrandler.labhud.data.alertMarkMax("temp")); assertEquals(100, io.github.mithrandler.labhud.data.alertMarkMax("disk"))
+        assertEquals(null, io.github.mithrandler.labhud.data.alertRule(kotlinx.serialization.json.buildJsonObject { }))
+        assertEquals("23:00 → 07:00", io.github.mithrandler.labhud.data.quietText(23, 7)); assertEquals("off", io.github.mithrandler.labhud.data.quietText(0, 0))
     }
 }

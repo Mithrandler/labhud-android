@@ -205,6 +205,18 @@ class LabApi(val baseUrl: String, private val token: String?, fingerprint: Strin
         return LabJson.decodeFromString(answer("/api/setup/alerts-save", body.toString()))
     }
 
+    /** The rules and the quiet hours (from, to; 0 and 0 = none), saved together; [via] stays as it is. */
+    suspend fun saveAlerts(rules: List<AlertRule>, via: String, quiet: Pair<Int, Int>): ActionAnswer {
+        val body = buildJsonObject {
+            put("rules", kotlinx.serialization.json.JsonArray(rules.map { it.json() }))
+            put("notify", buildJsonObject {
+                put("via", via)
+                put("quiet", kotlinx.serialization.json.JsonArray(listOf(quiet.first, quiet.second).map { kotlinx.serialization.json.JsonPrimitive(it) }))
+            })
+        }
+        return LabJson.decodeFromString(answer("/api/setup/alerts-save", body.toString()))
+    }
+
     suspend fun notifyTest(): ActionAnswer = LabJson.decodeFromString(answer("/api/setup/notify-test", "{}"))
     suspend fun unpair(name: String): ActionAnswer =
         LabJson.decodeFromString(answer("/api/v1/unpair", buildJsonObject { put("name", name) }.toString()))

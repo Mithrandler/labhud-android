@@ -62,7 +62,7 @@ val SECTIONS: List<Section> = listOf(
     Section("integrations", "infra", "Integrations", "Sources and the network scan", { LabIcons.sources },
         keywords = "sources scan network catalog proxmox") { r, n -> IntegrationsSection(r, n) },
 
-    Section("alerts", "monitor", "Alerts", "Thresholds, rules, quiet hours", { LabIcons.warning },
+    Section("alerts", "monitor", "Alerts", "Rules and quiet hours", { LabIcons.warning },
         keywords = "rules thresholds warn crit quiet beep flash") { r, n -> AlertsSection(r, n) },
     Section("notifications", "monitor", "Notifications", "On this phone, and where LabHUD sends its news", { LabIcons.bell },
         admin = false, keywords = "ntfy push instant unifiedpush email webhook discord gotify") { r, n -> NotifySection(r, n) },

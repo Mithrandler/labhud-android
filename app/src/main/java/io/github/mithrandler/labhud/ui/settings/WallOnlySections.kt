@@ -20,12 +20,3 @@ fun IntegrationsSection(repo: LabRepository, nav: SettingsNav) {
         item { WallOnly("⚙ > Integrations", listOf("Sources: Proxmox, Docker, Pi-hole and the rest", "Scanning the network for new ones")) }
     }
 }
-
-/** Alert thresholds and rules are configured on the wall. */
-@Suppress("UNUSED_PARAMETER")
-@Composable
-fun AlertsSection(repo: LabRepository, nav: SettingsNav) {
-    SettingsPage(section("alerts")!!, nav) {
-        item { WallOnly("⚙ > Alerts", listOf("The warn and crit thresholds for every card", "Rules", "Quiet hours", "What the screen does on a problem: beep, flash")) }
-    }
-}

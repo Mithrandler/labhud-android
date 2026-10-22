@@ -569,7 +569,15 @@ data class AlertSetup(
     val notify: NotifyChoice = NotifyChoice(),
     val ntfy: NtfyState = NtfyState(),
     val managed: Boolean = false,
+    /** The cards a rule can name (an agent of their own), what a rule can watch (code to label), which are urgent, which take minutes only. */
+    val hosts: List<AlertHost> = emptyList(),
+    val what: Map<String, String> = emptyMap(),
+    val urgent: List<String> = emptyList(),
+    @SerialName("no_mark") val noMark: List<String> = emptyList(),
 )
+
+@Serializable
+data class AlertHost(val id: String = "", val name: String = "")
 
 @Serializable
 data class NotifyChoice(val via: String = "both", val quiet: List<Int>? = null)
