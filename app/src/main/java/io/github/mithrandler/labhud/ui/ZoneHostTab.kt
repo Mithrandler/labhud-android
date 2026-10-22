@@ -8,7 +8,16 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.Alignment
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -25,7 +34,16 @@ import androidx.compose.ui.unit.sp
 import io.github.mithrandler.labhud.data.LabApi
 import io.github.mithrandler.labhud.data.ZoneActivity
 import io.github.mithrandler.labhud.data.ZoneAnswer
+import io.github.mithrandler.labhud.data.JOB_KINDS
+import io.github.mithrandler.labhud.data.UPDATE_JOB
 import io.github.mithrandler.labhud.data.ZoneHost
+import io.github.mithrandler.labhud.data.ZoneJob
+import io.github.mithrandler.labhud.data.daysText
+import io.github.mithrandler.labhud.data.jobOk
+import io.github.mithrandler.labhud.data.zoneJobDelete
+import io.github.mithrandler.labhud.data.zoneJobRun
+import io.github.mithrandler.labhud.data.zoneJobSave
+import io.github.mithrandler.labhud.data.zoneJobs
 import io.github.mithrandler.labhud.data.ZoneUnit
 import io.github.mithrandler.labhud.data.activityText
 import io.github.mithrandler.labhud.data.refusal
@@ -54,11 +72,15 @@ internal fun HostTab(h: ZoneHost, ask: ZoneAsk, gate: Gate) {
     var log by remember(h.name) { mutableStateOf<List<ZoneActivity>>(emptyList()) }
     var more by remember(h.name) { mutableStateOf(false) }
     var chain by remember(h.name) { mutableStateOf("") }
+    var jobs by remember(h.name) { mutableStateOf<List<ZoneJob>>(emptyList()) }
+    var editing by remember(h.name) { mutableStateOf<ZoneJob?>(null) }       // a job open in the editor ("new" has an empty id)
     LaunchedEffect(h.name, tick) {
         val r = ask { zoneHostInfo(h.name) }
         if (r.ok) { info = r; message = "" } else message = r.refusal()
         val a = ask { zoneActivity(h.name, 0) }
         if (a.ok) { log = a.rows; more = a.more }
+        val j = ask { zoneJobs() }
+        if (j.ok) jobs = j.jobs.filter { it.agent == h.name || it.agent == "*" }
     }
     fun run(label: String, call: suspend LabApi.() -> ZoneAnswer) = gate.press {
         said = "$label…"
@@ -84,6 +106,14 @@ internal fun HostTab(h: ZoneHost, ask: ZoneAsk, gate: Gate) {
             Row2(u.name + if (u.ticked) "" else "  (read only)", u.description, u.active + if (u.sub.isNotEmpty() && u.sub != u.active) " · ${u.sub}" else "",
                 tone = if (u.active == "failed" || u.name in r.failed) 1 else 0) { open = u }
         }
+        Text("Scheduler", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Lab.text, modifier = Modifier.padding(top = 10.dp))
+        OutlinedButton(onClick = { editing = ZoneJob(agent = h.name, kind = "prune", days = listOf(6)) }) { Text("Add job") }
+        if (jobs.isEmpty()) Text("No job for this host yet.", fontSize = 13.sp, color = Lab.muted)
+        jobs.forEach { j ->
+            val last = if (j.last.t > 0) (if (j.last.ok) "ok" else "failed") + " · " + j.last.day else "never run"
+            Row2(j.name + if (j.enabled) "" else "  (off)", daysText(j.days) + " " + j.at + if (j.agent == "*") " · all hosts" else "", last,
+                tone = if (j.last.t > 0 && !j.last.ok) 1 else 0) { editing = j }
+        }
         Text("Activity", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Lab.text, modifier = Modifier.padding(top = 10.dp))
         OutlinedButton(onClick = {
             scope.launch { val v = ask { zoneAuditVerify() }; chain = if (!v.ok) v.refusal() else if (v.intact) "Intact: ${v.checked} entries checked." else "Broken: ${v.broken}" }
@@ -95,6 +125,7 @@ internal fun HostTab(h: ZoneHost, ask: ZoneAsk, gate: Gate) {
             scope.launch { val a = ask { zoneActivity(h.name, log.size) }; if (a.ok) { log = log + a.rows; more = a.more } }
         }) { Text("Older") }
     }
+    editing?.let { j -> LabSheet(onClose = { editing = null }) { JobSheet(j, h.name, ask, gate, onDone = { editing = null; tick++ }) } }
     open?.let { u -> LabSheet(onClose = { open = null }) { UnitSheet(u, h.name, run = { label, call -> open = null; run(label, call) }) } }
     typing?.let { what ->
         val title = when (what) { "update" -> "Update the packages of ${h.name}?"; "reboot" -> "Reboot ${h.name}?"; else -> "Shut down ${h.name}?" }
@@ -120,4 +151,58 @@ private fun UnitSheet(u: ZoneUnit, host: String, run: (String, suspend LabApi.()
         if (!u.ticked) Text("Not ticked: tick this unit for the agent in Settings > Hosts and agents to act on it.", fontSize = 12.sp, color = Lab.muted)
     }
     if (stopping) TypedConfirm("Stop ${u.name}?", u.name, "Stop", onOk = { stopping = false; run("Stop ${u.name}") { zoneUnitStop(host, u.name, u.name) } }, onDismiss = { stopping = false })
+}
+
+/* The editor of one job: nothing is saved until Save, Discard closes it. Delete asks for the name typed; Run now shows what the host answered. */
+@Composable
+private fun JobSheet(job: ZoneJob, host: String, ask: ZoneAsk, gate: Gate, onDone: () -> Unit) {
+    val scope = rememberCoroutineScope()
+    val isNew = job.id.isEmpty()
+    var name by remember(job.id) { mutableStateOf(job.name) }
+    var kind by remember(job.id) { mutableStateOf(job.kind) }
+    var at by remember(job.id) { mutableStateOf(job.at) }
+    var days by remember(job.id) { mutableStateOf(job.days.toSet()) }
+    var enabled by remember(job.id) { mutableStateOf(job.enabled) }
+    var allHosts by remember(job.id) { mutableStateOf(job.agent == "*") }
+    var said by remember(job.id) { mutableStateOf("") }
+    var deleting by remember(job.id) { mutableStateOf(false) }
+    val agent = if (kind == "update" && allHosts) "*" else if (job.agent == "*") host else job.agent
+    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 20.dp).heightIn(max = (LocalConfiguration.current.screenHeightDp * 0.9f).dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(if (isNew) "New job" else job.name, fontSize = 20.sp, fontWeight = FontWeight.SemiBold, color = Lab.text, modifier = Modifier.padding(end = 48.dp))
+        OutlinedTextField(name, { name = it.take(60) }, singleLine = true, label = { Text("Name") }, modifier = Modifier.fillMaxWidth())
+        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            JOB_KINDS.forEach { (k, label) -> FilterChip(selected = kind == k, enabled = isNew, onClick = { kind = k }, label = { Text(label) }) }
+        }
+        if (kind == "update") Row(verticalAlignment = Alignment.CenterVertically) {
+            Switch(allHosts, { allHosts = it }, enabled = job.id != UPDATE_JOB)
+            Text("  Every host" + if (allHosts) "" else " (only $host)", color = Lab.text, fontSize = 14.sp)
+        }
+        OutlinedTextField(at, { at = it.take(5) }, singleLine = true, label = { Text("Time (HH:MM, the server's clock)") }, modifier = Modifier.fillMaxWidth())
+        Row(Modifier.horizontalScroll(rememberScrollState()), verticalAlignment = Alignment.CenterVertically) {
+            listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun").forEachIndexed { i, d ->
+                Checkbox(i in days, { days = if (it) days + i else days - i })
+                Text(d, fontSize = 13.sp, color = Lab.sub, modifier = Modifier.padding(end = 6.dp))
+            }
+        }
+        Row(verticalAlignment = Alignment.CenterVertically) { Switch(enabled, { enabled = it }); Text("  Enabled", color = Lab.text, fontSize = 14.sp) }
+        if (!isNew && job.last.t > 0) Text("Last run: ${job.last.day} · " + (if (job.last.ok) "ok" else "failed") + " · ${job.last.text}", fontSize = 12.sp, color = Lab.muted)
+        Said(said)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedButton(enabled = jobOk(name, at, days), onClick = {
+                gate.press { scope.launch {
+                    val r = ask { zoneJobSave(job.copy(name = name.trim(), kind = kind, agent = agent, at = at, days = days.sorted(), enabled = enabled)) }
+                    if (r.ok) onDone() else said = "Save: ${r.refusal()}"
+                } }
+            }) { Text("Save") }
+            OutlinedButton(onClick = onDone) { Text("Discard") }
+            if (!isNew) OutlinedButton(onClick = {
+                gate.press { scope.launch { said = "Running…"; val r = ask { zoneJobRun(job.id) }; said = if (r.ok) "Done: ${r.text}" else "Failed: ${r.refusal()}" } }
+            }) { Text("Run now") }
+            if (!isNew && job.id != UPDATE_JOB) OutlinedButton(onClick = { deleting = true }) { Text("Delete", color = Lab.red) }
+        }
+    }
+    if (deleting) TypedConfirm("Delete ${job.name}?", job.name, "Delete", onOk = {
+        deleting = false
+        gate.press { scope.launch { val r = ask { zoneJobDelete(job.id, job.name) }; if (r.ok) onDone() else said = "Delete: ${r.refusal()}" } }
+    }, onDismiss = { deleting = false })
 }

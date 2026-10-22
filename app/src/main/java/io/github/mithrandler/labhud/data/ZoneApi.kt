@@ -4,7 +4,9 @@ import io.github.mithrandler.labhud.BuildConfig
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonObjectBuilder
+import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.add
 import kotlinx.serialization.json.put
 
 /* The zone Servers (api/servers.py): the hosts' Docker. Every call goes through labhud's own gate: HTTPS only, the admin's level, a session that ends after 15 minutes without a call. */
@@ -189,7 +191,30 @@ data class ZoneAnswer(
     val intact: Boolean = false,
     val checked: Int = 0,
     val broken: String = "",
+    // Scheduler
+    val jobs: List<ZoneJob> = emptyList(),
+    val kinds: List<String> = emptyList(),
+    val job: ZoneJob? = null,
 )
+
+@Serializable
+data class ZoneJobLast(val day: String = "", val t: Long = 0, val ok: Boolean = false, val text: String = "")
+
+@Serializable
+data class ZoneJob(
+    val id: String = "", val name: String = "", val kind: String = "update", val agent: String = "*",
+    val days: List<Int> = emptyList(), val at: String = "04:00", val enabled: Boolean = true, val last: ZoneJobLast = ZoneJobLast(),
+)
+
+const val UPDATE_JOB = "00000001"      // the old update window, the scheduler's first job
+val JOB_KINDS = mapOf("update" to "Update containers", "prune" to "Prune unused images", "host-update" to "Update OS")
+private val DAY_NAMES = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+
+/** "every day", "Mon Wed Fri": a job's days. Web `days_text`. */
+fun daysText(days: List<Int>): String = if (days.toSet().size == 7) "every day" else days.sorted().mapNotNull { DAY_NAMES.getOrNull(it) }.joinToString(" ")
+
+/** Whether the editor's values make a job the server takes (the server checks again). */
+fun jobOk(name: String, at: String, days: Set<Int>) = name.isNotBlank() && days.isNotEmpty() && Regex("([01][0-9]|2[0-3]):[0-5][0-9]").matches(at)
 
 @Serializable
 data class ZoneSystem(val hostname: String = "", val os: String = "", val kernel: String = "", val arch: String = "")
@@ -236,6 +261,16 @@ suspend fun LabApi.zoneUnit(agent: String, name: String, verb: String) = zone("u
 suspend fun LabApi.zoneUnitStop(agent: String, name: String, confirm: String) = zone("unit-stop", 60) { put("agent", agent); put("name", name); put("confirm", confirm) }
 suspend fun LabApi.zoneActivity(agent: String, offset: Int) = zone("activity", 35) { put("agent", agent); put("offset", offset) }
 suspend fun LabApi.zoneAuditVerify() = zone("audit-verify", 60)
+suspend fun LabApi.zoneJobs() = zone("jobs", 35)
+suspend fun LabApi.zoneJobSave(j: ZoneJob) = zone("job-save", 35) {
+    put("job", buildJsonObject {
+        if (j.id.isNotEmpty()) put("id", j.id)
+        put("name", j.name); put("kind", j.kind); put("agent", j.agent); put("at", j.at); put("enabled", j.enabled)
+        put("days", buildJsonArray { j.days.sorted().forEach { add(it) } })
+    })
+}
+suspend fun LabApi.zoneJobDelete(id: String, confirm: String) = zone("job-delete", 35) { put("id", id); put("confirm", confirm) }
+suspend fun LabApi.zoneJobRun(id: String) = zone("job-run", 600) { put("id", id) }
 suspend fun LabApi.zoneHosts() = zone("hosts")
 suspend fun LabApi.zoneContainers(agent: String) = zone("containers") { put("agent", agent) }
 suspend fun LabApi.zoneAction(agent: String, name: String, verb: String) = zone("action", 60) { put("agent", agent); put("name", name); put("verb", verb) }

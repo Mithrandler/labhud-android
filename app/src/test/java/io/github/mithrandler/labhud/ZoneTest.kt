@@ -285,4 +285,14 @@ class ZoneObjectsTest {
         assertEquals("unit-restart", io.github.mithrandler.labhud.data.activityText(e))
         assertEquals("unit-restart (refused)", io.github.mithrandler.labhud.data.activityText(e.copy(ok = false)))
     }
+
+    @Test fun a_jobs_days_and_editor_values_read_and_check() {
+        assertEquals("every day", io.github.mithrandler.labhud.data.daysText(listOf(0, 1, 2, 3, 4, 5, 6)))
+        assertEquals("Mon Wed Sun", io.github.mithrandler.labhud.data.daysText(listOf(6, 0, 2)))
+        assertEquals(true, io.github.mithrandler.labhud.data.jobOk("Prune", "03:30", setOf(6)))
+        assertEquals(false, io.github.mithrandler.labhud.data.jobOk(" ", "03:30", setOf(6)))
+        assertEquals(false, io.github.mithrandler.labhud.data.jobOk("Prune", "3:30", setOf(6)))
+        assertEquals(false, io.github.mithrandler.labhud.data.jobOk("Prune", "24:00", setOf(6)))
+        assertEquals(false, io.github.mithrandler.labhud.data.jobOk("Prune", "03:30", emptySet()))
+    }
 }

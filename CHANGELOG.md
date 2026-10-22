@@ -7,6 +7,7 @@ All notable changes to LabHUD for Android. The format follows
 ## [Unreleased]
 
 ### Added
+- **Servers > Scheduler** (Host tab): the list of jobs for the host (and the ones for every host) and an editor with Save / Discard, Run now and Delete (name typed); the old update window is the first job.
 - **Servers > Host**: facts, Update OS / Reboot / Shutdown (name typed), systemd units with a sheet (Start / Restart / Stop) and the host's Activity with Verify chain.
 - **CVEs on an image** (Servers > Images): a coloured line on each image row ("2 crit · 5 high", "clean", "not scanned") and a Vulnerabilities section in its sheet with the scanner, the time and the affected containers.
 - **Hosts and agents, done on the phone**: *Add agent* makes a one-time pairing code (with its minutes left), the install line and the container line, each with a Copy button, and the install line as a QR code; the list refreshes when the agent dials in. On an agent's screen: *Rename* and *Remove…* (type its name to confirm). Rename needs labhud 0.1.15.
