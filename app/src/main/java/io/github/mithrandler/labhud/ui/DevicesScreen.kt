@@ -158,7 +158,7 @@ private fun DeviceRow(c: Card, server: Server?, indent: Boolean = false, onClick
                 CardIcon(c, server)
                 Spacer(Modifier.width(10.dp))
                 Column(Modifier.weight(1f)) {
-                    Text(c.name, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    FitText(c.name, 14.sp, FontWeight.SemiBold)
                     // the percentages in a line ("CPU 16% · RAM 58%"), else what the card says about itself
                     val bars = c.metrics.filter { it.pct != null }.ifEmpty { c.guest?.meters().orEmpty() }.take(3)
                     val up = c.guest?.uptime?.let { "up " + upText(it) } ?: c.metrics.firstOrNull { it.short().equals("uptime", true) }?.let { "up " + it.value }

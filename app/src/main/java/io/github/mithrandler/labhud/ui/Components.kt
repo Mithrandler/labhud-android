@@ -25,6 +25,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -184,7 +187,7 @@ fun CardHead(c: Card, server: Server?) {
         CardIcon(c, server)
         Spacer(Modifier.width(LabScale.space2))
         Column(Modifier.weight(1f)) {
-            Text(c.name, fontWeight = FontWeight.SemiBold, fontSize = LabScale.textMd, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            FitText(c.name, LabScale.textMd, FontWeight.SemiBold)
             if (c.subtitle.isNotEmpty() && c.size.isNotEmpty() && c.size != "s") {
                 Text(c.subtitle, fontSize = LabScale.textXs, color = Lab.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
@@ -384,11 +387,12 @@ fun MiniCard(c: Card, server: Server?, modifier: Modifier = Modifier, onClick: (
         },
         shadowElevation = if (Lab.hud) 0.dp else 1.dp,
     ) {
-        Column(Modifier.heightIn(min = 96.dp).padding(horizontal = 8.dp, vertical = 8.dp)) {
+        // a guest that is down has no bars to show: its card is as short as its two lines
+        Column(Modifier.heightIn(min = if (c.guest == null) 0.dp else 96.dp).padding(horizontal = 8.dp, vertical = 8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 CardIcon(c, server)
                 Spacer(Modifier.width(6.dp))
-                Text(c.name, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                FitText(c.name, 12.sp, FontWeight.SemiBold, Modifier.weight(1f))
                 if (c.status != null || c.bad != null) { Spacer(Modifier.width(4.dp)); StatusDot(c, 8) }
             }
             val g = c.guest
@@ -446,4 +450,15 @@ fun GpuRing(g: io.github.mithrandler.labhud.data.Gpu, name: String, modifier: Mo
         Text(name, fontSize = LabScale.textXs, color = Lab.muted, maxLines = 1)
         mem?.let { Text("VRAM ${Math.round(it)}%", fontSize = 10.sp, color = Lab.muted, maxLines = 1) }
     }
+}
+
+/**
+ * A name on one line that shrinks (down to 60% of [size]) until all of it shows; only a name that is
+ * still too long then ends in "…". Cards cut "homeassistant" to "homeassi…" otherwise.
+ */
+@Composable
+fun FitText(text: String, size: androidx.compose.ui.unit.TextUnit, weight: FontWeight? = null, modifier: Modifier = Modifier, color: androidx.compose.ui.graphics.Color = androidx.compose.ui.graphics.Color.Unspecified) {
+    var scale by remember(text, size) { mutableStateOf(1f) }
+    Text(text, modifier, color = color, fontWeight = weight, fontSize = size * scale, maxLines = 1, overflow = TextOverflow.Ellipsis,
+        onTextLayout = { if (it.hasVisualOverflow && scale > 0.6f) scale = (scale - 0.05f).coerceAtLeast(0.6f) })
 }

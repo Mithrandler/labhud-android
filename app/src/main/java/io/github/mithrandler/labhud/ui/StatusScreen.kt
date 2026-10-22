@@ -231,7 +231,8 @@ private fun LazyGridScope.favorites(favs: Set<String>, byId: Map<String, Card>, 
     item(key = "g-fav", span = { GridItemSpan(maxLineSpan) }) { SectionTitle("Favorites", bad = cards.any { it.bad == true }) }
     cards.forEach { c ->
         item(key = "c-fav-${c.id}", span = { GridItemSpan(c.statusSpan(maxLineSpan)) }) {
-            HudCard(c, server, sparks = sparks, uptime = uptime?.cards?.get(c.id), percent = uptime?.percent?.get(c.id),
+            if (c.kind == "guest") MiniCard(c, server) { onCard(c.id) }
+            else HudCard(c, server, sparks = sparks, uptime = uptime?.cards?.get(c.id), percent = uptime?.percent?.get(c.id),
                 coverage = uptime?.coverage?.get(c.id), compact = compact,
                     chips = listOfNotNull(boxChips[c.id])) { onCard(c.id) }
         }
@@ -370,9 +371,10 @@ fun ConnBanner(conn: Conn, liveAtFlow: kotlinx.coroutines.flow.StateFlow<Long>, 
 fun ServerPicker(server: Server?, servers: List<Server>, onPick: (Server) -> Unit, onManage: () -> Unit) {
     var open by remember { mutableStateOf(false) }
     Box {
-        TextButton(onClick = { open = true }) {
-            Text(server?.name ?: "LabHUD", color = Lab.title, fontSize = 20.sp, fontWeight = FontWeight.SemiBold,
-                maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Row(Modifier.clip(androidx.compose.foundation.shape.RoundedCornerShape(8.dp)).clickable { open = true }.padding(vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically) {
+            // the app's own name, not the server's: the one a server's config cannot change
+            Text("LabHUD", color = Lab.title, fontSize = 20.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, softWrap = false)
             if (servers.size > 1) Icon(LabIcons.chevronDown, null, tint = Lab.title)
         }
         DropdownMenu(expanded = open && servers.size > 1, onDismissRequest = { open = false }) {
@@ -393,8 +395,9 @@ fun InternetMark(n: io.github.mithrandler.labhud.data.Internet) {
         "↓${rateText(n.dn)} ↑${rateText(n.up)}",
         color = if (flowing) Lab.green else Lab.muted,
         fontWeight = FontWeight.Bold,
-        style = androidx.compose.material3.MaterialTheme.typography.labelLarge,
+        fontSize = 12.sp,
         maxLines = 1,
-        modifier = Modifier.padding(end = 4.dp).semantics { contentDescription = "Internet: download ${rateText(n.dn)}, upload ${rateText(n.up)}" },
+        softWrap = false,
+        modifier = Modifier.padding(end = 2.dp).semantics { contentDescription = "Internet: download ${rateText(n.dn)}, upload ${rateText(n.up)}" },
     )
 }
