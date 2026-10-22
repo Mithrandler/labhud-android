@@ -185,7 +185,7 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
             .filterNot { it.title.equals("guests", true) && guests.isNotEmpty() }
             .filterNot { it.title.startsWith("docker containers", true) && stacks.isNotEmpty() }
         val tabs = buildList<CTab> {
-            add(CTab("Overview") {
+            add(CTab("Overview", narrow = true) {
                 item { StatusHeader(c, server) }
                 val own = c.metrics.filter { it.value.isNotEmpty() && it.value != "—" }.ifEmpty { c.guest?.meters().orEmpty() }
                 val (rings, others) = ringsAndChips(own)
@@ -382,7 +382,10 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
                 }
             }
             HorizontalPager(pager, Modifier.fillMaxSize(), key = { tabs.getOrNull(it)?.name ?: it }) { i ->
-                LazyColumn(Modifier.fillMaxSize(), contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
+                // the Overview is a column of facts: on a wide screen it stays 640 dp wide in the middle
+                val wide = LocalConfiguration.current.screenWidthDp
+                val side = if (tabs.getOrNull(i)?.narrow == true && wide > 672) ((wide - 640) / 2).dp else 16.dp
+                LazyColumn(Modifier.fillMaxSize(), contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = side, vertical = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)) { tabs.getOrNull(i)?.body?.invoke(this) }
             }
         }
@@ -492,7 +495,7 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
 }
 
 /** One tab of a card's screen: its name and the items of its list. */
-private class CTab(val name: String, val body: LazyListScope.() -> Unit)
+private class CTab(val name: String, val narrow: Boolean = false, val body: LazyListScope.() -> Unit)
 
 /** [items] as rows of [cols] cells that share the width; the last row is padded so its cells stay as wide. */
 private fun <T> LazyListScope.gridRows(items: List<T>, cols: Int, keyPrefix: String? = null, cell: @Composable androidx.compose.foundation.layout.RowScope.(T) -> Unit) {

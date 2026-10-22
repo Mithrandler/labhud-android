@@ -6,6 +6,11 @@ All notable changes to LabHUD for Android. The format follows
 
 ## [Unreleased]
 
+## [0.1.24] - 2026-10-22
+
+### Changed
+- The Overview tab of a card stays 640 dp wide in the middle on a wide screen (landscape, tablet) instead of stretching across it.
+
 ## [0.1.23] - 2026-10-22
 
 Needs labhud 0.1.12 for the admin's name, the sessions list and the glance view; with an older server the app works as before (those parts stay hidden or say so).
@@ -225,7 +230,8 @@ those parts are simply not shown.
   back in the settings or the camera was switched off in Quick Settings. It now asks again, offers
   the system settings after a permanent refusal, and pasting the link or signing in always works.
 
-[Unreleased]: https://github.com/Mithrandler/labhud-android/compare/v0.1.23...HEAD
+[Unreleased]: https://github.com/Mithrandler/labhud-android/compare/v0.1.24...HEAD
+[0.1.24]: https://github.com/Mithrandler/labhud-android/compare/v0.1.23...v0.1.24
 [0.1.23]: https://github.com/Mithrandler/labhud-android/compare/v0.1.22...v0.1.23
 [0.1.22]: https://github.com/Mithrandler/labhud-android/compare/v0.1.21...v0.1.22
 [0.1.21]: https://github.com/Mithrandler/labhud-android/compare/v0.1.2...v0.1.21
