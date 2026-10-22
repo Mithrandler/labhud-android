@@ -13,6 +13,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -25,7 +28,11 @@ import androidx.compose.ui.unit.sp
 import io.github.mithrandler.labhud.data.AgentRow
 import io.github.mithrandler.labhud.data.LabRepository
 import io.github.mithrandler.labhud.data.Registries
+import io.github.mithrandler.labhud.data.UpdateWindow
+import io.github.mithrandler.labhud.data.agentsAutoUpdate
 import io.github.mithrandler.labhud.data.holdCritical
+import io.github.mithrandler.labhud.data.updateWindow
+import io.github.mithrandler.labhud.data.words
 import io.github.mithrandler.labhud.data.registries
 import io.github.mithrandler.labhud.data.removeRegistry
 import io.github.mithrandler.labhud.data.saveRegistry
@@ -49,13 +56,19 @@ fun ContainersSection(repo: LabRepository, nav: SettingsNav) {
     val gate = rememberGate(repo)
     var agents by remember { mutableStateOf<List<AgentRow>?>(null) }
     var regs by remember { mutableStateOf<Registries?>(null) }
+    var window by remember { mutableStateOf<UpdateWindow?>(null) }
+    var agentsAuto by remember { mutableStateOf(false) }
     var message by remember { mutableStateOf("") }
 
     fun load() = scope.launch {
         val api = repo.api() ?: return@launch
         message = ""
         runCatching { api.agents() }.onSuccess { a ->
-            if (a.ok) agents = a.agents.filter { "docker" in it.caps }
+            if (a.ok) {
+                agents = a.agents.filter { "docker" in it.caps }
+                window = a.window
+                agentsAuto = a.autoUpdate
+            }
             else {   // a refusal is not "no agent": say what to do, and read the rights again
                 message = refusalText(a.error, repo.rights.value)
                 if (isRefusal(a.error)) repo.refreshRights()
@@ -94,7 +107,13 @@ fun ContainersSection(repo: LabRepository, nav: SettingsNav) {
                     }
                 }
             }
-            item { WallOnly("⚙ > Containers", listOf("The window when containers update on their own", "Webhooks that update a container")) }
+            window?.let { w ->
+                item {
+                    UpdateWindowPanel(w, agentsAuto,
+                        onWindow = { days, at -> change("Not saved") { repo.api()?.updateWindow(days, at)?.let { it.ok to it.error } } },
+                        onAgents = { on -> change("Not saved") { repo.api()?.agentsAutoUpdate(on)?.let { it.ok to it.error } } })
+                }
+            }
             regs?.let { r ->
                 item {
                     RegistriesPanel(r,
@@ -106,4 +125,43 @@ fun ContainersSection(repo: LabRepository, nav: SettingsNav) {
         }
     }
     GateDialogs(gate, nav.signIn)
+}
+
+/**
+ * When the containers ticked "update on their own" are updated: the days (tap to tick, one stays
+ * on) and the time of day on the server's clock; and whether the agents update themselves.
+ */
+@Composable
+private fun UpdateWindowPanel(w: UpdateWindow, agentsAuto: Boolean, onWindow: (List<Int>, String) -> Unit, onAgents: (Boolean) -> Unit) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val names = listOf("M", "T", "W", "T", "F", "S", "S")
+    val days = w.days.toSet()
+    Panel("Update window", w.words()) {
+        Text("The containers ticked “on their own” are updated then, on the server's clock.", fontSize = 13.sp, color = Lab.sub)
+        Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+            names.forEachIndexed { i, n ->
+                val on = i in days
+                androidx.compose.material3.FilterChip(
+                    selected = on,
+                    onClick = { val next = if (on) days - i else days + i; if (next.isNotEmpty()) onWindow(next.sorted(), w.at) },
+                    label = { Text(n) },
+                    modifier = Modifier.semantics { contentDescription = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")[i] },
+                )
+            }
+        }
+        Row(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text("At", fontSize = 13.sp, color = Lab.sub)
+            androidx.compose.material3.OutlinedButton(onClick = {
+                val (h, m) = w.at.split(":").let { (it.getOrNull(0)?.toIntOrNull() ?: 4) to (it.getOrNull(1)?.toIntOrNull() ?: 0) }
+                android.app.TimePickerDialog(context, { _, hh, mm -> onWindow(w.days, "%02d:%02d".format(hh, mm)) }, h, m, true).show()
+            }) { Text(w.at) }
+        }
+        Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f).padding(end = 12.dp)) {
+                Text("Update agents too", fontWeight = FontWeight.Medium, fontSize = 14.sp)
+                Text("An agent with an older version updates itself when it dials in.", fontSize = 12.sp, color = Lab.muted)
+            }
+            androidx.compose.material3.Switch(checked = agentsAuto, onCheckedChange = onAgents)
+        }
+    }
 }

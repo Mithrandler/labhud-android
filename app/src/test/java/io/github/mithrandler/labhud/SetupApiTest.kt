@@ -7,6 +7,9 @@ import io.github.mithrandler.labhud.data.Channels
 import io.github.mithrandler.labhud.data.Container
 import io.github.mithrandler.labhud.data.FleetUpdate
 import io.github.mithrandler.labhud.data.Scan
+import io.github.mithrandler.labhud.data.Agents
+import io.github.mithrandler.labhud.data.UpdateWindow
+import io.github.mithrandler.labhud.data.words
 import io.github.mithrandler.labhud.data.LabJson
 import io.github.mithrandler.labhud.data.Registries
 import io.github.mithrandler.labhud.data.Registry
@@ -189,5 +192,16 @@ class SetupApiTest {
         assertEquals("5:00", countdown(300))
         assertEquals("0:07", countdown(7))
         assertEquals("12:34", countdown(754))
+    }
+
+    @Test fun updateWindowWords() {
+        assertEquals("Every day at 04:00", UpdateWindow().words())
+        assertEquals("Mon, Thu at 03:30", UpdateWindow(listOf(3, 0, 3), "03:30").words())
+        assertEquals("Never", UpdateWindow(emptyList(), "04:00").words())
+        val a = LabJson.decodeFromString<Agents>("""{"ok":true,"agents":[{"id":"1","name":"a","hooks":["jellyfin"]}],"window":{"days":[5,6],"at":"02:15"},"auto_update":true}""")
+        assertEquals("Sat, Sun at 02:15", a.window.words())
+        assertTrue(a.autoUpdate)
+        assertEquals(listOf("jellyfin"), a.agents[0].hooks)
+        assertEquals("04:00", LabJson.decodeFromString<Agents>("""{"ok":true}""").window.at)   // a server without a window
     }
 }

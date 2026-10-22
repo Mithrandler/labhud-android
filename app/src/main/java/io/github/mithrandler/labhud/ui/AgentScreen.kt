@@ -1,5 +1,6 @@
 package io.github.mithrandler.labhud.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
@@ -45,7 +46,9 @@ import androidx.compose.ui.unit.sp
 import io.github.mithrandler.labhud.data.AgentRow
 import io.github.mithrandler.labhud.data.Agents
 import io.github.mithrandler.labhud.data.LabRepository
+import io.github.mithrandler.labhud.data.makeHook
 import io.github.mithrandler.labhud.data.removeAgent
+import io.github.mithrandler.labhud.data.removeHook
 import io.github.mithrandler.labhud.data.renameAgent
 import kotlinx.coroutines.launch
 
@@ -77,6 +80,7 @@ fun AgentScreen(repo: LabRepository, id: String, onBack: () -> Unit, onSignIn: (
     var busy by remember { mutableStateOf(false) }
     var confirmUpdate by remember { mutableStateOf(false) }
     var confirmPrune by remember { mutableStateOf(false) }
+    var hookUrl by remember { mutableStateOf<Pair<String, String>?>(null) }
     var renaming by remember { mutableStateOf(false) }
     var removing by remember { mutableStateOf(false) }
 
@@ -179,7 +183,17 @@ fun AgentScreen(repo: LabRepository, id: String, onBack: () -> Unit, onSignIn: (
                             if (cap == "docker") {
                                 DockerExtras(a, ticked.filter { it != "images" }, busy,
                                     onAuto = { list -> change { api -> api.agentAuto(a.id, list) } },
-                                    onPrune = { confirmPrune = true })
+                                    onPrune = { confirmPrune = true },
+                                    onHook = { t -> gate.press {
+                                        busy = true
+                                        scope.launch {
+                                            val r = runCatching { repo.api()?.makeHook(a.id, t) }.getOrNull()
+                                            if (r?.ok == true) hookUrl = t to r.url else message = "No webhook: " + (r?.error?.ifBlank { null } ?: "refused")
+                                            load().join()
+                                            busy = false
+                                        }
+                                    } },
+                                    onUnhook = { t -> change { api -> api.removeHook(a.id, t) } })
                                 if (a.prune) DockerHostPanel(a, repo, gate, busy) { message = it }
                             }
                             if (cap == "stacks") StacksPanel(a, repo, gate, busy, { message = it }) { load() }
@@ -262,13 +276,36 @@ fun AgentScreen(repo: LabRepository, id: String, onBack: () -> Unit, onSignIn: (
             dismissButton = { TextButton(onClick = { removing = false }) { Text("Cancel") } },
         )
     }
+    hookUrl?.let { (t, url) ->
+        val context = androidx.compose.ui.platform.LocalContext.current
+        AlertDialog(
+            onDismissRequest = {},
+            title = { Text("Webhook for $t") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("It is shown this once: LabHUD keeps only its hash.", fontSize = 13.sp)
+                    androidx.compose.foundation.text.selection.SelectionContainer {
+                        Text(url, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace, fontSize = 12.sp,
+                            modifier = Modifier.fillMaxWidth().background(Lab.block).padding(8.dp))
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { hookUrl = null }) { Text("Done") } },
+            dismissButton = { TextButton(onClick = {
+                val clip = android.content.ClipData.newPlainText("LabHUD webhook", url)
+                if (android.os.Build.VERSION.SDK_INT >= 33) clip.description.extras = android.os.PersistableBundle().apply { putBoolean(android.content.ClipDescription.EXTRA_IS_SENSITIVE, true) }
+                (context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager).setPrimaryClip(clip)
+            }) { Text("Copy") } },
+        )
+    }
     GateDialogs(gate, onSignIn)
 }
 
 /** Under Docker: the containers labhud updates on its own (in the window set in ⚙), and the button
     that cleans the unused images when "images" is ticked. */
 @Composable
-private fun DockerExtras(a: AgentRow, containers: List<String>, busy: Boolean, onAuto: (List<String>) -> Unit, onPrune: () -> Unit) {
+private fun DockerExtras(a: AgentRow, containers: List<String>, busy: Boolean, onAuto: (List<String>) -> Unit, onPrune: () -> Unit,
+                         onHook: (String) -> Unit, onUnhook: (String) -> Unit) {
     if (containers.isNotEmpty()) {
         Text("Update on their own", fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 12.dp))
         Text("When their image has a newer one, in the window set in ⚙ on the wall.", fontSize = 12.sp, color = Lab.muted)
@@ -281,6 +318,18 @@ private fun DockerExtras(a: AgentRow, containers: List<String>, busy: Boolean, o
             ) {
                 Checkbox(checked = t in a.auto, onCheckedChange = null, enabled = !busy)
                 Text(t, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = 8.dp))
+            }
+        }
+    }
+    if (containers.isNotEmpty()) {
+        Text("Webhooks", fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 12.dp))
+        Text("An address that updates the container when it is called (a registry's push hook). Shown once; a new one replaces the old.", fontSize = 12.sp, color = Lab.muted)
+        containers.forEach { t ->
+            val has = t in a.hooks
+            Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(t, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                if (has) TextButton(onClick = { onUnhook(t) }, enabled = !busy) { Text("Remove", color = Lab.red) }
+                TextButton(onClick = { onHook(t) }, enabled = !busy) { Text(if (has) "New" else "Create") }
             }
         }
     }

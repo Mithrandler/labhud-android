@@ -215,3 +215,35 @@ suspend fun LabApi.renameAgent(id: String, name: String): RenameAnswer = LabJson
 
 suspend fun LabApi.removeAgent(id: String): ActionAnswer = LabJson.decodeFromString(
     postAnswer("/api/agents/remove", buildJsonObject { put("id", id) }.toString()))
+
+// --- the containers' update window and webhooks (server.py _agents_admin) ---
+
+@Serializable
+data class HookAnswer(val ok: Boolean = false, val error: String = "", val url: String = "")
+
+suspend fun LabApi.updateWindow(days: List<Int>, at: String): ActionAnswer = LabJson.decodeFromString(
+    postAnswer("/api/agents/window", buildJsonObject {
+        putJsonArray("days") { days.forEach { add(JsonPrimitive(it)) } }
+        put("at", at)
+    }.toString()))
+
+suspend fun LabApi.agentsAutoUpdate(on: Boolean): ActionAnswer = LabJson.decodeFromString(
+    postAnswer("/api/agents/auto", buildJsonObject { put("on", on) }.toString()))
+
+/** A new webhook for a ticked container (the old URL stops working); the URL comes once, in `url`. */
+suspend fun LabApi.makeHook(id: String, target: String): HookAnswer = LabJson.decodeFromString(
+    postAnswer("/api/agents/hook", buildJsonObject { put("id", id); put("target", target) }.toString()))
+
+suspend fun LabApi.removeHook(id: String, target: String): ActionAnswer = LabJson.decodeFromString(
+    postAnswer("/api/agents/unhook", buildJsonObject { put("id", id); put("target", target) }.toString()))
+
+/** "Every day at 04:00", "Mon, Thu at 03:30", "Never" (no day ticked cannot be saved, but a server might say so). */
+fun UpdateWindow.words(): String {
+    val names = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+    val d = days.distinct().sorted()
+    return when {
+        d.isEmpty() -> "Never"
+        d.size == 7 -> "Every day at $at"
+        else -> d.filter { it in 0..6 }.joinToString(", ") { names[it] } + " at $at"
+    }
+}

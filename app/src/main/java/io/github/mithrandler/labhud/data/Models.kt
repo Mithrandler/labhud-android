@@ -534,6 +534,8 @@ data class AgentRow(
     val prune: Boolean = false,
     /** The containers labhud updates on its own, in the window. */
     val auto: List<String> = emptyList(),
+    /** The ticked containers that have a webhook (the secret itself is never listed). */
+    val hooks: List<String> = emptyList(),
     /** The compose stacks it keeps (the `stacks` capability), by name. */
     val stacks: Map<String, StackInfo> = emptyMap(),
 )
@@ -550,7 +552,15 @@ data class Agents(
     val verbs: Map<String, List<String>> = emptyMap(),
     /** The agent release labhud pins. */
     val release: String = "",
+    /** When the containers ticked "on their own" are updated; absent on a server older than the window. */
+    val window: UpdateWindow = UpdateWindow(),
+    /** Agents update themselves when they dial in with an older version. */
+    @SerialName("auto_update") val autoUpdate: Boolean = false,
 )
+
+/** [days]: 0 (Monday) to 6; [at]: "HH:MM", the server's own clock. */
+@Serializable
+data class UpdateWindow(val days: List<Int> = (0..6).toList(), val at: String = "04:00")
 
 /** /api/setup/alerts (admin): the rules as labhud keeps them (sent back as they are), and where news goes. */
 @Serializable

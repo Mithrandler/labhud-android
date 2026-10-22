@@ -8,6 +8,7 @@ All notable changes to LabHUD for Android. The format follows
 
 ### Added
 - **Hosts and agents, done on the phone**: *Add agent* makes a one-time pairing code (with its minutes left), the install line and the container line, each with a Copy button, and the install line as a QR code; the list refreshes when the agent dials in. On an agent's screen: *Rename* and *Remove…* (type its name to confirm). Rename needs labhud 0.1.15.
+- **Containers, done on the phone**: *Update window* (the days as chips, the time, and whether agents update themselves) and, on an agent's Docker part, a webhook per ticked container (shown once with Copy; Remove; New replaces the old).
 
 ### Changed
 - **Equal cells on Status**: every small card is the same size (112 dp, 84 dp on a wide low screen), 3 to a row on a phone (up to 6 when wide), the same 12 dp gap between them and to the edges; a machine's rings take a whole row, two cells high. A card never grows a line for "up 3d": how long it has run is a chip beside its name, and it keeps three bars. Lists, notes and links are cells too, so a page is 1-2 screens, not 6.
