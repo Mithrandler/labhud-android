@@ -71,7 +71,8 @@ private val SECTIONS = listOf(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DevicesScreen(repo: LabRepository, onCard: (String) -> Unit) {
+fun DevicesScreen(repo: LabRepository, bar: BarNav) {
+    val onCard = bar.onCard
     val state by repo.state.collectAsStateWithLifecycle()
     val conn by repo.conn.collectAsStateWithLifecycle()
     val server by repo.server.collectAsStateWithLifecycle()
@@ -95,10 +96,7 @@ fun DevicesScreen(repo: LabRepository, onCard: (String) -> Unit) {
         modifier = Modifier.labBarScroll(barScroll),
         containerColor = Lab.bg,
         topBar = {
-            LabTopBar(
-                scroll = barScroll,
-                title = { Text("Devices") },
-            )
+            MainTopBar(repo, bar, title = { Text("Devices") })
         },
     ) { pad ->
         Column(Modifier.padding(pad).fillMaxSize()) {

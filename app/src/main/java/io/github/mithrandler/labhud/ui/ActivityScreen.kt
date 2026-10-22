@@ -55,7 +55,8 @@ private val STAMP = SimpleDateFormat("EEE d MMM, HH:mm", Locale.ENGLISH)
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ActivityScreen(repo: LabRepository, onCard: (String) -> Unit) {
+fun ActivityScreen(repo: LabRepository, bar: BarNav) {
+    val onCard = bar.onCard
     var events by remember { mutableStateOf<List<Event>?>(null) }
     var notes by remember { mutableStateOf<List<Note>?>(null) }
     var error by remember { mutableStateOf("") }
@@ -79,10 +80,10 @@ fun ActivityScreen(repo: LabRepository, onCard: (String) -> Unit) {
         modifier = Modifier.labBarScroll(barScroll),
         containerColor = Lab.bg,
         topBar = {
-            LabTopBar(
-                scroll = barScroll,
+            MainTopBar(
+                repo, bar,
                 title = { Text("Activity") },
-                actions = {
+                extra = {
                     if (tab == 2 && !shown.isNullOrEmpty()) TextButton(onClick = {
                         val id = server?.id ?: return@TextButton
                         val last = notes.orEmpty().maxOf { it.time }

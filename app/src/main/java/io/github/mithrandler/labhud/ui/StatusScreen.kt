@@ -91,15 +91,9 @@ internal val SHORT_TIME: DateFormat = DateFormat.getTimeInstance(DateFormat.SHOR
 @Composable
 fun StatusScreen(
     repo: LabRepository,
-    onCard: (String) -> Unit,
+    bar: BarNav,
     onGame: (String) -> Unit,
     onServers: () -> Unit,
-    /** A ⚙ section by its id, from the command palette. */
-    onSettings: (String) -> Unit,
-    /** A card's button from the palette: its screen opens and asks there, as a press on it does. */
-    onAction: (card: String, action: String) -> Unit,
-    onWall: () -> Unit,
-    onLock: (() -> Unit)?,
 ) {
     val state by repo.state.collectAsStateWithLifecycle()
     val conn by repo.conn.collectAsStateWithLifecycle()
@@ -107,12 +101,10 @@ fun StatusScreen(
     val info by repo.info.collectAsStateWithLifecycle()
     val servers by repo.store.servers.collectAsStateWithLifecycle(initialValue = emptyList())
     val scope = rememberCoroutineScope()
-    var menu by remember { mutableStateOf(false) }
-    var bell by remember { mutableStateOf(false) }
-    var search by remember { mutableStateOf(false) }
+    val onCard = bar.onCard
     var pageId by rememberSaveable { mutableStateOf<String?>(null) }
-    var goPage by remember { mutableStateOf<String?>(null) }
-    val rights by repo.rights.collectAsStateWithLifecycle()
+    // a page picked in the palette, on this screen or another
+    val goPage by repo.pagePick.collectAsStateWithLifecycle()
     val prefs by repo.store.settings.collectAsStateWithLifecycle(initialValue = AppSettings())
     val favs by (server?.id?.let { repo.store.favoriteCards(it) } ?: kotlinx.coroutines.flow.flowOf(emptySet())).collectAsStateWithLifecycle(initialValue = emptySet())
     val view = effectiveView(prefs.phoneView, state?.view)
@@ -137,36 +129,11 @@ fun StatusScreen(
     }
 
     val st = state
-    val count = (st?.alerts?.size ?: 0) + (st?.problems?.size ?: 0)
     Scaffold(
         containerColor = Lab.bg,
         topBar = {
-            TopAppBar(
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Lab.bg),
-                // labhud's mark, as on the wall's top bar
-                navigationIcon = {
-                    androidx.compose.foundation.Image(androidx.compose.ui.res.painterResource(io.github.mithrandler.labhud.R.drawable.brand_mark), "LabHUD",
-                        Modifier.padding(start = 16.dp).width(26.dp).height(22.dp))
-                },
-                title = { ServerPicker(server, servers, onPick = { scope.launch { repo.store.select(it.id) } }, onManage = onServers) },
-                actions = {
-                    st?.internet?.let { InternetMark(it) }
-                    if (st != null) LiveMark(st, conn)
-                    IconButton(onClick = { search = true }) { Icon(LabIcons.search, "Search") }
-                    IconButton(onClick = { bell = true }) {
-                        BadgedBox(badge = { if (count > 0) Badge(containerColor = Lab.red) { Text("$count") } }) {
-                            Icon(LabIcons.bell, "Alerts")
-                        }
-                    }
-                    IconButton(onClick = { menu = true }) { Icon(LabIcons.more, "More") }
-                    DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-                        DropdownMenuItem(text = { Text("Wall mode") }, leadingIcon = { Icon(LabIcons.wall, null) },
-                            onClick = { menu = false; onWall() })
-                        if (onLock != null) DropdownMenuItem(text = { Text("Lock now") }, leadingIcon = { Icon(LabIcons.lock, null) },
-                            onClick = { menu = false; onLock() })
-                    }
-                },
-            )
+            MainTopBar(repo, bar,
+                title = { ServerPicker(server, servers, onPick = { scope.launch { repo.store.select(it.id) } }, onManage = onServers) })
         },
     ) { pad ->
         Column(Modifier.padding(pad).fillMaxSize()) {
@@ -187,11 +154,10 @@ fun StatusScreen(
             val pager = rememberPagerState(initialPage = start) { pages.size }
             val chips = rememberLazyListState()
             // the chip row follows a swipe; the remembered page follows the pager
-            // a page picked in the palette
             LaunchedEffect(goPage) {
                 val i = pages.indexOfFirst { it.id == goPage }
                 if (i >= 0) pager.scrollToPage(i)
-                goPage = null
+                repo.pagePick.value = null
             }
             LaunchedEffect(pager.currentPage, pages.size) {
                 pages.getOrNull(pager.currentPage)?.let { pageId = it.id }
@@ -239,10 +205,6 @@ fun StatusScreen(
             }
         }
     }
-    if (bell && st != null) BellSheet(st, onDismiss = { bell = false }, onCard = { bell = false; onCard(it) })
-    if (search && st != null) PaletteSheet(st, rights.admin, server, onDismiss = { search = false },
-        onPage = { search = false; goPage = it }, onCard = { search = false; onCard(it) },
-        onAction = { c, a -> search = false; onAction(c, a) }, onSection = { search = false; onSettings(it) })
 }
 
 private fun LazyGridScope.groups(page: Page, byId: Map<String, Card>, server: Server?, sparks: Map<String, List<Double?>>,
@@ -301,7 +263,7 @@ private fun GameTile(g: GameServer, server: Server?, onClick: () -> Unit) {
 /** The bell: labhud's alerts (the rules that fired, the config's own), then the red cards. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun BellSheet(st: LabState, onDismiss: () -> Unit, onCard: (String) -> Unit) {
+fun BellSheet(st: LabState, onDismiss: () -> Unit, onCard: (String) -> Unit) {
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Lab.card) {
         BellContent(st, onCard, Modifier.padding(start = 16.dp, end = 16.dp, bottom = 32.dp))
     }
@@ -343,20 +305,26 @@ fun BellContent(st: LabState, onCard: (String) -> Unit, modifier: Modifier = Mod
     }
 }
 
-/** The state in the top bar: a dot and the time of the data, "Live" while the stream is open. */
+/**
+ * The state in the top bar: a dot, and on a wide screen the time of the data ("Live" while the stream
+ * is open). On a phone the dot alone: the words took the room of the title.
+ */
 @Composable
-private fun LiveMark(st: LabState, conn: Conn) {
+fun LiveMark(st: LabState, conn: Conn) {
     val color = when {
         conn != Conn.Live -> Lab.muted
         st.problems.isEmpty() -> Lab.green
         else -> Lab.red
     }
     val time = SHORT_TIME.format(Date(st.now * 1000))
-    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(end = 2.dp)) {
+    val text = when (conn) { Conn.Live -> "Live $time"; is Conn.Offline -> "Offline · $time"; else -> time }
+    val wide = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp >= 600
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 4.dp).semantics { contentDescription = text }) {
         Box(Modifier.size(8.dp).clip(CircleShape).background(color))
-        Spacer(Modifier.width(6.dp))
-        Text(when (conn) { Conn.Live -> "Live $time"; is Conn.Offline -> "Offline · $time"; else -> time },
-            fontSize = 12.sp, color = if (conn is Conn.Offline) Lab.warn else Lab.sub)
+        if (wide) {
+            Spacer(Modifier.width(6.dp))
+            Text(text, fontSize = 12.sp, color = if (conn is Conn.Offline) Lab.warn else Lab.sub)
+        }
     }
 }
 
@@ -399,7 +367,7 @@ fun ConnBanner(conn: Conn, liveAtFlow: kotlinx.coroutines.flow.StateFlow<Long>, 
 }
 
 @Composable
-private fun ServerPicker(server: Server?, servers: List<Server>, onPick: (Server) -> Unit, onManage: () -> Unit) {
+fun ServerPicker(server: Server?, servers: List<Server>, onPick: (Server) -> Unit, onManage: () -> Unit) {
     var open by remember { mutableStateOf(false) }
     Box {
         TextButton(onClick = { open = true }) {
@@ -419,7 +387,7 @@ private fun ServerPicker(server: Server?, servers: List<Server>, onPick: (Server
 
 /** The internet's download and upload in the top bar, green while something flows (as the wall's strip). */
 @Composable
-private fun InternetMark(n: io.github.mithrandler.labhud.data.Internet) {
+fun InternetMark(n: io.github.mithrandler.labhud.data.Internet) {
     val flowing = n.dn + n.up > 64 * 1024
     Text(
         "↓${rateText(n.dn)} ↑${rateText(n.up)}",

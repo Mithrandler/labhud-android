@@ -45,6 +45,8 @@ import androidx.fragment.app.FragmentActivity
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -53,6 +55,7 @@ import io.github.mithrandler.labhud.ui.AddServerScreen
 import io.github.mithrandler.labhud.ui.CardScreen
 import io.github.mithrandler.labhud.ui.ActivityScreen
 import io.github.mithrandler.labhud.ui.AgentScreen
+import io.github.mithrandler.labhud.ui.BarNav
 import io.github.mithrandler.labhud.ui.DevicesScreen
 import io.github.mithrandler.labhud.ui.GameScreen
 import io.github.mithrandler.labhud.ui.SettingsScreen
@@ -159,6 +162,14 @@ class MainActivity : FragmentActivity() {
             }
             onLinkUsed()
         }
+        val bar = BarNav(
+            onCard = { nav.navigate("card/$it") },
+            onPage = { repo.pagePick.value = it; nav.tab("home") },
+            onSettings = { nav.navigate("settings/$it") },
+            onAction = { card, action -> nav.navigate("card/$card?ask=" + Uri.encode(action)) },
+            onWall = { startActivity(Intent(this@MainActivity, WallActivity::class.java)) },
+            onLock = if (AppLock.on) ({ AppLock.lockNow() }) else null,
+        )
         val route = nav.currentBackStackEntryAsState().value?.destination?.route
         Scaffold(
             containerColor = Lab.bg,
@@ -176,18 +187,12 @@ class MainActivity : FragmentActivity() {
                 }
             },
         ) { pad ->
-            NavHost(nav, startDestination = "home", modifier = Modifier.background(Lab.bg).padding(pad).consumeWindowInsets(pad)) {
+            NavHost(nav, startDestination = "home",
+                enterTransition = { EnterTransition.None }, exitTransition = { ExitTransition.None },
+                popEnterTransition = { EnterTransition.None }, popExitTransition = { ExitTransition.None },
+                modifier = Modifier.background(Lab.bg).padding(pad).consumeWindowInsets(pad)) {
                 composable("home") {
-                    StatusScreen(
-                        repo,
-                        onCard = { nav.navigate("card/$it") },
-                        onGame = { nav.navigate("game/$it") },
-                        onServers = { nav.navigate("settings/servers") },
-                        onSettings = { id -> nav.navigate("settings/$id") },
-                        onAction = { card, action -> nav.navigate("card/$card?ask=" + Uri.encode(action)) },
-                        onWall = { startActivity(Intent(this@MainActivity, WallActivity::class.java)) },
-                        onLock = if (AppLock.on) ({ AppLock.lockNow() }) else null,
-                    )
+                    StatusScreen(repo, bar, onGame = { nav.navigate("game/$it") }, onServers = { nav.navigate("settings/servers") })
                 }
                 composable("card/{id}?ask={ask}", arguments = listOf(navArgument("ask") { type = NavType.StringType; defaultValue = "" })) {
                     CardScreen(repo, it.arguments?.getString("id").orEmpty(), onBack = { nav.popBackStack() },
@@ -201,11 +206,11 @@ class MainActivity : FragmentActivity() {
                     HostHistoryScreen(repo, it.arguments?.getString("id").orEmpty(), onBack = { nav.popBackStack() },
                         onCard = { id -> nav.navigate("card/$id") })
                 }
-                composable("devices") { DevicesScreen(repo, onCard = { id -> nav.navigate("card/$id") }) }
-                composable("activity") { ActivityScreen(repo, onCard = { id -> nav.navigate("card/$id") }) }
-                composable(SETTINGS) { Settings(nav, signIn = false) }
+                composable("devices") { DevicesScreen(repo, bar) }
+                composable("activity") { ActivityScreen(repo, bar) }
+                composable(SETTINGS) { Settings(nav, bar, signIn = false) }
                 // Settings opened over a card or a game by "Sign in" from a button: Back returns there
-                composable("signin") { Settings(nav, signIn = true) }
+                composable("signin") { Settings(nav, bar, signIn = true) }
                 // one settings section on its own screen: ui/settings/Sections.kt lists them
                 composable("settings/{id}") {
                     val s = section(it.arguments?.getString("id").orEmpty())
@@ -230,9 +235,9 @@ class MainActivity : FragmentActivity() {
     }
 
     @Composable
-    private fun Settings(nav: NavHostController, signIn: Boolean) {
+    private fun Settings(nav: NavHostController, bar: BarNav, signIn: Boolean) {
         val repo = (application as LabHudApp).repo
-        SettingsScreen(repo, onOpen = { nav.navigate("settings/$it") }, signInFirst = signIn)
+        SettingsScreen(repo, bar, onOpen = { nav.navigate("settings/$it") }, signInFirst = signIn)
     }
 
     /** Turns the wall's home screen entry on or off; Android then asks which home app to use. */

@@ -48,6 +48,9 @@ class LabRepository(private val context: Context, val store: ServerStore) {
     private val _liveAt = MutableStateFlow(0L)
     /** When the stream last delivered (wall-clock ms), for "last data at…" while offline. */
     val liveAt: StateFlow<Long> = _liveAt.asStateFlow()
+
+    /** A wall page picked in the palette: Status shows it and clears this. */
+    val pagePick = MutableStateFlow<String?>(null)
     private val _info = MutableStateFlow<Info?>(null)
     /** What the current server said about itself when the stream (re)started. */
     val info: StateFlow<Info?> = _info.asStateFlow()

@@ -51,7 +51,7 @@ import kotlinx.coroutines.launch
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(repo: LabRepository, onOpen: (String) -> Unit, signInFirst: Boolean = false) {
+fun SettingsScreen(repo: LabRepository, bar: BarNav, onOpen: (String) -> Unit, signInFirst: Boolean = false) {
     val rights by repo.rights.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     var signingIn by remember { mutableStateOf(signInFirst) }
@@ -65,16 +65,7 @@ fun SettingsScreen(repo: LabRepository, onOpen: (String) -> Unit, signInFirst: B
         modifier = Modifier.labBarScroll(barScroll),
         containerColor = Lab.bg,
         topBar = {
-            LabTopBar(
-                scroll = barScroll,
-                title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        BrandMark(24.dp)
-                        Spacer(Modifier.width(12.dp))
-                        Text("Settings")
-                    }
-                },
-            )
+            MainTopBar(repo, bar, title = { Text("Settings") })
         },
     ) { pad ->
         LazyColumn(
