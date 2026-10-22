@@ -1,5 +1,6 @@
 package io.github.mithrandler.labhud
 
+import io.github.mithrandler.labhud.data.AgentCode
 import io.github.mithrandler.labhud.data.Backups
 import io.github.mithrandler.labhud.data.Channel
 import io.github.mithrandler.labhud.data.Channels
@@ -14,6 +15,7 @@ import io.github.mithrandler.labhud.data.channelBody
 import io.github.mithrandler.labhud.ui.settings.backupSize
 import io.github.mithrandler.labhud.ui.settings.channelLine
 import io.github.mithrandler.labhud.ui.settings.channelValues
+import io.github.mithrandler.labhud.ui.settings.countdown
 import io.github.mithrandler.labhud.ui.settings.cveCount
 import io.github.mithrandler.labhud.ui.settings.registryLine
 import io.github.mithrandler.labhud.ui.settings.scannersLine
@@ -177,5 +179,15 @@ class SetupApiTest {
         assertEquals("CVEs: 2 critical · 7 high", Scan(2, 7).text())
         assertEquals("CVEs: 3 high", Scan(high = 3).text())
         assertEquals("no critical or high CVEs", Scan().text())
+    }
+
+    @Test fun agentCodeAnswerAndCountdown() {
+        val c = LabJson.decodeFromString<AgentCode>("""{"ok":true,"code":"abc","minutes":5,"url":"http://x","install":"curl x","docker":"","released":true,"builds":["amd64"]}""")
+        assertEquals(5 * 60L, c.minutes * 60L)
+        assertEquals("curl x", c.install)
+        assertEquals("", c.docker)
+        assertEquals("5:00", countdown(300))
+        assertEquals("0:07", countdown(7))
+        assertEquals("12:34", countdown(754))
     }
 }

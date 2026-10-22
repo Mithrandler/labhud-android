@@ -187,3 +187,31 @@ suspend fun LabApi.newKeys(): DangerAnswer = LabJson.decodeFromString(
 
 suspend fun LabApi.removePhones(): DangerAnswer = LabJson.decodeFromString(
     postAnswer("/api/security/remove-phones", buildJsonObject { put("confirm", "REMOVE") }.toString()))
+
+// --- adding, renaming and removing an agent (server.py _agents_admin) ---
+
+/** A pairing code and the lines that use it. [install] is empty on a server too old to say. */
+@Serializable
+data class AgentCode(
+    val ok: Boolean = false,
+    val error: String = "",
+    val code: String = "",
+    val minutes: Int = 0,
+    val url: String = "",
+    val version: String = "",
+    val released: Boolean = false,
+    val install: String = "",
+    val docker: String = "",
+)
+
+@Serializable
+data class RenameAnswer(val ok: Boolean = false, val error: String = "", val name: String = "")
+
+suspend fun LabApi.agentCode(): AgentCode = LabJson.decodeFromString(postAnswer("/api/agents/code", "{}"))
+
+/** The server cleans the name and makes it unique; the answer says what it became (labhud 0.1.15+, a 404/400 before). */
+suspend fun LabApi.renameAgent(id: String, name: String): RenameAnswer = LabJson.decodeFromString(
+    postAnswer("/api/agents/rename", buildJsonObject { put("id", id); put("name", name) }.toString()))
+
+suspend fun LabApi.removeAgent(id: String): ActionAnswer = LabJson.decodeFromString(
+    postAnswer("/api/agents/remove", buildJsonObject { put("id", id) }.toString()))

@@ -45,6 +45,8 @@ import androidx.compose.ui.unit.sp
 import io.github.mithrandler.labhud.data.AgentRow
 import io.github.mithrandler.labhud.data.Agents
 import io.github.mithrandler.labhud.data.LabRepository
+import io.github.mithrandler.labhud.data.removeAgent
+import io.github.mithrandler.labhud.data.renameAgent
 import kotlinx.coroutines.launch
 
 /** What a capability lets labhud do, in words. */
@@ -75,6 +77,8 @@ fun AgentScreen(repo: LabRepository, id: String, onBack: () -> Unit, onSignIn: (
     var busy by remember { mutableStateOf(false) }
     var confirmUpdate by remember { mutableStateOf(false) }
     var confirmPrune by remember { mutableStateOf(false) }
+    var renaming by remember { mutableStateOf(false) }
+    var removing by remember { mutableStateOf(false) }
 
     fun load() = scope.launch {
         runCatching { repo.api()?.agents() }.onSuccess { all = it }.onFailure { message = it.message ?: "" }
@@ -126,6 +130,12 @@ fun AgentScreen(repo: LabRepository, id: String, onBack: () -> Unit, onSignIn: (
                 Text(if (a.install == "container") "In a container the image is the agent: your image updater updates it."
                     else "v${all!!.release} is out. This agent is too old to update itself: run its install line again.",
                     fontSize = 12.sp, color = Lab.muted)
+            }
+            item {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(onClick = { renaming = true }, enabled = !busy) { Text("Rename") }
+                    OutlinedButton(onClick = { removing = true }, enabled = !busy) { Text("Remove…", color = Lab.red) }
+                }
             }
             val caps = all!!.caps.filter { it in a.found }
             if (caps.isEmpty()) item { Text("It found nothing it could do on its host.", color = Lab.muted) }
@@ -206,6 +216,52 @@ fun AgentScreen(repo: LabRepository, id: String, onBack: () -> Unit, onSignIn: (
         }) { Text("Clean") } },
         dismissButton = { TextButton(onClick = { confirmPrune = false }) { Text("Cancel") } },
     )
+    if (renaming && a != null) {
+        var name by remember(a.id) { mutableStateOf(a.name) }
+        AlertDialog(
+            onDismissRequest = { renaming = false },
+            title = { Text("Name") },
+            text = { OutlinedTextField(name, { name = it.take(40) }, singleLine = true) },
+            confirmButton = { TextButton(enabled = name.isNotBlank(), onClick = {
+                renaming = false
+                gate.press {
+                    busy = true
+                    scope.launch {
+                        val r = runCatching { repo.api()?.renameAgent(a.id, name.trim()) }.getOrNull()
+                        message = if (r?.ok == true) "" else "Not renamed: " + (r?.error?.ifBlank { null } ?: "refused")
+                        load().join()
+                        busy = false
+                    }
+                }
+            }) { Text("Save") } },
+            dismissButton = { TextButton(onClick = { renaming = false }) { Text("Cancel") } },
+        )
+    }
+    if (removing && a != null) {
+        var typed by remember(a.id) { mutableStateOf("") }
+        AlertDialog(
+            onDismissRequest = { removing = false },
+            title = { Text("Remove ${a.name}?") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Its key is deleted and it is disconnected at once. Its cards go grey until an agent is paired again.", fontSize = 13.sp)
+                    OutlinedTextField(typed, { typed = it }, singleLine = true, label = { Text("Type ${a.name} to confirm") })
+                }
+            },
+            confirmButton = { TextButton(enabled = typed.trim() == a.name, onClick = {
+                removing = false
+                gate.press {
+                    busy = true
+                    scope.launch {
+                        val r = runCatching { repo.api()?.removeAgent(a.id) }.getOrNull()
+                        if (r?.ok == true) onBack() else message = "Not removed: " + (r?.error?.ifBlank { null } ?: "refused")
+                        busy = false
+                    }
+                }
+            }) { Text("Remove", color = Lab.red) } },
+            dismissButton = { TextButton(onClick = { removing = false }) { Text("Cancel") } },
+        )
+    }
     GateDialogs(gate, onSignIn)
 }
 
