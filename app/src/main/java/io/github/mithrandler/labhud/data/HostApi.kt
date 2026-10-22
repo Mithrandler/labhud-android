@@ -116,3 +116,9 @@ suspend fun LabApi.discoverDismiss(keys: List<String>): ActionAnswer = LabJson.d
     buildJsonObject { put("keys", kotlinx.serialization.json.JsonArray(keys.map { JsonPrimitive(it) })) }.toString()))
 
 suspend fun LabApi.discoverRestore(): ActionAnswer = LabJson.decodeFromString(postAnswer("/api/discover/restore", "{}"))
+
+/** Presses a button of a notification (admin with the PIN typed; otherwise the answer says so). */
+suspend fun LabApi.noteAction(a: NoteAction): ActionAnswer {
+    require(a.allowed()) { "Not an action this app makes." }
+    return LabJson.decodeFromString(postAnswer(a.path, (a.body ?: kotlinx.serialization.json.JsonObject(emptyMap())).toString()))
+}

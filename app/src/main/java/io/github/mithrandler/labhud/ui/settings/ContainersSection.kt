@@ -77,7 +77,8 @@ fun ContainersSection(repo: LabRepository, nav: SettingsNav) {
         if (message.isNotEmpty()) item { Text(message, color = Lab.warn, fontSize = 13.sp) }
         agents?.let { list ->
             item {
-                Panel("") {
+                val containers = list.sumOf { (it.targets["docker"] ?: emptyList()).size }
+                Panel("Docker hosts", "${list.size} hosts · $containers containers · ${list.count { !it.online }} offline") {
                     Text("Each Docker host's containers: which update on their own, and cleaning unused images.", fontSize = 13.sp, color = Lab.sub)
                     if (list.isEmpty()) Text("No agent runs Docker yet.", color = Lab.muted, fontSize = 14.sp, modifier = Modifier.padding(top = 8.dp))
                     list.forEach { a ->

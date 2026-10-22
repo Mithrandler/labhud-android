@@ -446,7 +446,20 @@ data class Note(
     val text: String = "",
     val bad: Boolean = false,
     val card: String? = null,
+    val actions: List<NoteAction> = emptyList(),
 )
+
+/** A button of a notification (the "discovered" one offers Add and Ignore): a POST to [path] with [body]. */
+@Serializable
+data class NoteAction(
+    val id: String = "",
+    val label: String = "",
+    val path: String = "",
+    val body: kotlinx.serialization.json.JsonObject? = null,
+)
+
+/** Only the discovery calls may be made from a notification: the server's word is not enough to POST anywhere. */
+fun NoteAction.allowed(): Boolean = label.isNotBlank() && path.startsWith("/api/discover/") && ".." !in path
 
 @Serializable
 data class Notes(

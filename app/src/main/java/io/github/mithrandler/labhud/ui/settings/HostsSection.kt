@@ -59,7 +59,7 @@ fun HostsSection(repo: LabRepository, nav: SettingsNav) {
         if (message.isNotEmpty()) item { Text(message, color = Lab.warn, fontSize = 13.sp) }
         agents?.let { list ->
             item {
-                Panel("") {
+                Panel("Agents", "${list.size} agents · ${list.count { it.online }} online") {
                     if (list.isEmpty()) Text("No agent yet: on the wall, ⚙ > Hosts and agents shows the line that installs one.", color = Lab.muted, fontSize = 14.sp)
                     list.forEach { a ->
                         Row(Modifier.fillMaxWidth().clickable { nav.agent(a.id) }.padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {

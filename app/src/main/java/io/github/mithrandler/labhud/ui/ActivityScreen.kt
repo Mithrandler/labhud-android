@@ -23,6 +23,8 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.foundation.layout.Column
 import io.github.mithrandler.labhud.data.Note
+import io.github.mithrandler.labhud.data.noteAction
+import io.github.mithrandler.labhud.data.allowed
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -97,7 +99,7 @@ fun ActivityScreen(repo: LabRepository, onCard: (String) -> Unit) {
             }
         }
         if (tab == 1) {
-            NotesList(shown, error, onCard)
+            NotesList(shown, error, onCard, repo)
             return@Column
         }
         val list = events
@@ -133,8 +135,10 @@ fun ActivityScreen(repo: LabRepository, onCard: (String) -> Unit) {
 }
 
 @Composable
-private fun NotesList(notes: List<Note>?, error: String, onCard: (String) -> Unit) {
+private fun NotesList(notes: List<Note>?, error: String, onCard: (String) -> Unit, repo: LabRepository) {
     val stamp = STAMP
+    val scope = rememberCoroutineScope()
+    var done by remember { mutableStateOf(mapOf<Long, String>()) }
     val list = notes ?: run {
         Text(error.ifEmpty { "Loading…" }, color = Lab.muted, modifier = Modifier.padding(24.dp))
         return
@@ -153,6 +157,24 @@ private fun NotesList(notes: List<Note>?, error: String, onCard: (String) -> Uni
                 Column(Modifier.weight(1f)) {
                     Text(n.text, fontSize = 14.sp, color = if (n.bad) Lab.text else Lab.sub)
                     Text(stamp.format(Date(n.time * 1000)), fontSize = 12.sp, color = Lab.muted)
+                    val buttons = n.actions.filter { it.allowed() }
+                    if (buttons.isNotEmpty()) {
+                        val said = done[n.id]
+                        if (said != null && said.isEmpty()) Text("Done.", fontSize = 12.sp, color = Lab.green)
+                        else Row(horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
+                            buttons.forEach { a ->
+                                androidx.compose.material3.OutlinedButton(onClick = {
+                                    scope.launch {
+                                        val r = runCatching { repo.api()?.noteAction(a) }
+                                        val ok = r.getOrNull()?.ok == true
+                                        done = done + (n.id to if (ok) "" else (r.getOrNull()?.error?.takeIf { it.isNotBlank() }
+                                            ?: r.exceptionOrNull()?.message ?: "Could not do that."))
+                                    }
+                                }) { Text(a.label) }
+                            }
+                        }
+                        if (said != null && said.isNotEmpty()) Text(said, fontSize = 12.sp, color = Lab.red)
+                    }
                 }
             }
         }
