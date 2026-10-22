@@ -7,6 +7,15 @@ import io.github.mithrandler.labhud.data.ZoneContainer
 import io.github.mithrandler.labhud.data.ZoneCount
 import io.github.mithrandler.labhud.data.ZoneHost
 import io.github.mithrandler.labhud.data.bytesText
+import io.github.mithrandler.labhud.data.childOf
+import io.github.mithrandler.labhud.data.crumbs
+import io.github.mithrandler.labhud.data.filteredImages
+import io.github.mithrandler.labhud.data.filteredNetworks
+import io.github.mithrandler.labhud.data.filteredVolumes
+import io.github.mithrandler.labhud.data.parentOf
+import io.github.mithrandler.labhud.data.title
+import io.github.mithrandler.labhud.data.usedText
+import io.github.mithrandler.labhud.data.volumeSize
 import io.github.mithrandler.labhud.data.filtered
 import io.github.mithrandler.labhud.data.line
 import io.github.mithrandler.labhud.data.plainTerminal
@@ -125,5 +134,69 @@ class SwipeStepTest {
         assertEquals(-1, io.github.mithrandler.labhud.ui.swipeStep(400f, 1080f))     // to the right: the previous
         assertEquals(1, io.github.mithrandler.labhud.ui.swipeStep(-163f, 1080f))
         assertEquals(0, io.github.mithrandler.labhud.ui.swipeStep(-162f, 1080f))
+    }
+}
+
+class ZoneObjectsTest {
+    private fun image(id: String, vararg tags: String, size: Long = 1) =
+        io.github.mithrandler.labhud.data.ZoneImage(id = id, tags = tags.toList(), size = size)
+
+    @Test fun anImageIsNamedByItsFirstTagElseItsId() {
+        assertEquals("nginx:1", image("abc", "nginx:1", "nginx:latest").title())
+        assertEquals("abc", image("abc").title())
+    }
+
+    @Test fun whatUsesItIsWritten() {
+        assertEquals("unused", usedText(0, emptyList()))
+        assertEquals("used by 2", usedText(2, emptyList()))
+        assertEquals("used by web, db", usedText(2, listOf("web", "db")))
+        assertEquals("used by a, b +3", usedText(5, listOf("a", "b")))
+    }
+
+    @Test fun imagesAreFilteredByTagOrIdAndTheBiggestComeFirst() {
+        val rows = listOf(image("1111", "alpine:3", size = 7), image("2222", "nginx:1", "web:2", size = 142), image("3333", size = 88))
+        assertEquals(listOf("2222", "3333", "1111"), rows.filteredImages("").map { it.id })
+        assertEquals(listOf("2222"), rows.filteredImages(" WEB ").map { it.id })
+        assertEquals(listOf("3333"), rows.filteredImages("333").map { it.id })
+    }
+
+    @Test fun volumesAndNetworksAreFiltered() {
+        val vols = listOf(io.github.mithrandler.labhud.data.ZoneVolume(name = "pgdata", size = 9), io.github.mithrandler.labhud.data.ZoneVolume(name = "cache", size = 99))
+        assertEquals(listOf("cache", "pgdata"), vols.filteredVolumes("").map { it.name })
+        assertEquals(listOf("pgdata"), vols.filteredVolumes("PG").map { it.name })
+        val nets = listOf(io.github.mithrandler.labhud.data.ZoneNetwork(name = "proxy"), io.github.mithrandler.labhud.data.ZoneNetwork(name = "media"))
+        assertEquals(listOf("media", "proxy"), nets.filteredNetworks("").map { it.name })
+    }
+
+    @Test fun aVolumeSizeThatIsNotKnownIsADash() {
+        assertEquals("–", volumeSize(-1))
+        assertEquals("0", volumeSize(0))
+        assertEquals("1.5 KB", volumeSize(1536))
+    }
+
+    @Test fun aPathIsBrokenIntoStepsAndWalksUpAndDown() {
+        assertEquals(listOf("/" to "/"), crumbs("/"))
+        assertEquals(listOf("/" to "/", "base" to "/base", "16384" to "/base/16384"), crumbs("/base/16384"))
+        assertEquals("/base", parentOf("/base/16384"))
+        assertEquals("/", parentOf("/base"))
+        assertEquals("/", parentOf("/"))
+        assertEquals("/a", childOf("/", "a"))
+        assertEquals("/a/b", childOf("/a", "b"))
+    }
+
+    @Test fun theNewAnswersAreReadFromTheServer() {
+        val a = LabJson.decodeFromString<ZoneAnswer>(
+            """{"ok":true,"images":[{"id":"a1","tags":["x:1"],"size":5,"used":1,"used_by":["web"],"dangling":false}],"volumes":[{"name":"pg","size":-1,"browse":true}],
+               "networks":[{"name":"proxy","builtin":false,"used_by":["a"]}],"entries":[{"name":"base","dir":true}],"path":"/","truncated":true,
+               "file":{"path":"/f","size":3,"text":"hi","masked":false},"network":{"name":"proxy","containers":[{"name":"a","ipv4":"1.2.3.4"}]}}"""
+        )
+        assertEquals(listOf("web"), a.images[0].usedBy)
+        assertTrue(a.volumes[0].browse)
+        assertEquals(-1L, a.volumes[0].size)
+        assertTrue(a.entries[0].dir && a.truncated)
+        assertEquals("hi", a.file!!.text)
+        assertEquals("1.2.3.4", a.network!!.containers[0].ipv4)
+        val no = LabJson.decodeFromString<ZoneAnswer>("""{"ok":false,"error":"this volume is not opened for browsing","needs_access":true}""")
+        assertTrue(no.needsAccess)
     }
 }

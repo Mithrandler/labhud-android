@@ -96,6 +96,8 @@ import kotlinx.coroutines.launch
  * It needs the admin and, with a PIN, the PIN typed: that starts a session which ends after 15 minutes
  * without a call. Nothing is kept here: every number comes from labhud again.
  */
+internal typealias ZoneAsk = suspend (suspend LabApi.() -> ZoneAnswer) -> ZoneAnswer
+
 private const val LOG_LINES = 800
 private val SHELL_KEYS = listOf("Ctrl-C" to "\u0003", "Tab" to "\t", "Esc" to "\u001B", "↑" to "\u001B[A", "↓" to "\u001B[B")
 
@@ -162,7 +164,7 @@ private fun Notice(text: String, button: String, onClick: () -> Unit) {
 }
 
 @Composable
-private fun Dot(tone: Int, size: Int = 10) {
+internal fun Dot(tone: Int, size: Int = 10) {
     Box(Modifier.size(size.dp).clip(CircleShape).background(when (tone) { 0 -> Lab.green; 1 -> Lab.warn; else -> Lab.red }))
 }
 
@@ -186,7 +188,7 @@ private fun HostList(hosts: List<ZoneHost>?, message: String, onOpen: (String) -
     }
 }
 
-private val TABS = listOf("overview" to "Overview", "containers" to "Containers")
+private val TABS = listOf("overview" to "Overview", "containers" to "Containers", "images" to "Images", "volumes" to "Volumes", "networks" to "Networks")
 
 @Composable
 private fun HostScreen(h: ZoneHost, ask: suspend (suspend LabApi.() -> ZoneAnswer) -> ZoneAnswer, repo: LabRepository, gate: Gate) {
@@ -194,6 +196,9 @@ private fun HostScreen(h: ZoneHost, ask: suspend (suspend LabApi.() -> ZoneAnswe
     val wide = LocalConfiguration.current.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
     @Composable fun content() = when (tab) {
         "overview" -> Overview(h)
+        "images" -> ImagesTab(h, ask, gate)
+        "volumes" -> VolumesTab(h, ask, gate)
+        "networks" -> NetworksTab(h, ask, gate)
         else -> ContainersTab(h, ask, repo, gate)
     }
     if (wide) Row(Modifier.fillMaxSize()) {
@@ -210,7 +215,7 @@ private fun HostScreen(h: ZoneHost, ask: suspend (suspend LabApi.() -> ZoneAnswe
 }
 
 @Composable
-private fun Cell(label: String, big: String, sub: String = "", modifier: Modifier = Modifier) {
+internal fun Cell(label: String, big: String, sub: String = "", modifier: Modifier = Modifier) {
     Surface(shape = CardShape, color = Lab.card, border = BorderStroke(1.dp, Lab.line), modifier = modifier) {
         Column(Modifier.padding(12.dp)) {
             Text(label, fontSize = 12.sp, color = Lab.muted)
@@ -380,7 +385,7 @@ private suspend fun followStream(repo: LabRepository, id: String, onText: suspen
 }
 
 @Composable
-private fun Mono(text: String, modifier: Modifier = Modifier) {
+internal fun Mono(text: String, modifier: Modifier = Modifier) {
     Surface(color = Color.Black, shape = CardShape, border = BorderStroke(1.dp, Lab.line), modifier = modifier) {
         Text(text, fontSize = 11.sp, fontFamily = FontFamily.Monospace, color = Lab.text, modifier = Modifier.padding(8.dp))
     }

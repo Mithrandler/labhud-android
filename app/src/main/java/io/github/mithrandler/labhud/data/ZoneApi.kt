@@ -62,6 +62,39 @@ data class ZoneStats(
     val pids: Double = 0.0,
 )
 
+@Serializable
+data class ZoneImage(
+    val id: String = "", val tags: List<String> = emptyList(), val size: Long = 0, val created: Long = 0,
+    val used: Int = 0, val dangling: Boolean = false,
+    @SerialName("used_by") val usedBy: List<String> = emptyList(),
+)
+
+@Serializable
+data class ZoneVolume(
+    val name: String = "", val driver: String = "", val size: Long = -1, val used: Int = 0, val anonymous: Boolean = false,
+    @SerialName("used_by") val usedBy: List<String> = emptyList(),
+    /** Opened for browsing (read only) by the admin. */
+    val browse: Boolean = false,
+)
+
+@Serializable
+data class ZoneNetwork(
+    val name: String = "", val driver: String = "", val scope: String = "", val used: Int = 0, val builtin: Boolean = false,
+    @SerialName("used_by") val usedBy: List<String> = emptyList(),
+)
+
+@Serializable
+data class ZoneLink(val name: String = "", val ipv4: String = "")
+
+@Serializable
+data class ZoneNetworkNow(val name: String = "", val driver: String = "", val scope: String = "", val internal: Boolean = false, val containers: List<ZoneLink> = emptyList())
+
+@Serializable
+data class ZoneEntry(val name: String = "", val dir: Boolean = false, val link: Boolean = false, val size: Long = 0, val mtime: Long = 0)
+
+@Serializable
+data class ZoneFile(val path: String = "", val size: Long = 0, val text: String = "", val binary: Boolean = false, val truncated: Boolean = false, val masked: Boolean = false)
+
 /** One answer for every route: what a route does not send stays empty. [resume] is a session that ended: start it again with the PIN. */
 @Serializable
 data class ZoneAnswer(
@@ -80,6 +113,16 @@ data class ZoneAnswer(
     val data: String = "",
     val next: Int = 0,
     val end: String? = null,
+    val images: List<ZoneImage> = emptyList(),
+    val volumes: List<ZoneVolume> = emptyList(),
+    val networks: List<ZoneNetwork> = emptyList(),
+    val network: ZoneNetworkNow? = null,
+    val entries: List<ZoneEntry> = emptyList(),
+    val path: String = "",
+    val truncated: Boolean = false,
+    val file: ZoneFile? = null,
+    @SerialName("needs_access") val needsAccess: Boolean = false,
+    val browse: Boolean = false,
 )
 
 /** The words for a refusal: labhud's, or why a wait is asked. */
@@ -108,6 +151,18 @@ suspend fun LabApi.zoneOpen(agent: String, kind: String, name: String, cols: Int
     zone("stream-open") { put("agent", agent); put("kind", kind); put("name", name); put("cols", cols); put("rows", rows) }
 suspend fun LabApi.zoneRead(id: String, after: Int) = zone("stream-read", 35) { put("id", id); put("after", after) }
 suspend fun LabApi.zoneInput(id: String, base64: String) = zone("stream-input") { put("id", id); put("data", base64) }
+suspend fun LabApi.zoneImages(agent: String, fresh: Boolean = false) = zone("images", 60) { put("agent", agent); put("fresh", fresh) }
+suspend fun LabApi.zoneVolumes(agent: String, fresh: Boolean = false) = zone("volumes", 60) { put("agent", agent); put("fresh", fresh) }
+suspend fun LabApi.zoneNetworks(agent: String, fresh: Boolean = false) = zone("networks", 60) { put("agent", agent); put("fresh", fresh) }
+suspend fun LabApi.zoneNetwork(agent: String, name: String) = zone("network", 35) { put("agent", agent); put("name", name) }
+/** [kind] is image, volume or network; [confirm] is the name typed. */
+suspend fun LabApi.zoneRm(agent: String, kind: String, name: String, confirm: String) =
+    zone("rm", 70) { put("agent", agent); put("kind", kind); put("name", name); put("confirm", confirm) }
+suspend fun LabApi.zonePull(agent: String, image: String) = zone("pull", 620) { put("agent", agent); put("image", image) }
+suspend fun LabApi.zoneClean(agent: String, what: String, confirm: String) = zone("clean", 70) { put("agent", agent); put("what", what); put("confirm", confirm) }
+suspend fun LabApi.zoneVolumeAccess(agent: String, volume: String, on: Boolean) = zone("volume-access", 35) { put("agent", agent); put("volume", volume); put("on", on) }
+suspend fun LabApi.zoneVolumeLs(agent: String, volume: String, path: String) = zone("volume-ls", 45) { put("agent", agent); put("volume", volume); put("path", path) }
+suspend fun LabApi.zoneVolumeRead(agent: String, volume: String, path: String) = zone("volume-read", 45) { put("agent", agent); put("volume", volume); put("path", path) }
 suspend fun LabApi.zoneClose(id: String) { runCatching { zone("stream-close") { put("id", id) } } }
 
 // --- what the screens make of it, pure ---
@@ -171,3 +226,47 @@ class Utf8Stream {
         return String(all, 0, cut, Charsets.UTF_8)
     }
 }
+
+// --- images, volumes and networks, pure ---
+
+/** The name the admin types to remove it: its first tag, else its id. */
+fun ZoneImage.title(): String = tags.firstOrNull() ?: id
+
+/** "used by web, web2" / "unused": what is shown beside it. */
+fun usedText(used: Int, by: List<String>): String = when {
+    used <= 0 -> "unused"
+    by.isEmpty() -> "used by $used"
+    used > by.size -> "used by " + by.joinToString(", ") + " +${used - by.size}"
+    else -> "used by " + by.joinToString(", ")
+}
+
+/** Biggest first, then by name; what matches the filter (any case) in a tag, a name or the id. */
+fun List<ZoneImage>.filteredImages(query: String): List<ZoneImage> {
+    val q = query.trim().lowercase()
+    return filter { q.isEmpty() || it.id.lowercase().contains(q) || it.tags.any { t -> t.lowercase().contains(q) } }.sortedWith(compareBy({ -it.size }, { it.title() }))
+}
+
+fun List<ZoneVolume>.filteredVolumes(query: String): List<ZoneVolume> {
+    val q = query.trim().lowercase()
+    return filter { q.isEmpty() || it.name.lowercase().contains(q) }.sortedWith(compareBy({ -it.size }, { it.name }))
+}
+
+fun List<ZoneNetwork>.filteredNetworks(query: String): List<ZoneNetwork> {
+    val q = query.trim().lowercase()
+    return filter { q.isEmpty() || it.name.lowercase().contains(q) }.sortedBy { it.name }
+}
+
+/** What a volume's size says: "–" when the engine does not know it. */
+fun volumeSize(size: Long): String = if (size < 0) "–" else bytesText(size.toDouble())
+
+/** The path as steps for a breadcrumb: "/a/b" -> [("/", "/"), ("a", "/a"), ("b", "/a/b")]. */
+fun crumbs(path: String): List<Pair<String, String>> {
+    val parts = path.split('/').filter { it.isNotEmpty() }
+    return listOf("/" to "/") + parts.indices.map { i -> parts[i] to "/" + parts.take(i + 1).joinToString("/") }
+}
+
+/** The directory above [path]; the root stays the root. */
+fun parentOf(path: String): String = path.trimEnd('/').substringBeforeLast('/', "").ifEmpty { "/" }
+
+/** A child of [dir] named [name]. */
+fun childOf(dir: String, name: String): String = if (dir == "/") "/$name" else "$dir/$name"
