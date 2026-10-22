@@ -6,6 +6,8 @@ All notable changes to LabHUD for Android. The format follows
 
 ## [Unreleased]
 
+## [0.1.25] - 2026-10-22
+
 ### Changed
 - **A few at a time, everywhere**: lists are pages of cells 2-3 to a row (4 on a tablet), a bar under them (‹ dots 1/3 ›), no scrolling down a long list and no animation: a card's screen (VM/LXC, containers - one stack at a time with chips -, storage, backup, sections, updates), Devices (one kind of machine at a time), Activity (timeline and notifications) and the Status pages, whose cards are cut into screens by the height they really take.
 
@@ -233,7 +235,8 @@ those parts are simply not shown.
   back in the settings or the camera was switched off in Quick Settings. It now asks again, offers
   the system settings after a permanent refusal, and pasting the link or signing in always works.
 
-[Unreleased]: https://github.com/Mithrandler/labhud-android/compare/v0.1.24...HEAD
+[Unreleased]: https://github.com/Mithrandler/labhud-android/compare/v0.1.25...HEAD
+[0.1.25]: https://github.com/Mithrandler/labhud-android/compare/v0.1.24...v0.1.25
 [0.1.24]: https://github.com/Mithrandler/labhud-android/compare/v0.1.23...v0.1.24
 [0.1.23]: https://github.com/Mithrandler/labhud-android/compare/v0.1.22...v0.1.23
 [0.1.22]: https://github.com/Mithrandler/labhud-android/compare/v0.1.21...v0.1.22
