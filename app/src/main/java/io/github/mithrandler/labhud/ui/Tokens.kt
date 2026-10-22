@@ -103,6 +103,7 @@ object LabIcons {
     val discover: ImageVector by lazy { icon("discover", "M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0Z" to false, "M7 12a5 5 0 1 0 10 0a5 5 0 1 0 -10 0Z" to false, "M12 12l6-6" to false, "M11 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0Z" to true) }
     val warning: ImageVector by lazy { icon("warning", "M12 3.5l9.5 16.5h-19z" to false, "M12 10v4.5" to false, "M11 17.2a1 1 0 1 0 2 0a1 1 0 1 0 -2 0Z" to true) }
     val offline: ImageVector by lazy { icon("offline", "M8.5 6.4A6 6 0 0 1 17.9 10.6 3.6 3.6 0 0 1 19.6 17M16 18H7a4 4 0 0 1-1.6-7.7 6 6 0 0 1 .7-1.6" to false, "M3 3l18 18" to false) }
+    val close: ImageVector by lazy { icon("close", "M6 6l12 12M18 6L6 18" to false) }
     val back: ImageVector by lazy { icon("back", "M20 12H5M11 6l-6 6 6 6" to false) }
     val chevronRight: ImageVector by lazy { icon("chevron_right", "M9 6l6 6-6 6" to false) }
     val chevronUp: ImageVector by lazy { icon("chevron_up", "M6 15l6-6 6 6" to false) }

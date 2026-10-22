@@ -18,6 +18,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ModalBottomSheet
@@ -149,7 +152,7 @@ internal fun ImagesTab(h: ZoneHost, ask: ZoneAsk, gate: Gate) {
             }
         }
         val img = rows?.firstOrNull { it.id == open }
-        if (img != null) ModalBottomSheet(onDismissRequest = { open = null }, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true), containerColor = Lab.card) {
+        if (img != null) LabSheet(onClose = { open = null }) {
             ImageSheet(img, h.name, ask, gate) { said = it; open = null; refresh() }
         }
         if (pulling) PullDialog(onDismiss = { pulling = false }) { ref ->
@@ -219,7 +222,7 @@ internal fun VolumesTab(h: ZoneHost, ask: ZoneAsk, gate: Gate) {
             }
         }
         val vol = rows?.firstOrNull { it.name == open }
-        if (vol != null) ModalBottomSheet(onDismissRequest = { open = null }, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true), containerColor = Lab.card) {
+        if (vol != null) LabSheet(onClose = { open = null }) {
             VolumeSheet(vol, h.name, ask, gate, onChanged = { refresh() }) { said = it; open = null; refresh() }
         }
     }
@@ -320,7 +323,7 @@ internal fun NetworksTab(h: ZoneHost, ask: ZoneAsk, gate: Gate) {
             }
         }
         val net = rows?.firstOrNull { it.name == open }
-        if (net != null) ModalBottomSheet(onDismissRequest = { open = null }, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true), containerColor = Lab.card) {
+        if (net != null) LabSheet(onClose = { open = null }) {
             NetworkSheet(net, h.name, ask, gate) { said = it; open = null; refresh() }
         }
     }
@@ -350,4 +353,17 @@ private fun NetworkSheet(n: ZoneNetwork, host: String, ask: ZoneAsk, gate: Gate,
     if (removing) TypedConfirm("Remove ${n.name}?", n.name, "Remove", onOk = {
         gate.press { scope.launch { val r = ask { zoneRm(host, "network", n.name, n.name) }; done(if (r.ok) "" else "remove: ${r.refusal()}") } }
     }, onDismiss = { removing = false })
+}
+
+
+/** A bottom sheet with a visible X in its corner; Back and a swipe down close it too. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun LabSheet(onClose: () -> Unit, content: @Composable () -> Unit) {
+    ModalBottomSheet(onDismissRequest = onClose, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true), containerColor = Lab.card) {
+        Box(Modifier.fillMaxWidth()) {
+            content()
+            IconButton(onClick = onClose, modifier = Modifier.align(Alignment.TopEnd)) { Icon(LabIcons.close, "Close") }
+        }
+    }
 }

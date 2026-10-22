@@ -255,7 +255,10 @@ private fun ContainersTab(h: ZoneHost, ask: suspend (suspend LabApi.() -> ZoneAn
     Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
         OutlinedTextField(query, { query = it.take(60) }, singleLine = true, label = { Text("Filter") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
         if (message.isNotEmpty()) Text(message, color = Lab.warn, fontSize = 13.sp, modifier = Modifier.padding(top = 6.dp))
-        val shown = rows?.filtered(query).orEmpty()
+        // the list under an open sheet stays as it was: no re-sorting, no jump
+        val frozen = remember { arrayOf<List<ZoneContainer>?>(null) }
+        if (open == null) frozen[0] = rows
+        val shown = (frozen[0] ?: rows)?.filtered(query).orEmpty()
         if (rows == null) Text("Loading…", color = Lab.muted, modifier = Modifier.padding(top = 12.dp))
         LazyColumn(Modifier.fillMaxSize()) {
             items(shown, key = { it.name }) { c ->
@@ -277,8 +280,7 @@ private fun ContainersTab(h: ZoneHost, ask: suspend (suspend LabApi.() -> ZoneAn
     }
     val current = rows?.firstOrNull { it.name == open }
     if (current != null) {
-        val sheet = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-        ModalBottomSheet(onDismissRequest = { open = null }, sheetState = sheet, containerColor = Lab.card) {
+        LabSheet(onClose = { open = null }) {
             ContainerSheet(h.name, current, ask, repo, gate, onChanged = { tick++ })
         }
     }
