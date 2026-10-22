@@ -318,7 +318,12 @@ internal fun NetworksTab(h: ZoneHost, ask: ZoneAsk, gate: Gate) {
             if (rows == null && message.isEmpty()) Text("Loading…", color = Lab.muted, modifier = Modifier.padding(top = 8.dp))
             LazyColumn(Modifier.fillMaxSize()) {
                 items(rows.orEmpty().filteredNetworks(query), key = { it.name }) { n ->
-                    Row2(n.name, usedText(n.used, n.usedBy), n.driver, if (n.builtin) "built in" else "") { open = n.name }
+                    Column {
+                        Row2(n.name, usedText(n.used, n.usedBy), n.driver, if (n.builtin) "built in" else "") { open = n.name }
+                        val on = n.usedBy.take(12)   // the tree: what is on the network; the IPs are in its sheet
+                        on.forEachIndexed { i, c -> Text((if (i == on.size - 1 && on.size >= n.used) "└ " else "├ ") + c, fontSize = 13.sp, color = Lab.muted, modifier = Modifier.padding(start = 16.dp)) }
+                        if (n.used > on.size) Text("… +${n.used - on.size}", fontSize = 13.sp, color = Lab.muted, modifier = Modifier.padding(start = 16.dp))
+                    }
                 }
             }
         }
