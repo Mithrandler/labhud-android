@@ -90,6 +90,7 @@ fun SecuritySection(repo: LabRepository, nav: SettingsNav) {
                     else "Anyone at the screen can use its buttons.",
                     fontSize = 12.sp, color = Lab.muted,
                 )
+                if (rights.admin) PinButtons(repo, gate, rights.pin) { message = it; load() }
             }
         }
         if (rights.admin) {
@@ -113,7 +114,7 @@ fun SecuritySection(repo: LabRepository, nav: SettingsNav) {
                 item { CollapsiblePanel("Trusted networks", "This phone comes from ${st.yourIp}") { NetworksPanel(st) } }
             }
         }
-        item { WallOnly("⚙ > Security", listOf("The admin's password and authenticator (TOTP): `labhud admin` on the server", "Setting or removing the PIN",
+        item { WallOnly("⚙ > Security", listOf("The admin's password and authenticator (TOTP): `labhud admin` on the server, on purpose",
             "The single sign-on provider and the networks")) }
     }
     if (signingIn) SignInDialog(repo, onDone = { signingIn = false })

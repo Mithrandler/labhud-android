@@ -180,6 +180,20 @@ class LabRepository(private val context: Context, val store: ServerStore) {
         return null
     }
 
+    /**
+     * Sets, changes or removes (new = null) the wall's PIN; null when it worked, else what labhud said. Every ticket ends with the change, so
+     * after a set the phone unlocks again with the new one, and the rights are read anew.
+     */
+    suspend fun changePin(old: String, new: String?): String? {
+        val api = api() ?: return "No server paired."
+        val r = runCatching { api.setPin(old, new) }.getOrElse { return it.message ?: "Could not reach LabHUD." }
+        if (!r.ok) return if (r.wait > 0) "Wrong PIN. Wait ${r.wait.toInt() + 1} s." else r.error.ifBlank { "Refused." }
+        dropTicket()
+        refreshRights()
+        if (new != null) unlock(new)
+        return null
+    }
+
     /** Signs this phone in as labhud's admin; null when it worked, else what labhud said. */
     suspend fun signIn(user: String, password: String, code: String): String? {
         val api = api() ?: return "No server paired."

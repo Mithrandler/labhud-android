@@ -118,8 +118,9 @@ fun SystemSection(repo: LabRepository, nav: SettingsNav) {
             }
         }
         heading("config.toml")
-        item { WallOnly("⚙ > System", listOf("Take over the config file", "The editor and its keys")) }
+        if (!rights.admin) item { Text("The admin's: sign in to edit it.", fontSize = 13.sp, color = Lab.muted) }
         if (rights.admin) {
+            item { ConfigPanel(repo, gate) }
             heading("Backup and restore")
             if (backups == null) item { Unlock { gate.press { load() } } }
             if (message.isNotEmpty()) item { Text(message, color = if (message.startsWith("✓")) Lab.muted else Lab.warn, fontSize = 13.sp) }

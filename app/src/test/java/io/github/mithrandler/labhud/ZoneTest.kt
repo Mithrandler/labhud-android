@@ -334,4 +334,17 @@ class ZoneObjectsTest {
         assertEquals(true, io.github.mithrandler.labhud.data.sourceFormOk(src, mapOf("URL" to "http://a")))     // a secret may stay empty: the one set is kept
         assertEquals(false, io.github.mithrandler.labhud.data.sourceFormOk(src, mapOf("URL" to "  ")))
     }
+
+    @Test fun a_new_pin_is_four_digits_typed_twice_and_the_config_check_reads_short() {
+        val ok = { a: String, b: String -> io.github.mithrandler.labhud.data.pinOk(a, b) }
+        assertEquals(true, ok("1234", "1234")); assertEquals(false, ok("1234", "1235")); assertEquals(false, ok("123", "123"))
+        assertEquals(false, ok("12345", "12345")); assertEquals(false, ok("12a4", "12a4")); assertEquals(false, ok("", ""))
+        val d = io.github.mithrandler.labhud.data.ConfigCheck(ok = true)
+        assertEquals("✓ A good config.", io.github.mithrandler.labhud.data.configSaid(d, saved = false))
+        assertEquals("✓ Saved: LabHUD reads it now.", io.github.mithrandler.labhud.data.configSaid(d, saved = true))
+        assertEquals("✕ not valid TOML", io.github.mithrandler.labhud.data.configSaid(d.copy(ok = false, problems = listOf("not valid TOML")), saved = true))
+        assertEquals("✕ refused", io.github.mithrandler.labhud.data.configSaid(d.copy(ok = false), saved = false))
+        val many = d.copy(ok = false, problems = (1..10).map { "p$it" })
+        assertEquals(true, io.github.mithrandler.labhud.data.configSaid(many, false).endsWith("… 2 more"))
+    }
 }

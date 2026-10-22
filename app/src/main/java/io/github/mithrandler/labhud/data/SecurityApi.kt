@@ -110,3 +110,10 @@ object Sso {
         return "Signed in as the admin (single sign-on)."
     }
 }
+
+/** The wall's PIN: [new] is 4 digits, or null to remove it; [old] is the current one (none when there is none yet). The server asks the admin level. */
+suspend fun LabApi.setPin(old: String, new: String?): AdminAnswer = LabJson.decodeFromString(
+    postAnswer("/api/lock/pin", buildJsonObject { put("old", old); if (new == null) put("new", kotlinx.serialization.json.JsonNull) else put("new", new) }.toString()))
+
+/** Whether a new PIN may be sent: exactly 4 digits, typed twice the same. */
+fun pinOk(new: String, again: String) = Regex("[0-9]{4}").matches(new) && new == again
