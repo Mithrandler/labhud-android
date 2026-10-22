@@ -9,6 +9,8 @@ All notable changes to LabHUD for Android. The format follows
 Needs labhud 0.1.12 for the admin's name, the sessions list and the glance view; with an older server the app works as before (those parts stay hidden or say so).
 
 ### Added
+- **A card's screen as tabs** (Overview, VM/LXC, Containers, GPUs, Storage, Backup, Updates, Notes, Links, History): one short screen each, swipe or tap between them, no transitions; VM/LXC, containers, storage and backup are mini-cards 2 to a row (3-4 on a tablet or in landscape). A container's buttons are behind a tap on its mini-card. A VM has a **Host** button, and Devices puts each VM/LXC under the host it runs on.
+- **Uptime for 7 days** as a square a day with its percent.
 - **Screen schedule** in Wall mode (Settings > Wall mode): dims the wall to a chosen brightness between two times (it may cross midnight); a touch wakes it for a minute, a red card for as long as it is red. Done in the app, nothing changes on the server.
 - **Add / Ignore on "discovered" notifications** (Activity > Notifications): the buttons the server sends in `actions`, answered through the discovery calls (admin with the PIN typed; anything else says so). Only `/api/discover/*` paths are accepted.
 - Hosts and Containers in Settings: the list of hosts is a foldable panel with a one-line summary.
