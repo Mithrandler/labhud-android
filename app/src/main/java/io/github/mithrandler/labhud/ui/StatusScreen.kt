@@ -241,7 +241,8 @@ private fun LazyGridScope.favorites(favs: Set<String>, byId: Map<String, Card>, 
 
 private fun LazyGridScope.games(page: Page, server: Server?, onGame: (String) -> Unit) {
     if (page.servers.isEmpty()) item(span = { GridItemSpan(maxLineSpan) }) { Text("No game servers known yet.", color = Lab.muted) }
-    items(page.servers, key = { "game-" + it.id.ifEmpty { it.name } }) { g -> GameTile(g, server) { if (g.id.isNotEmpty()) onGame(g.id) } }
+    // the grid's cells are a third of a column: a game server takes half a row, two to a row on a phone
+    items(page.servers, key = { "game-" + it.id.ifEmpty { it.name } }, span = { GridItemSpan(3.coerceAtMost(maxLineSpan)) }) { g -> GameTile(g, server) { if (g.id.isNotEmpty()) onGame(g.id) } }
 }
 
 @Composable

@@ -448,17 +448,29 @@ fun GpuRing(g: io.github.mithrandler.labhud.data.Gpu, name: String, modifier: Mo
             }
         }
         Text(name, fontSize = LabScale.textXs, color = Lab.muted, maxLines = 1)
-        mem?.let { Text("VRAM ${Math.round(it)}%", fontSize = 10.sp, color = Lab.muted, maxLines = 1) }
+        // the legend, in the rings' own colours: the outer ring is the load, the thinner inner one the video memory
+        GpuKey(loadColor, "Load ${Math.round(util)}%", 4.dp)
+        mem?.let { GpuKey(memColor, "VRAM ${Math.round(it)}%", 2.dp) }
     }
 }
 
 /**
- * A name on one line that shrinks (down to 60% of [size]) until all of it shows; only a name that is
+ * A name on one line that shrinks (down to half of [size]) until all of it shows; only a name that is
  * still too long then ends in "…". Cards cut "homeassistant" to "homeassi…" otherwise.
  */
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun FitText(text: String, size: androidx.compose.ui.unit.TextUnit, weight: FontWeight? = null, modifier: Modifier = Modifier, color: androidx.compose.ui.graphics.Color = androidx.compose.ui.graphics.Color.Unspecified) {
-    var scale by remember(text, size) { mutableStateOf(1f) }
-    Text(text, modifier, color = color, fontWeight = weight, fontSize = size * scale, maxLines = 1, overflow = TextOverflow.Ellipsis,
-        onTextLayout = { if (it.hasVisualOverflow && scale > 0.6f) scale = (scale - 0.05f).coerceAtLeast(0.6f) })
+    Text(text, modifier, color = color, fontWeight = weight, maxLines = 1, overflow = TextOverflow.Ellipsis,
+        autoSize = androidx.compose.foundation.text.TextAutoSize.StepBased(minFontSize = size * 0.5f, maxFontSize = size, stepSize = 0.5.sp))
+}
+
+/** One line of a GPU ring's legend: a swatch as thick as the ring it names, then the words. */
+@Composable
+private fun GpuKey(color: androidx.compose.ui.graphics.Color, text: String, thickness: androidx.compose.ui.unit.Dp) {
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 1.dp)) {
+        Box(Modifier.width(12.dp).height(thickness).clip(androidx.compose.foundation.shape.RoundedCornerShape(50)).background(color))
+        Spacer(Modifier.width(4.dp))
+        Text(text, fontSize = 10.sp, lineHeight = 12.sp, color = Lab.sub, maxLines = 1)
+    }
 }
