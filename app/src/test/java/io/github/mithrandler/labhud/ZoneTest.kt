@@ -20,7 +20,10 @@ import io.github.mithrandler.labhud.data.filtered
 import io.github.mithrandler.labhud.data.line
 import io.github.mithrandler.labhud.data.plainTerminal
 import io.github.mithrandler.labhud.data.refusal
+import io.github.mithrandler.labhud.data.stackDirty
+import io.github.mithrandler.labhud.data.stackNameOk
 import io.github.mithrandler.labhud.data.status
+import io.github.mithrandler.labhud.data.versionText
 import io.github.mithrandler.labhud.data.tailLines
 import io.github.mithrandler.labhud.data.tone
 import io.github.mithrandler.labhud.data.zoneAllowed
@@ -198,5 +201,32 @@ class ZoneObjectsTest {
         assertEquals("1.2.3.4", a.network!!.containers[0].ipv4)
         val no = LabJson.decodeFromString<ZoneAnswer>("""{"ok":false,"error":"this volume is not opened for browsing","needs_access":true}""")
         assertTrue(no.needsAccess)
+    }
+
+    @Test fun stacksAreReadFromTheAnswerAndSayWhatTheyAre() {
+        val a = LabJson.decodeFromString<ZoneAnswer>(
+            """{"ok":true,"enabled":true,"stacks":[{"name":"site","updated":5,"env":true,"services":3,"running":2,"source":{"repo":"https://git.example/o/n","branch":"main","path":"c.yaml"},"hook":true},{"name":"old"}],
+               "compose":"a: 1\n","env":"K=********\n","has_env":true,"versions":[1700000200,1700000100],"mask":"********","output":"x"}"""
+        )
+        assertTrue(a.enabled && a.hasEnv)
+        assertEquals("2 / 3 running · git · webhook", a.stacks[0].line())
+        assertEquals("stopped", a.stacks[1].line())
+        assertEquals(listOf(1700000200L, 1700000100L), a.versions)
+        assertEquals("********", a.mask)
+    }
+
+    @Test fun stackNamesAndUnsavedTextFollowTheHostsRules() {
+        assertTrue(stackNameOk("site-2_x"))
+        assertFalse(stackNameOk("Site"))
+        assertFalse(stackNameOk("-a"))
+        assertFalse(stackNameOk(""))
+        assertFalse(stackNameOk("a".repeat(65)))
+        assertFalse(stackDirty("a", "a", "b", "b"))
+        assertTrue(stackDirty("a2", "a", "b", "b"))
+        assertTrue(stackDirty("a", "a", "b2", "b"))
+    }
+
+    @Test fun aVersionIsShownInTheGivenZoneWithoutALocale() {
+        assertEquals("2023-11-14 22:13", versionText(1700000000L, java.time.ZoneId.of("UTC")))
     }
 }

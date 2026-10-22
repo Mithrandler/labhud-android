@@ -80,7 +80,7 @@ import kotlinx.coroutines.launch
 
 /** The word typed before something is removed or cleaned: the button is on only when it is exactly [word]. */
 @Composable
-private fun TypedConfirm(title: String, word: String, button: String, onOk: () -> Unit, onDismiss: () -> Unit) {
+internal fun TypedConfirm(title: String, word: String, button: String, onOk: () -> Unit, onDismiss: () -> Unit) {
     var typed by remember { mutableStateOf("") }
     AlertDialog(
         onDismissRequest = onDismiss, title = { Text(title) },
@@ -92,10 +92,10 @@ private fun TypedConfirm(title: String, word: String, button: String, onOk: () -
 }
 
 @Composable
-private fun Said(text: String) { if (text.isNotEmpty()) Text(text, color = Lab.warn, fontSize = 13.sp, modifier = Modifier.padding(vertical = 6.dp)) }
+internal fun Said(text: String) { if (text.isNotEmpty()) Text(text, color = Lab.warn, fontSize = 13.sp, modifier = Modifier.padding(vertical = 6.dp)) }
 
 @Composable
-private fun Row2(title: String, sub: String, right: String, rightSub: String = "", tone: Int = 0, onClick: () -> Unit) {
+internal fun Row2(title: String, sub: String, right: String, rightSub: String = "", tone: Int = 0, onClick: () -> Unit) {
     Row(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
             Text(title, fontSize = 15.sp, color = Lab.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -111,7 +111,7 @@ private fun Row2(title: String, sub: String, right: String, rightSub: String = "
 
 /** What loads a list, asks again after a change, and says why when it cannot. */
 @Composable
-private fun <T> Loaded(host: String, ask: ZoneAsk, call: suspend io.github.mithrandler.labhud.data.LabApi.(Boolean) -> ZoneAnswer, pick: (ZoneAnswer) -> List<T>,
+internal fun <T> Loaded(host: String, ask: ZoneAsk, call: suspend io.github.mithrandler.labhud.data.LabApi.(Boolean) -> ZoneAnswer, pick: (ZoneAnswer) -> List<T>,
                        content: @Composable (rows: List<T>?, message: String, refresh: () -> Unit) -> Unit) {
     var rows by remember(host) { mutableStateOf<List<T>?>(null) }
     var message by remember(host) { mutableStateOf("") }

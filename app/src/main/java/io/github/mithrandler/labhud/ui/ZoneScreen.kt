@@ -188,7 +188,7 @@ private fun HostList(hosts: List<ZoneHost>?, message: String, onOpen: (String) -
     }
 }
 
-private val TABS = listOf("overview" to "Overview", "containers" to "Containers", "images" to "Images", "volumes" to "Volumes", "networks" to "Networks")
+private val TABS = listOf("overview" to "Overview", "containers" to "Containers", "stacks" to "Stacks", "images" to "Images", "volumes" to "Volumes", "networks" to "Networks")
 
 @Composable
 private fun HostScreen(h: ZoneHost, ask: suspend (suspend LabApi.() -> ZoneAnswer) -> ZoneAnswer, repo: LabRepository, gate: Gate) {
@@ -196,6 +196,7 @@ private fun HostScreen(h: ZoneHost, ask: suspend (suspend LabApi.() -> ZoneAnswe
     val wide = LocalConfiguration.current.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
     @Composable fun content() = when (tab) {
         "overview" -> Overview(h)
+        "stacks" -> StacksTab(h, ask, gate)
         "images" -> ImagesTab(h, ask, gate)
         "volumes" -> VolumesTab(h, ask, gate)
         "networks" -> NetworksTab(h, ask, gate)

@@ -95,6 +95,15 @@ data class ZoneEntry(val name: String = "", val dir: Boolean = false, val link: 
 @Serializable
 data class ZoneFile(val path: String = "", val size: Long = 0, val text: String = "", val binary: Boolean = false, val truncated: Boolean = false, val masked: Boolean = false)
 
+@Serializable
+data class ZoneStackSource(val repo: String = "", val branch: String = "main", val path: String = "")
+
+@Serializable
+data class ZoneStack(
+    val name: String = "", val updated: Long = 0, val env: Boolean = false, val services: Int = 0, val running: Int = 0,
+    val source: ZoneStackSource? = null, val hook: Boolean = false,
+)
+
 /** One answer for every route: what a route does not send stays empty. [resume] is a session that ended: start it again with the PIN. */
 @Serializable
 data class ZoneAnswer(
@@ -123,6 +132,14 @@ data class ZoneAnswer(
     val file: ZoneFile? = null,
     @SerialName("needs_access") val needsAccess: Boolean = false,
     val browse: Boolean = false,
+    val enabled: Boolean = false,
+    val stacks: List<ZoneStack> = emptyList(),
+    val compose: String = "",
+    val env: String = "",
+    @SerialName("has_env") val hasEnv: Boolean = false,
+    val versions: List<Long> = emptyList(),
+    val mask: String = "********",
+    val output: String = "",
 )
 
 /** The words for a refusal: labhud's, or why a wait is asked. */
@@ -163,6 +180,25 @@ suspend fun LabApi.zoneClean(agent: String, what: String, confirm: String) = zon
 suspend fun LabApi.zoneVolumeAccess(agent: String, volume: String, on: Boolean) = zone("volume-access", 35) { put("agent", agent); put("volume", volume); put("on", on) }
 suspend fun LabApi.zoneVolumeLs(agent: String, volume: String, path: String) = zone("volume-ls", 45) { put("agent", agent); put("volume", volume); put("path", path) }
 suspend fun LabApi.zoneVolumeRead(agent: String, volume: String, path: String) = zone("volume-read", 45) { put("agent", agent); put("volume", volume); put("path", path) }
+suspend fun LabApi.zoneStacks(agent: String) = zone("stacks", 35) { put("agent", agent) }
+suspend fun LabApi.zoneStackRead(agent: String, name: String, version: Long? = null) =
+    zone("stack-read", 40) { put("agent", agent); put("name", name); if (version != null) put("version", version.toString()) }
+suspend fun LabApi.zoneStackValidate(agent: String, name: String, compose: String, env: String) =
+    zone("stack-validate", 130) { put("agent", agent); put("name", name); put("compose", compose); put("env", env) }
+/** Writes the files after the host has checked them; it does not bring the stack up. */
+suspend fun LabApi.zoneStackSave(agent: String, name: String, compose: String, env: String) =
+    zone("stack-save", 130) { put("agent", agent); put("name", name); put("compose", compose); put("env", env) }
+suspend fun LabApi.zoneStackRestore(agent: String, name: String, version: Long) =
+    zone("stack-restore", 130) { put("agent", agent); put("name", name); put("version", version.toString()) }
+/** [verb] is redeploy or restart. */
+suspend fun LabApi.zoneStackAct(agent: String, name: String, verb: String) = zone("stack-act", 340) { put("agent", agent); put("name", name); put("verb", verb) }
+suspend fun LabApi.zoneStackDown(agent: String, name: String, confirm: String) = zone("stack-down", 130) { put("agent", agent); put("name", name); put("confirm", confirm) }
+suspend fun LabApi.zoneStackSource(agent: String, name: String, repo: String, branch: String, path: String) =
+    zone("stack-source", 35) { put("agent", agent); put("name", name); put("repo", repo); put("branch", branch); put("path", path) }
+suspend fun LabApi.zoneStackForget(agent: String, name: String) = zone("stack-source", 35) { put("agent", agent); put("name", name); put("clear", true) }
+suspend fun LabApi.zoneStackHook(agent: String, name: String) = zone("stack-hook", 35) { put("agent", agent); put("name", name) }
+suspend fun LabApi.zoneStackSync(agent: String, name: String, token: String) =
+    zone("stack-sync", 340) { put("agent", agent); put("name", name); if (token.isNotEmpty()) put("token", token) }
 suspend fun LabApi.zoneClose(id: String) { runCatching { zone("stream-close") { put("id", id) } } }
 
 // --- what the screens make of it, pure ---
@@ -270,3 +306,17 @@ fun parentOf(path: String): String = path.trimEnd('/').substringBeforeLast('/', 
 
 /** A child of [dir] named [name]. */
 fun childOf(dir: String, name: String): String = if (dir == "/") "/$name" else "$dir/$name"
+
+/** A stack's name as the host takes it: lowercase letters, digits, - and _, up to 64. */
+fun stackNameOk(name: String): Boolean = Regex("[a-z0-9][a-z0-9_-]{0,63}").matches(name)
+
+/** Unsaved text in either file: the Save and Discard buttons are on only then. */
+fun stackDirty(compose: String, compose0: String, env: String, env0: String): Boolean = compose != compose0 || env != env0
+
+/** The row's second line: what runs of it, and where its file comes from. */
+fun ZoneStack.line(): String = (if (services > 0) "$running / $services running" else "stopped") +
+    (if (source != null) " · git" + (if (hook) " · webhook" else "") else "")
+
+/** A saved version's id is its unix time: shown as year-month-day hour:minute in the phone's zone (no locale). */
+fun versionText(unix: Long, zone: java.time.ZoneId = java.time.ZoneId.systemDefault()): String =
+    java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm", java.util.Locale.ROOT).format(java.time.Instant.ofEpochSecond(unix).atZone(zone))
