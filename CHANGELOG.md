@@ -9,6 +9,7 @@ All notable changes to LabHUD for Android. The format follows
 Needs labhud 0.1.12 for the admin's name, the sessions list and the glance view; with an older server the app works as before (those parts stay hidden or say so).
 
 ### Added
+- **Screen schedule** in Wall mode (Settings > Wall mode): dims the wall to a chosen brightness between two times (it may cross midnight); a touch wakes it for a minute, a red card for as long as it is red. Done in the app, nothing changes on the server.
 - **Add / Ignore on "discovered" notifications** (Activity > Notifications): the buttons the server sends in `actions`, answered through the discovery calls (admin with the PIN typed; anything else says so). Only `/api/discover/*` paths are accepted.
 - Hosts and Containers in Settings: the list of hosts is a foldable panel with a one-line summary.
 - **Account** (Settings, first, also when only looking): who is signed in, Sign in / Sign out / single sign-on, **Lock now**, the admin's **Sessions** (sign one out, or every browser) and **Paired phones** (Remove), as panels that open on a tap.

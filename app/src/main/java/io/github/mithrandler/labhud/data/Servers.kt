@@ -46,6 +46,8 @@ data class AppSettings(
     val theme: ThemeMode = ThemeMode.Hud,
     /** What this phone opens as (the wall page has its own, [wallGlance]). */
     val phoneView: io.github.mithrandler.labhud.ui.ViewChoice = io.github.mithrandler.labhud.ui.ViewChoice.Auto,
+    /** Wall mode dims the screen in a window of the night. */
+    val screen: io.github.mithrandler.labhud.wall.ScreenSchedule = io.github.mithrandler.labhud.wall.ScreenSchedule(),
 )
 
 /**
@@ -67,6 +69,10 @@ class ServerStore(private val context: Context) {
     private val wallGlanceKey = booleanPreferencesKey("wall_glance")
     private val themeKey = stringPreferencesKey("theme_mode")
     private val phoneViewKey = stringPreferencesKey("phone_view")
+    private val screenOnKey = booleanPreferencesKey("screen_schedule")
+    private val screenFromKey = androidx.datastore.preferences.core.intPreferencesKey("screen_from")
+    private val screenToKey = androidx.datastore.preferences.core.intPreferencesKey("screen_to")
+    private val screenDimKey = androidx.datastore.preferences.core.intPreferencesKey("screen_dim")
     private val favSectionsKey = androidx.datastore.preferences.core.stringSetPreferencesKey("fav_sections")
     private fun favCardsKey(id: String) = androidx.datastore.preferences.core.stringSetPreferencesKey("fav_cards_$id")
     private fun tokenKey(id: String) = stringPreferencesKey("token_$id")
@@ -93,7 +99,10 @@ class ServerStore(private val context: Context) {
             notify = p[notifyKey]?.let { runCatching { NotifyMode.valueOf(it) }.getOrNull() } ?: NotifyMode.Off,
             theme = p[themeKey]?.let { runCatching { ThemeMode.valueOf(it) }.getOrNull() } ?: ThemeMode.Hud,
             phoneView = p[phoneViewKey]?.let { runCatching { io.github.mithrandler.labhud.ui.ViewChoice.valueOf(it) }.getOrNull() }
-                ?: io.github.mithrandler.labhud.ui.ViewChoice.Auto)
+                ?: io.github.mithrandler.labhud.ui.ViewChoice.Auto,
+            screen = io.github.mithrandler.labhud.wall.ScreenSchedule().let { d ->
+                d.copy(enabled = p[screenOnKey] ?: d.enabled, from = p[screenFromKey] ?: d.from, to = p[screenToKey] ?: d.to, dim = p[screenDimKey] ?: d.dim)
+            })
     }
 
     suspend fun currentNow(): Server? = current.first()
@@ -152,6 +161,12 @@ class ServerStore(private val context: Context) {
     suspend fun setTheme(mode: ThemeMode) = context.store.edit { it[themeKey] = mode.name }
     suspend fun setWallOnBoot(on: Boolean) = context.store.edit { it[wallBootKey] = on }
     suspend fun setWallGlance(on: Boolean) = context.store.edit { it[wallGlanceKey] = on }
+    suspend fun setScreen(v: io.github.mithrandler.labhud.wall.ScreenSchedule) = context.store.edit {
+        it[screenOnKey] = v.enabled
+        it[screenFromKey] = v.from.coerceIn(0, 1439)
+        it[screenToKey] = v.to.coerceIn(0, 1439)
+        it[screenDimKey] = v.dim.coerceIn(0, 100)
+    }
     suspend fun setPhoneView(v: io.github.mithrandler.labhud.ui.ViewChoice) = context.store.edit { it[phoneViewKey] = v.name }
 
     /** The settings sections starred on this phone (any server). */

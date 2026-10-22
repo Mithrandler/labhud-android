@@ -187,6 +187,7 @@ fun WallSection(repo: LabRepository, nav: SettingsNav) {
                 scope.launch { repo.store.setWallGlance(it) }
             }
         }
+        item { ScreenScheduleCard(settings.screen) { scope.launch { repo.store.setScreen(it) } } }
         item {
             Setting("Start in wall mode", "LabHUD becomes a home screen app: choose it as Home once, and the wall comes back after every reboot.", settings.wallOnBoot) {
                 scope.launch { repo.store.setWallOnBoot(it) }
@@ -232,6 +233,35 @@ private fun LockChoice(current: LockMode, set: (LockMode) -> Unit) {
                 }
             }
             if (error.isNotEmpty()) Text(error, fontSize = 12.sp, color = Lab.warn, modifier = Modifier.padding(start = 14.dp, top = 4.dp, bottom = 6.dp))
+        }
+    }
+}
+
+/** Dims the wall in a window of the night; a touch or a red card wakes it. */
+@Composable
+private fun ScreenScheduleCard(cur: io.github.mithrandler.labhud.wall.ScreenSchedule, set: (io.github.mithrandler.labhud.wall.ScreenSchedule) -> Unit) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    fun pick(minute: Int, done: (Int) -> Unit) =
+        android.app.TimePickerDialog(context, { _, h, m -> done(h * 60 + m) }, minute / 60, minute % 60, true).show()
+    Surface(shape = CardShape, color = Lab.card, border = BorderStroke(1.dp, Lab.line)) {
+        Column(Modifier.fillMaxWidth().padding(14.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.weight(1f).padding(end = 12.dp)) {
+                    Text("Screen schedule", fontWeight = FontWeight.Medium)
+                    Text("Dims the wall at night. A touch wakes it for a minute, a red card for as long as it is red.", fontSize = 12.sp, color = Lab.muted)
+                }
+                Switch(checked = cur.enabled, onCheckedChange = { set(cur.copy(enabled = it)) })
+            }
+            if (cur.enabled) {
+                Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text("Dim from", fontSize = 13.sp, color = Lab.sub)
+                    OutlinedButton(onClick = { pick(cur.from) { set(cur.copy(from = it)) } }) { Text(io.github.mithrandler.labhud.wall.minuteLabel(cur.from)) }
+                    Text("to", fontSize = 13.sp, color = Lab.sub)
+                    OutlinedButton(onClick = { pick(cur.to) { set(cur.copy(to = it)) } }) { Text(io.github.mithrandler.labhud.wall.minuteLabel(cur.to)) }
+                }
+                Text("Brightness while dimmed: ${cur.dim}%", fontSize = 13.sp, color = Lab.sub, modifier = Modifier.padding(top = 8.dp))
+                androidx.compose.material3.Slider(value = cur.dim.toFloat(), onValueChange = { set(cur.copy(dim = it.toInt())) }, valueRange = 0f..50f)
+            }
         }
     }
 }
