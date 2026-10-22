@@ -22,6 +22,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import io.github.mithrandler.labhud.ui.textScaleOf
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -138,6 +139,22 @@ fun ThemeSection(repo: LabRepository, nav: SettingsNav) {
                     }
                     Text("Wall mode is always the HUD. Status colours stay green, orange and red.", fontSize = 12.sp, color = Lab.muted,
                         modifier = Modifier.padding(start = 14.dp, end = 14.dp, top = 4.dp, bottom = 6.dp))
+                }
+            }
+        }
+        item {
+            Panel("Text", summary = "${settings.textScale}%" + if (settings.monoFont) " · monospace" else "") {
+                Text("The font and its size in this app, on this phone only. The wall page keeps its own.", fontSize = 12.sp, color = Lab.muted)
+                Row(Modifier.fillMaxWidth().padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    FilterChip(selected = !settings.monoFont, onClick = { scope.launch { repo.store.setMonoFont(false) } }, label = { Text("Sans") })
+                    FilterChip(selected = settings.monoFont, onClick = { scope.launch { repo.store.setMonoFont(true) } }, label = { Text("Monospace") })
+                }
+                var drag by remember(settings.textScale) { mutableStateOf(settings.textScale.toFloat()) }
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text("Size", fontSize = 13.sp, color = Lab.sub)
+                    androidx.compose.material3.Slider(drag, { drag = it }, valueRange = 85f..130f, steps = 8, modifier = Modifier.weight(1f).padding(horizontal = 10.dp),
+                        onValueChangeFinished = { scope.launch { repo.store.setTextScale(drag.toInt()) } })
+                    Text("${textScaleOf(drag.toInt())}%", fontSize = 13.sp, color = Lab.text)
                 }
             }
         }

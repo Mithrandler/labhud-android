@@ -10,12 +10,16 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
@@ -165,7 +169,7 @@ fun isDarkTheme(mode: ThemeMode): Boolean = when (mode) {
 }
 
 @Composable
-fun LabTheme(mode: ThemeMode = ThemeMode.Hud, board: BoardTheme = BoardTheme(), content: @Composable () -> Unit) {
+fun LabTheme(mode: ThemeMode = ThemeMode.Hud, board: BoardTheme = BoardTheme(), textScale: Int = 100, mono: Boolean = false, content: @Composable () -> Unit) {
     val dark = isDarkTheme(mode)
     val context = LocalContext.current
     val (scheme, palette) = remember(mode, dark, context, board) {
@@ -179,8 +183,24 @@ fun LabTheme(mode: ThemeMode = ThemeMode.Hud, board: BoardTheme = BoardTheme(), 
     }
     if (Current.palette !== palette) Current.palette = palette
     if (Current.hud != (mode == ThemeMode.Hud)) Current.hud = mode == ThemeMode.Hud
-    MaterialTheme(colorScheme = scheme, typography = type, content = content)
+    val density = LocalDensity.current
+    val scaled = remember(density, textScale) { Density(density.density, density.fontScale * textScaleOf(textScale) / 100f) }
+    CompositionLocalProvider(LocalDensity provides scaled) {
+        MaterialTheme(colorScheme = scheme, typography = if (mono) monoType else type, content = content)
+    }
 }
+
+private val monoType = type.let { t ->
+    fun TextStyle.m() = copy(fontFamily = FontFamily.Monospace)
+    t.copy(displayLarge = t.displayLarge.m(), displayMedium = t.displayMedium.m(), displaySmall = t.displaySmall.m(),
+        headlineLarge = t.headlineLarge.m(), headlineMedium = t.headlineMedium.m(), headlineSmall = t.headlineSmall.m(),
+        titleLarge = t.titleLarge.m(), titleMedium = t.titleMedium.m(), titleSmall = t.titleSmall.m(),
+        bodyLarge = t.bodyLarge.m(), bodyMedium = t.bodyMedium.m(), bodySmall = t.bodySmall.m(),
+        labelLarge = t.labelLarge.m(), labelMedium = t.labelMedium.m(), labelSmall = t.labelSmall.m())
+}
+
+/** The text size as the app keeps it: from 85 to 130 percent, in steps of 5 (anything else is moved to the nearest). */
+fun textScaleOf(percent: Int): Int = ((percent.coerceIn(85, 130) + 2) / 5) * 5
 
 /** The colour of a status dot. */
 fun statusColor(status: String?, bad: Boolean?): Color = when {

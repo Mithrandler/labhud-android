@@ -100,7 +100,7 @@ class MainActivity : FragmentActivity() {
             }
             val board by remember { repo.state.map { it?.theme ?: BoardTheme() }.distinctUntilChanged() }
                 .collectAsStateWithLifecycle(initialValue = BoardTheme())
-            LabTheme(look.theme, board) {
+            LabTheme(look.theme, board, look.textScale, look.monoFont) {
                 val unlocked by AppLock.unlocked.collectAsStateWithLifecycle()
                 val servers by repo.store.servers.collectAsStateWithLifecycle(initialValue = null)
                 val settings by repo.store.settings.collectAsStateWithLifecycle(initialValue = null)

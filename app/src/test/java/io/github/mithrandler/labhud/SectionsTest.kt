@@ -11,12 +11,12 @@ import org.junit.Test
 class SectionsTest {
 
     @Test
-    fun `same groups and sections as the wall`() {
+    fun `the wall's groups and sections except Look which is the phone's own Appearance`() {
         assertEquals(listOf("account", "display", "infra", "monitor", "system", "phone"), GROUPS.map { it.first })
         assertEquals(
             mapOf(
                 "account" to listOf("security"),
-                "display" to listOf("look", "dashboard"),
+                "display" to listOf("dashboard"),   // Look is the phone's own, in Appearance
                 "infra" to listOf("hosts", "containers", "integrations"),
                 "monitor" to listOf("alerts", "notifications"),
                 "system" to listOf("api", "system"),

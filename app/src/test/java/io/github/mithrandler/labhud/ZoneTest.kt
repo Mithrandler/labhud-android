@@ -321,4 +321,17 @@ class ZoneObjectsTest {
         assertEquals(null, io.github.mithrandler.labhud.data.alertRule(kotlinx.serialization.json.buildJsonObject { }))
         assertEquals("23:00 → 07:00", io.github.mithrandler.labhud.data.quietText(23, 7)); assertEquals("off", io.github.mithrandler.labhud.data.quietText(0, 0))
     }
+
+    @Test fun the_text_size_is_kept_in_steps_and_the_scan_and_source_forms_read_short() {
+        assertEquals(listOf(85, 85, 100, 100, 105, 130, 130), listOf(10, 86, 100, 102, 103, 129, 500).map { io.github.mithrandler.labhud.ui.textScaleOf(it) })
+        val d = io.github.mithrandler.labhud.data.ScanStatus(running = true, done = 3, total = 254, found = listOf(io.github.mithrandler.labhud.data.ScanFound("pihole", "http://x:80")))
+        assertEquals("3 of 254 · 1 found", io.github.mithrandler.labhud.data.scanText(d))
+        assertEquals("10.0.0.0/24 · 1 found", io.github.mithrandler.labhud.data.scanText(d.copy(running = false, cidr = "10.0.0.0/24")))
+        assertEquals("", io.github.mithrandler.labhud.data.scanText(io.github.mithrandler.labhud.data.ScanStatus()))
+        val f = { n: String, secret: Boolean, opt: Boolean -> io.github.mithrandler.labhud.data.SourceField(n, n, secret, "", opt) }
+        val src = io.github.mithrandler.labhud.data.SourceItem("x", "X", "", listOf(f("URL", false, false), f("TOKEN", true, false), f("EXTRA", false, true)))
+        assertEquals(false, io.github.mithrandler.labhud.data.sourceFormOk(src, emptyMap()))
+        assertEquals(true, io.github.mithrandler.labhud.data.sourceFormOk(src, mapOf("URL" to "http://a")))     // a secret may stay empty: the one set is kept
+        assertEquals(false, io.github.mithrandler.labhud.data.sourceFormOk(src, mapOf("URL" to "  ")))
+    }
 }

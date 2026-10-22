@@ -7,6 +7,8 @@ All notable changes to LabHUD for Android. The format follows
 ## [Unreleased]
 
 ### Added
+- **Settings > Integrations, native**: the sources LabHUD can set up from a form (a list, then a sheet with the source's fields, *Test*, *Save* and *Forget* with the name typed; a secret left empty keeps the one set; saving new keys restarts LabHUD, which says so) and the **network scan** (a private subnet, progress, what was found), behind the admin gate.
+- **Appearance: Text**: a font (Sans or Monospace) and a text size from 85% to 130%, for this phone only. The wall's Look lives in each browser, so the old *Look* entry (wall only) is gone from the list; the phone's own look is Appearance.
 - **Settings > Alerts, native**: the alert rules on hosts as cards (host or all hosts, what it watches, the mark and the minutes; offline and failed services take minutes only) and the quiet hours (a switch and two hours), with Save / Discard, never autosave. What was saved stays on screen (labhud applies a save a moment later). The warn/crit marks of every card and the screen's beep remain on the wall.
 - **Servers > Host**: a *Backup Proxmox guests* job in the Scheduler editor (ticked guests, storage, mode), pending OS updates in the summary, and the agent's own history marked in Activity.
 

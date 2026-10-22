@@ -50,8 +50,6 @@ val SECTIONS: List<Section> = listOf(
     Section("security", "account", "Account", "Who is signed in, PIN, sessions, paired phones", { LabIcons.security },
         admin = false, keywords = "admin sign in sign out pin lock totp oidc sso sessions security phones paired devices pair unpair remove tokens") { r, n -> SecuritySection(r, n) },
 
-    Section("look", "display", "Look", "Theme, font, density, night and calm", { LabIcons.look },
-        keywords = "theme colour font text size night calm density") { r, n -> LookSection(r, n) },
     Section("dashboard", "display", "Dashboard", "Pages, groups and cards, rotation", { LabIcons.pages },
         keywords = "pages rotation groups cards layout hide icon size discover new guests containers services approve dismiss") { r, n -> DashboardSection(r, n) },
 
@@ -74,8 +72,8 @@ val SECTIONS: List<Section> = listOf(
 
     Section("servers", "phone", "Servers", "The LabHUDs this phone knows", { LabIcons.server },
         admin = false, keywords = "add pair rename remove certificate") { r, n -> ServersSection(r, n) },
-    Section("theme", "phone", "Appearance", "System, dark, light or the HUD", { LabIcons.look },
-        admin = false, keywords = "theme dark light colour wallpaper material hud") { r, n -> ThemeSection(r, n) },
+    Section("theme", "phone", "Appearance", "Theme, font and text size", { LabIcons.look },
+        admin = false, keywords = "theme dark light colour wallpaper material hud look font mono text size") { r, n -> ThemeSection(r, n) },
     Section("lock", "phone", "App lock", "Phone PIN or fingerprint when it opens", { LabIcons.lock },
         admin = false, keywords = "biometric fingerprint pin pattern") { r, n -> LockSection(r, n) },
     Section("wall", "phone", "Wall mode", "The wall page on this screen, kept on", { LabIcons.wall },
