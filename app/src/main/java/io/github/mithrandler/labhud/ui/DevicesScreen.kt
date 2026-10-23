@@ -149,7 +149,7 @@ fun DevicesScreen(repo: LabRepository, bar: BarNav) {
                         FilterChip(
                             selected = type == picked.first, onClick = { sectionPick = type },
                             label = { Text("$title ${group.size}") },
-                            trailingIcon = if (group.any { it.bad == true }) ({ Box(Modifier.size(6.dp).clip(CircleShape).background(Lab.red)) }) else null,
+                            trailingIcon = if (group.any { it.bad == true }) ({ Box(Modifier.size(LabScale.space2).clip(CircleShape).background(Lab.red)) }) else null,
                             colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Lab.accent.copy(alpha = 0.2f), selectedLabelColor = Lab.title),
                         )
                     }
@@ -157,37 +157,10 @@ fun DevicesScreen(repo: LabRepository, bar: BarNav) {
                 val cols = gridColumns()
                 Column(Modifier.fillMaxSize().verticalScroll(androidx.compose.foundation.rememberScrollState()).padding(horizontal = LabScale.space4, vertical = LabScale.space2)) {
                     key(picked.first) {
-                        PagedGrid(picked.third, cols, rows = 4) { c -> DeviceCell(c, server, Modifier.weight(1f)) { onCard(c.id) } }
+                        PagedGrid(picked.third, cols, rows = 4) { c -> MiniCard(c, server, Modifier.weight(1f)) { onCard(c.id) } }
                     }
                 }
             }
-        }
-    }
-}
-
-/** A machine as a small card: icon, its whole name, the dot, then CPU and RAM in a few words or its state. */
-@Composable
-private fun DeviceCell(c: Card, server: Server?, modifier: Modifier, onClick: () -> Unit) {
-    val sev = c.severity()
-    Surface(
-        onClick = onClick, modifier = modifier, shape = CardShape, color = Lab.card,
-        border = BorderStroke(LabScale.hairline, if (c.bad == true) Lab.red.copy(alpha = 0.7f) else if (sev.isNotEmpty()) barColor(sev) else Lab.line),
-    ) {
-        Column(Modifier.heightIn(min = 76.dp).padding(horizontal = LabScale.space3, vertical = LabScale.space2)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                CardIcon(c, server)
-                Spacer(Modifier.width(LabScale.space2))
-                FitText(c.name, LabScale.textSm, FontWeight.SemiBold, Modifier.weight(1f))
-                Spacer(Modifier.width(LabScale.space2))
-                StatusDot(c, 9)
-            }
-            val bars = c.metrics.filter { it.pct != null }.ifEmpty { c.guest?.meters().orEmpty() }.take(3)
-            val up = c.guest?.uptime?.let { "up " + upText(it) } ?: c.metrics.firstOrNull { it.short().equals("uptime", true) }?.let { "up " + it.value }
-            val line = if (c.status == "up") (bars.map { it.short() + " " + Math.round(it.pct ?: 0.0) + "%" } + listOfNotNull(up)).joinToString(" · ") else ""
-            val word = statusWord(c)
-            val sub = line.ifEmpty { word.ifEmpty { c.subtitle.ifEmpty { c.summary } } }
-            if (sub.isNotEmpty()) Text(sub, fontSize = LabScale.textXs, color = if (c.status == "down") Lab.red else Lab.muted, maxLines = 2, overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(top = LabScale.space1).alpha(if (c.frozen) 0.45f else 1f))
         }
     }
 }

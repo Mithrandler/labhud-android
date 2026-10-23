@@ -123,11 +123,11 @@ private val fallbackLight = lightColorScheme(
 private fun hudOf(board: BoardTheme): Pair<ColorScheme, LabPalette> {
     if (board == BoardTheme()) return hudScheme to hudPalette
     val (accent, title) = board.accentArgb.let { Color(it.first) to Color(it.second) }
-    val bg = if (board.grey) Color(0xFF16181D) else Hud.bg
-    val card = if (board.grey) Color(0xFF1E2128) else Hud.card
-    val block = if (board.grey) Color(0xFF272B33) else Hud.block
-    val line = if (board.grey) Color(0xFF333844) else Hud.line
-    val border = if (board.grey) Color(0xFF454C59) else Hud.border
+    val bg = if (board.grey) HudGrey.bg else Hud.bg
+    val card = if (board.grey) HudGrey.card else Hud.card
+    val block = if (board.grey) HudGrey.block else Hud.block
+    val line = if (board.grey) HudGrey.line else Hud.line
+    val border = if (board.grey) HudGrey.border else Hud.border
     val palette = LabPalette(bg, card, block, line, border, Hud.text, Hud.sub, Hud.muted, accent, title, Hud.onTitle,
         Hud.green, Hud.warn, Hud.red, Hud.redBg, Hud.redText, Hud.infoBg)
     val scheme = hudScheme.copy(

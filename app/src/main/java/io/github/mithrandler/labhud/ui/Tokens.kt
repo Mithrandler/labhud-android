@@ -1,4 +1,4 @@
-// Written by labhud's design/build.py from its design/tokens.json (e145c17e4392): edit there, not here.
+// Written by labhud's design/build.py from its design/tokens.json (0d17297ceeed): edit there, not here.
 package io.github.mithrandler.labhud.ui
 
 import androidx.compose.ui.graphics.Color
@@ -46,6 +46,20 @@ object Hud {
     val redText = Color(0xFFFFD9E2)
     /** behind a form being filled in */
     val infoBg = Color(0xFF0E1824)
+}
+
+/** The "Dark grey" board's ground, cards and edges (the wall's settings.js says the same). */
+object HudGrey {
+    /** the ground of the 'Dark grey' board */
+    val bg = Color(0xFF16181D)
+    /** a card on it */
+    val card = Color(0xFF1E2128)
+    /** a block inside a card */
+    val block = Color(0xFF272B33)
+    /** dividers */
+    val line = Color(0xFF333844)
+    /** card edges */
+    val border = Color(0xFF454C59)
 }
 
 /** The sizes of the wall and ⚙: gaps, corners, type, a meter's bar. */

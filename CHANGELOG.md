@@ -7,6 +7,7 @@ All notable changes to LabHUD for Android. The format follows
 ## [Unreleased]
 
 ### Changed
+- **Devices uses the same tiles** as General (`MiniCard`) instead of its own small cards; the "Dark grey" board takes its colours from `HudGrey` (design/tokens.json).
 - **The whole app from the scale**: every screen (settings, status, agent, activity, history, widgets, gate, about) takes type, gaps, paddings, small icons and borders from `LabScale` (new `hairline`); 13/15/16 sp are gone. A test (`ThemeScaleTest`) fails when a new loose `fontSize` or more dp/sp literals appear.
 - **Zone screens from the scale**: `ZoneScreen.kt`, `ZoneObjects.kt`, `ZoneGuests.kt`, `ZoneStacks.kt` and `ZoneHostTab.kt` take type, gaps and paddings from `LabScale`.
 - **Card screen and MiniCard from the scale**: `CardScreen.kt` and `Components.kt` take type, gaps, paddings and small icons from `LabScale` (13/15/16 sp and loose dp are gone there); the small tile has the wall's padding, icon and dot.
