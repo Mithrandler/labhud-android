@@ -131,8 +131,8 @@ fun HudCard(
     percent: Double? = null,
     coverage: Double? = null,
     compact: Boolean = false,
-    /** Small facts under the numbers, as chips: 12/14 containers. */
-    chips: List<String> = emptyList(),
+    /** A small fact under the numbers, as a chip: 12/14 containers. */
+    chip: String? = null,
     onClick: () -> Unit,
 ) {
     val sev = c.severity()
@@ -154,7 +154,7 @@ fun HudCard(
                 .padding(horizontal = LabScale.space3, vertical = if (compact) 6.dp else 10.dp)) {
                 CardHead(c, server)
                 val fade = Modifier.alpha(if (c.frozen) 0.45f else 1f)
-                CardBody(c, fade, server, chips)
+                CardBody(c, fade, server, chip)
                 if (c.note.isNotEmpty()) {
                     Text(c.note, fontSize = LabScale.textXs, color = if (c.noteKind == "error" || c.noteKind == "stale") Lab.warn else Lab.muted,
                         maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = LabScale.space1))
@@ -198,7 +198,7 @@ fun CardHead(c: Card, server: Server?) {
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun CardBody(c: Card, fade: Modifier, server: Server? = null, chips: List<String> = emptyList()) {
+private fun CardBody(c: Card, fade: Modifier, server: Server? = null, chip: String? = null) {
     val word = statusWord(c)
     val most = when (c.size) { "xl" -> 8; "l" -> 6; "m" -> 4; else -> 2 }
     // a guest has no metrics of its own: its CPU, RAM and disk come from the server's `guest`
@@ -225,7 +225,7 @@ private fun CardBody(c: Card, fade: Modifier, server: Server? = null, chips: Lis
                 // the GPU's temperature is in its own ring
                 val counts = c.guestCounts.entries.sortedBy { it.key }.mapNotNull { (k, v) -> if (v.size == 2 && v[1] > 0) Metric(label = k.uppercase(), value = "${v[0]}/${v[1]}") else null }
                 val facts = others.filter { o -> counts.isEmpty() || counts.none { it.label.equals(o.label, true) } }.filter { c.gpus.isEmpty() || !(it.format == "celsius" && "gpu" in (it.label + it.key).lowercase()) } + listOfNotNull(c.guest?.uptime?.let { Metric(label = "up", value = upText(it)) }) + counts +
-                    chips.map { Metric(value = it) }
+                    listOfNotNull(chip).map { Metric(value = it) }
                 if (facts.isNotEmpty()) FlowRow(Modifier.fillMaxWidth().padding(top = 2.dp),
                     horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
                     verticalArrangement = Arrangement.spacedBy(4.dp)) {

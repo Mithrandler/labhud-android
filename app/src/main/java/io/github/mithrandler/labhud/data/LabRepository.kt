@@ -104,7 +104,8 @@ class LabRepository(private val context: Context, val store: ServerStore) {
                         _liveAt.value = System.currentTimeMillis()
                         wait = 2_000L
                         // the same document again (nothing changed but the clock) redraws nothing
-                        if (st != _state.value) _state.value = st
+                        val shared = st.sharedWith(_state.value)
+                        if (shared != _state.value) _state.value = shared
                         keep(s.id, st)
                         onNewState?.invoke(s, st)
                     }

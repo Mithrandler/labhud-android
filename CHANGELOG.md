@@ -6,6 +6,12 @@ All notable changes to LabHUD for Android. The format follows
 
 ## [Unreleased]
 
+### Fixed
+- **Battery and data in the background**: the polls of the screens (a card and its history every 30 s, the game server, the history, the Servers lists and Stats, the uptime and sparklines on Status, the clocks) now run only while the app is on screen. Before, they kept asking the server for as long as the process lived, even after Home.
+
+### Changed
+- **Less redrawing**: a card whose numbers did not change between two messages from the server is no longer drawn again, and the page layout is packed again only when the cards themselves change, not on every new number.
+
 ## [0.1.26] - 2026-10-22
 
 ### Added
@@ -15,8 +21,6 @@ All notable changes to LabHUD for Android. The format follows
 - **Appearance: Text**: a font (Sans or Monospace) and a text size from 85% to 130%, for this phone only. The wall's Look lives in each browser, so the old *Look* entry (wall only) is gone from the list; the phone's own look is Appearance.
 - **Settings > Alerts, native**: the alert rules on hosts as cards (host or all hosts, what it watches, the mark and the minutes; offline and failed services take minutes only) and the quiet hours (a switch and two hours), with Save / Discard, never autosave. What was saved stays on screen (labhud applies a save a moment later). The warn/crit marks of every card and the screen's beep remain on the wall.
 - **Servers > Host**: a *Backup Proxmox guests* job in the Scheduler editor (ticked guests, storage, mode), pending OS updates in the summary, and the agent's own history marked in Activity.
-
-### Added
 - **Servers > Scheduler** (Host tab): the list of jobs for the host (and the ones for every host) and an editor with Save / Discard, Run now and Delete (name typed); the old update window is the first job.
 - **Servers > Host**: facts, Update OS / Reboot / Shutdown (name typed), systemd units with a sheet (Start / Restart / Stop) and the host's Activity with Verify chain.
 - **CVEs on an image** (Servers > Images): a coloured line on each image row ("2 crit · 5 high", "clean", "not scanned") and a Vulnerabilities section in its sheet with the scanner, the time and the affected containers.

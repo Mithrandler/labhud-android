@@ -128,11 +128,11 @@ fun ZoneScreen(repo: LabRepository, bar: BarNav, onSignIn: () -> Unit) {
         }
     }
     LaunchedEffect(Unit) { if (rights.admin) start() }
-    LaunchedEffect(session, tick) {
-        if (!session) return@LaunchedEffect
+    WhileStarted(session, tick) {
+        if (!session) return@WhileStarted
         while (true) {
             val r = ask { zoneHosts() }
-            if (r.ok) { hosts = r.hosts; message = "" } else { message = r.refusal(); if (!session) return@LaunchedEffect }
+            if (r.ok) { hosts = r.hosts; message = "" } else { message = r.refusal(); if (!session) return@WhileStarted }
             delay(20_000)
         }
     }
@@ -249,12 +249,9 @@ private fun ContainersTab(h: ZoneHost, ask: suspend (suspend LabApi.() -> ZoneAn
     var message by remember { mutableStateOf("") }
     var open by remember { mutableStateOf<String?>(null) }
     var tick by remember { mutableStateOf(0) }
-    LaunchedEffect(h.name, tick) {
-        while (true) {
-            val r = ask { zoneContainers(h.name) }
-            if (r.ok) { rows = r.containers; message = "" } else message = r.refusal()
-            delay(15_000)
-        }
+    PollWhileStarted(h.name, tick, intervalMs = 15_000) {
+        val r = ask { zoneContainers(h.name) }
+        if (r.ok) { rows = r.containers; message = "" } else message = r.refusal()
     }
     Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
         OutlinedTextField(query, { query = it.take(60) }, singleLine = true, label = { Text("Filter") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
@@ -422,7 +419,7 @@ private fun InspectView(host: String, name: String, ask: suspend (suspend LabApi
 @Composable
 private fun StatsView(host: String, name: String, ask: suspend (suspend LabApi.() -> ZoneAnswer) -> ZoneAnswer) {
     var r by remember(name) { mutableStateOf<ZoneAnswer?>(null) }
-    LaunchedEffect(name) { while (true) { r = ask { zoneStats(host, name) }; delay(5000) } }
+    PollWhileStarted(name, intervalMs = 5000) { r = ask { zoneStats(host, name) } }
     val a = r
     when {
         a == null -> Text("Loading…", color = Lab.muted)

@@ -26,7 +26,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
-import kotlinx.coroutines.delay
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
@@ -43,7 +42,7 @@ fun zoneOf(name: String): ZoneId = runCatching { if (name.isEmpty()) ZoneId.syst
 @Composable
 fun ClockWidget(timezone: String) {
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
-    LaunchedEffect(Unit) { while (true) { now = System.currentTimeMillis(); delay(1000) } }
+    PollWhileStarted(intervalMs = 1000) { now = System.currentTimeMillis() }
     val locale = LocalConfiguration.current.locales[0]
     val zone = zoneOf(timezone)
     val at = Instant.ofEpochMilli(now).atZone(zone)

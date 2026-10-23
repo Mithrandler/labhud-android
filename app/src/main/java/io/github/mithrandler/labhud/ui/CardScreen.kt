@@ -64,7 +64,6 @@ import io.github.mithrandler.labhud.data.Card
 import io.github.mithrandler.labhud.data.History
 import io.github.mithrandler.labhud.data.LabRepository
 import io.github.mithrandler.labhud.data.Section
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.DateFormat
 import java.util.Date
@@ -113,15 +112,10 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
     // the series this card draws: only they are asked for, not the whole lab's history
     val keys = live?.let { c -> c.metrics.filter { it.trend }.map { it.key } + c.charts.map { it.key } }.orEmpty()
     // the panel and the charts: fetched when opened, then every 30 s while it stays open
-    LaunchedEffect(id, keys) {
-        while (true) {
-            val api = repo.api()
-            if (api != null) {
-                runCatching { api.card(id) }.onSuccess { sections = it.sections; full = it }
-                if (keys.isNotEmpty()) runCatching { api.history(false, keys) }.onSuccess { history = it }
-            }
-            delay(30_000)
-        }
+    PollWhileStarted(id, keys, intervalMs = 30_000) {
+        val api = repo.api() ?: return@PollWhileStarted
+        runCatching { api.card(id) }.onSuccess { sections = it.sections; full = it }
+        if (keys.isNotEmpty()) runCatching { api.history(false, keys) }.onSuccess { history = it }
     }
     // its uptime, with how much of the range labhud knows at all (coverage)
     LaunchedEffect(id, week, info?.uptime) {

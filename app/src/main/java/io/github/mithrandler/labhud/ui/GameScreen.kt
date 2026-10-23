@@ -44,7 +44,6 @@ import androidx.compose.ui.unit.sp
 import io.github.mithrandler.labhud.data.Action
 import io.github.mithrandler.labhud.data.GameServer
 import io.github.mithrandler.labhud.data.LabRepository
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /** One game server: its state, players, address and the start / stop / restart buttons. */
@@ -61,11 +60,8 @@ fun GameScreen(repo: LabRepository, id: String, onBack: () -> Unit, onSignIn: ()
     val gate = rememberGate(repo)
 
     // the players' names come only from /api/v1/game/<id>: every 20 s while it is open
-    LaunchedEffect(id) {
-        while (true) {
-            repo.api()?.let { api -> runCatching { api.game(id) }.onSuccess { detail = it } }
-            delay(20_000)
-        }
+    PollWhileStarted(id, intervalMs = 20_000) {
+        repo.api()?.let { api -> runCatching { api.game(id) }.onSuccess { detail = it } }
     }
     val g = live?.copy(who = detail?.who.orEmpty()) ?: detail
 

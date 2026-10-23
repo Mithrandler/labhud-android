@@ -48,7 +48,6 @@ import androidx.compose.ui.unit.sp
 import io.github.mithrandler.labhud.data.History
 import io.github.mithrandler.labhud.data.LabRepository
 import io.github.mithrandler.labhud.data.Metric
-import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -67,11 +66,8 @@ fun HostHistoryScreen(repo: LabRepository, id: String, onBack: () -> Unit, onCar
     var long by remember { mutableStateOf<History?>(null) }
 
     val keys = card?.resources().orEmpty().map { it.key }
-    LaunchedEffect(id, keys) {
-        while (true) {
-            repo.api()?.let { api -> runCatching { api.history(false, keys) }.onSuccess { short = it } }
-            delay(60_000)
-        }
+    PollWhileStarted(id, keys, intervalMs = 60_000) {
+        repo.api()?.let { api -> runCatching { api.history(false, keys) }.onSuccess { short = it } }
     }
     LaunchedEffect(span, keys) {
         if (span > 0) repo.api()?.let { api -> runCatching { api.history(true, keys) }.onSuccess { long = it } }

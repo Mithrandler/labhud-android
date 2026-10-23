@@ -114,17 +114,16 @@ fun StatusScreen(
     var uptime by remember { mutableStateOf<Uptime?>(null) }
     var sparks by remember { mutableStateOf<Map<String, List<Double?>>>(emptyMap()) }
 
-    LaunchedEffect(server?.id, info?.uptime) {
-        if (info?.uptime != true) return@LaunchedEffect
+    WhileStarted(server?.id, info?.uptime) {
+        if (info?.uptime != true) return@WhileStarted
         while (true) {
             repo.api()?.let { api -> runCatching { api.uptime(false) }.onSuccess { uptime = it } }
             delay(5 * 60_000)
         }
     }
     // the cards' sparklines: the last half hour of every number with a trend, in one request a minute
-    LaunchedEffect(server?.id, info?.trends?.isNotEmpty()) {
-        sparks = emptyMap()
-        if (info?.trends.isNullOrEmpty()) return@LaunchedEffect
+    WhileStarted(server?.id, info?.trends?.isNotEmpty()) {
+        if (info?.trends.isNullOrEmpty()) { sparks = emptyMap(); return@WhileStarted }
         while (true) {
             repo.api()?.let { api -> runCatching { api.sparks() }.onSuccess { sparks = it.series } }
             delay(60_000)
@@ -148,7 +147,7 @@ fun StatusScreen(
             }
             val byId = st.byId
             // 12/14 containers on a host whose agent has Docker
-            val boxChips = remember(st) {
+            val boxChips = remember(st.containers) {
                 st.containers.groupBy { it.card }.mapValues { (_, l) -> "${l.count { it.up }}/${l.size} containers" }
             }
             // problems are in the bell (its badge counts them), not in a band over the cards
@@ -203,9 +202,12 @@ fun StatusScreen(
                             (if (index == 0) favs.mapNotNull { byId[it] }.sortedBy { it.name.lowercase() }.map { Slot("c-fav-${it.id}", it) } else emptyList()) +
                                 page.groups.flatMap { g -> g.cards.mapNotNull { byId[it] }.map { Slot("c-${g.id}-${it.id}", it) } }
                         val barH = pageBarHeight().value
-                        val screens = remember(slots, cols, maxHeight, barH) {
+                        // the packing depends on what each cell takes, not on the numbers in it: a new number must not pack again
+                        val layout = slots.map { Triple(it.key, it.span(cols), it.height(tile)) }
+                        val screens = remember(layout, cols, maxHeight, barH) {
                             packGrid(slots, { it.span(cols) }, { it.height(tile) }, cols, 12f, maxHeight.value - 24f - barH)
                         }
+                        val fresh = slots.associateBy { it.key }
                         var asked by rememberSaveable(page?.id) { mutableIntStateOf(0) }
                         val cur = asked.coerceIn(0, screens.size - 1)
                         Column(Modifier.fillMaxSize().pointerInput(index, screens.size, cur, pages.size) {
@@ -234,12 +236,13 @@ fun StatusScreen(
                             ) {
                                 if (page == null) return@LazyVerticalGrid
                                 if (slots.isEmpty() && page.games) item(span = { GridItemSpan(maxLineSpan) }) { Text("No game servers known yet.", color = Lab.muted) }
-                                screens[cur].forEach { sl ->
+                                screens[cur].forEach { packed ->
+                                    val sl = fresh[packed.key] ?: packed   // the packing may be older than the numbers
                                     val c = sl.card
                                     if (c != null) item(key = sl.key, span = { GridItemSpan(sl.span(maxLineSpan)) }) {
                                         if (c.isBig()) HudCard(c, server, Modifier.height(sl.height(tile).dp), sparks = sparks, uptime = uptime?.cards?.get(c.id), percent = uptime?.percent?.get(c.id),
                                             coverage = uptime?.coverage?.get(c.id), compact = compact,
-                                            chips = listOfNotNull(boxChips[c.id])) { onCard(c.id) }
+                                            chip = boxChips[c.id]) { onCard(c.id) }
                                         else MiniCard(c, server, chip = boxChips[c.id]) { onCard(c.id) }
                                     }
                                     val g = sl.game
@@ -263,7 +266,7 @@ internal fun swipeStep(total: Float, width: Float): Int = when {
 }
 
 /** One thing on a Status screen: a card (or a game server) with a key for its grid cell. */
-private class Slot(val key: String, val card: Card? = null, val game: GameServer? = null) {
+private data class Slot(val key: String, val card: Card? = null, val game: GameServer? = null) {
     /** Cells it takes in a line of [cols]: a card by its kind, a game server one cell on a wide screen, else half a line or more. */
     fun span(cols: Int): Int = card?.tileSpan(cols) ?: if (cols >= 4) 1 else cols
 
@@ -366,9 +369,7 @@ fun ConnBanner(conn: Conn, liveAtFlow: kotlinx.coroutines.flow.StateFlow<Long>, 
     // read here, not by the screen: the stream's every message would redraw the whole screen
     val liveAt by liveAtFlow.collectAsStateWithLifecycle()
     var now by remember { mutableStateOf(android.os.SystemClock.elapsedRealtime()) }
-    LaunchedEffect(conn) {
-        while (true) { now = android.os.SystemClock.elapsedRealtime(); delay(1_000) }
-    }
+    PollWhileStarted(conn, intervalMs = 1_000) { now = android.os.SystemClock.elapsedRealtime() }
     val color = if (conn.fatal) Lab.red else Lab.warn
     Surface(shape = CardShape, color = color.copy(alpha = 0.12f), border = BorderStroke(1.dp, color.copy(alpha = 0.6f)),
         modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {

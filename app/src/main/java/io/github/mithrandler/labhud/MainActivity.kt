@@ -164,7 +164,7 @@ class MainActivity : FragmentActivity() {
             }
             onLinkUsed()
         }
-        val bar = BarNav(
+        val bar = remember(nav, AppLock.on) { BarNav(
             onCard = { nav.navigate("card/$it") },
             onPage = { repo.pagePick.value = it; nav.tab("home") },
             onSettings = { nav.navigate("settings/$it") },
@@ -173,7 +173,8 @@ class MainActivity : FragmentActivity() {
             onOpenSettings = { nav.navigate(SETTINGS) { launchSingleTop = true } },
             onAbout = { nav.navigate("about") { launchSingleTop = true } },
             onLock = if (AppLock.on) ({ AppLock.lockNow() }) else null,
-        )
+        ) }
+        val tabItems = remember { TABS.map { Triple(it.route, it.label, it.icon) } }
         val route = nav.currentBackStackEntryAsState().value?.destination?.route
         val landscape = androidx.compose.ui.platform.LocalConfiguration.current.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
         val tabsShown = TABS.any { it.route == route }
@@ -182,10 +183,10 @@ class MainActivity : FragmentActivity() {
             containerColor = Lab.bg,
             contentWindowInsets = WindowInsets(0),
             // icons only and thin; on a wide screen they stand in a column at the side, so the height is the cards'
-            bottomBar = { if (tabsShown && !landscape) CompactTabs(TABS.map { Triple(it.route, it.label, it.icon) }, route, false) { nav.tab(it) } },
+            bottomBar = { if (tabsShown && !landscape) CompactTabs(tabItems, route, false) { nav.tab(it) } },
         ) { pad ->
           androidx.compose.foundation.layout.Row(Modifier.fillMaxSize().padding(pad).consumeWindowInsets(pad)) {
-            if (tabsShown && landscape) CompactTabs(TABS.map { Triple(it.route, it.label, it.icon) }, route, true) { nav.tab(it) }
+            if (tabsShown && landscape) CompactTabs(tabItems, route, true) { nav.tab(it) }
             NavHost(nav, startDestination = "home",
                 enterTransition = { EnterTransition.None }, exitTransition = { ExitTransition.None },
                 popEnterTransition = { EnterTransition.None }, popExitTransition = { ExitTransition.None },
