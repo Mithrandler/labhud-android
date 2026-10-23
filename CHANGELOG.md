@@ -6,6 +6,8 @@ All notable changes to LabHUD for Android. The format follows
 
 ## [Unreleased]
 
+## [0.1.28] - 2026-10-23
+
 ### Changed
 - **Devices uses the same tiles** as General (`MiniCard`) instead of its own small cards; the "Dark grey" board takes its colours from `HudGrey` (design/tokens.json).
 - **The whole app from the scale**: every screen (settings, status, agent, activity, history, widgets, gate, about) takes type, gaps, paddings, small icons and borders from `LabScale` (new `hairline`); 13/15/16 sp are gone. A test (`ThemeScaleTest`) fails when a new loose `fontSize` or more dp/sp literals appear.
@@ -290,7 +292,8 @@ those parts are simply not shown.
   back in the settings or the camera was switched off in Quick Settings. It now asks again, offers
   the system settings after a permanent refusal, and pasting the link or signing in always works.
 
-[Unreleased]: https://github.com/Mithrandler/labhud-android/compare/v0.1.27...HEAD
+[Unreleased]: https://github.com/Mithrandler/labhud-android/compare/v0.1.28...HEAD
+[0.1.28]: https://github.com/Mithrandler/labhud-android/compare/v0.1.27...v0.1.28
 [0.1.27]: https://github.com/Mithrandler/labhud-android/compare/v0.1.26...v0.1.27
 [0.1.26]: https://github.com/Mithrandler/labhud-android/compare/v0.1.25...v0.1.26
 [0.1.25]: https://github.com/Mithrandler/labhud-android/compare/v0.1.24...v0.1.25
