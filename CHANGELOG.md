@@ -6,6 +6,8 @@ All notable changes to LabHUD for Android. The format follows
 
 ## [Unreleased]
 
+## [0.1.29] - 2026-10-23
+
 ### Changed
 - **No loose dp/sp left**: every size, gap and colour in the app comes from `LabScale` / `Hud` / `FallbackDark` / `FallbackLight` / `LightStatus` (generated from design/tokens.json); `ThemeScaleTest` allows none (but zero, letter spacing, text-fit steps and the widget's sizes).
 
@@ -295,7 +297,8 @@ those parts are simply not shown.
   back in the settings or the camera was switched off in Quick Settings. It now asks again, offers
   the system settings after a permanent refusal, and pasting the link or signing in always works.
 
-[Unreleased]: https://github.com/Mithrandler/labhud-android/compare/v0.1.28...HEAD
+[Unreleased]: https://github.com/Mithrandler/labhud-android/compare/v0.1.29...HEAD
+[0.1.29]: https://github.com/Mithrandler/labhud-android/compare/v0.1.28...v0.1.29
 [0.1.28]: https://github.com/Mithrandler/labhud-android/compare/v0.1.27...v0.1.28
 [0.1.27]: https://github.com/Mithrandler/labhud-android/compare/v0.1.26...v0.1.27
 [0.1.26]: https://github.com/Mithrandler/labhud-android/compare/v0.1.25...v0.1.26
