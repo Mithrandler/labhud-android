@@ -569,6 +569,7 @@ private fun detailRows(json: String): List<Pair<String, String>> = runCatching {
 private fun scanColor(s: io.github.mithrandler.labhud.data.Scan) = when { s.critical > 0 -> Lab.red; s.high > 0 -> Lab.warn; else -> Lab.muted }
 
 /** A container: its dot, name and state, "update available", its usage, latest news and CVEs, its buttons and (admin) LOGS, DETAILS. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ContainerRow(b: io.github.mithrandler.labhud.data.Container, admin: Boolean, server: io.github.mithrandler.labhud.data.Server?, onAction: (Action) -> Unit, onLogs: () -> Unit,
                          onLive: () -> Unit = {}, onDetails: () -> Unit = {}) {
@@ -587,7 +588,8 @@ private fun ContainerRow(b: io.github.mithrandler.labhud.data.Container, admin: 
             Text(it, fontSize = 12.sp, color = Lab.muted, modifier = Modifier.padding(start = 18.dp))
         }
         b.scan?.let { sc -> Text(sc.text(), fontSize = 12.sp, color = scanColor(sc), modifier = Modifier.padding(start = 18.dp)) }
-        if (admin) Row(Modifier.padding(start = 14.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+        // FlowRow: four or five buttons do not fit one line of the dialog, and the last (Live) was squeezed out
+        if (admin) FlowRow(Modifier.padding(start = 14.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
             b.actions.forEach { a ->
                 TextButton(onClick = { onAction(a) }, enabled = !b.updating) {
                     Text(niceLabel(a), fontSize = 12.sp, color = if (a.danger) Lab.red else Lab.accent)
