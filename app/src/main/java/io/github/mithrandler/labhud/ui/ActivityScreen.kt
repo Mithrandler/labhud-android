@@ -83,33 +83,37 @@ fun ActivityScreen(repo: LabRepository, bar: BarNav) {
             MainTopBar(
                 repo, bar,
                 title = { Text("Activity") },
-                extra = {
-                    if (tab == 2 && !shown.isNullOrEmpty()) TextButton(onClick = {
-                        val id = server?.id ?: return@TextButton
-                        val last = notes.orEmpty().maxOf { it.time }
-                        cleared = last
-                        scope.launch { repo.store.setClearedNotes(id, last) }
-                    }) { Text("Clear") }
-                },
             )
         },
     ) { pad ->
       Column(Modifier.padding(pad).fillMaxSize()) {
         SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().padding(horizontal = LabScale.space4)) {
-            listOf("Alerts", "Timeline", "Notifications").forEachIndexed { i, label ->
-                SegmentedButton(selected = tab == i, onClick = { tab = i }, shape = SegmentedButtonDefaults.itemShape(i, 3)) { Text(label) }
+            listOf("Alerts", "Timeline").forEachIndexed { i, label ->
+                SegmentedButton(selected = tab == i, onClick = { tab = i }, shape = SegmentedButtonDefaults.itemShape(i, 2)) { Text(label) }
             }
         }
         if (tab == 0) {
             val st = state
             if (st == null) Text("Connecting…", color = Lab.muted, modifier = Modifier.padding(LabScale.space6))
             else androidx.compose.foundation.lazy.LazyColumn(Modifier.fillMaxSize()) {
+                // one list: the alerts now and the problems, then what this phone was sent
                 item { BellContent(st, onCard, Modifier.padding(LabScale.space4)) }
+                item(key = "received") {
+                    Row(Modifier.fillMaxWidth().padding(horizontal = LabScale.space4).padding(top = LabScale.space3), verticalAlignment = Alignment.CenterVertically) {
+                        Text("RECEIVED", style = Heading, modifier = Modifier.weight(1f))
+                        if (!shown.isNullOrEmpty()) TextButton(onClick = {
+                            val id = server?.id ?: return@TextButton
+                            val last = notes.orEmpty().maxOf { it.time }
+                            cleared = last
+                            scope.launch { repo.store.setClearedNotes(id, last) }
+                        }) { Text("Clear") }
+                    }
+                }
+                if (shown.isNullOrEmpty()) item(key = "received-none") {
+                    Text(if (shown == null && error.isEmpty()) "Loading…" else "Nothing received. The notifications this phone gets appear here; choose them in Settings > Notifications.",
+                        color = Lab.muted, fontSize = LabScale.textSm, modifier = Modifier.padding(horizontal = LabScale.space4, vertical = LabScale.space2))
+                } else items(shown, key = { "n-${it.id}" }) { n -> NoteRow(n, onCard, repo, Modifier.padding(horizontal = LabScale.space4)) }
             }
-            return@Column
-        }
-        if (tab == 2) {
-            NotesList(shown, error, onCard, repo)
             return@Column
         }
         val list = events
@@ -149,45 +153,36 @@ fun ActivityScreen(repo: LabRepository, bar: BarNav) {
 }
 
 @Composable
-private fun NotesList(notes: List<Note>?, error: String, onCard: (String) -> Unit, repo: LabRepository) {
+private fun NoteRow(n: Note, onCard: (String) -> Unit, repo: LabRepository, modifier: Modifier = Modifier) {
     val stamp = STAMP
     val scope = rememberCoroutineScope()
-    var done by remember { mutableStateOf(mapOf<Long, String>()) }
-    val list = notes ?: run {
-        Text(error.ifEmpty { "Loading…" }, color = Lab.muted, modifier = Modifier.padding(LabScale.space6))
-        return
-    }
-    if (list.isEmpty()) { Text("No notifications.", color = Lab.muted, modifier = Modifier.padding(LabScale.space4)); return }
-    PagedScreen(list, per = 4) { n ->
-        run {
-            Row(
-                Modifier.fillMaxWidth().clickable(enabled = n.card != null) { n.card?.let(onCard) }.padding(vertical = LabScale.space2),
-                verticalAlignment = Alignment.Top,
-            ) {
-                Box(Modifier.padding(top = LabScale.space2).size(LabScale.dotTileSmall).clip(CircleShape).background(if (n.bad) Lab.red else Lab.green))
-                Spacer(Modifier.width(LabScale.space3))
-                Column(Modifier.weight(1f)) {
-                    Text(n.text, fontSize = LabScale.textMd, color = if (n.bad) Lab.text else Lab.sub)
-                    Text(stamp.format(Date(n.time * 1000)), fontSize = LabScale.textSm, color = Lab.muted)
-                    val buttons = n.actions.filter { it.allowed() }
-                    if (buttons.isNotEmpty()) {
-                        val said = done[n.id]
-                        if (said != null && said.isEmpty()) Text("Done.", fontSize = LabScale.textSm, color = Lab.green)
-                        else Row(horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(LabScale.space2)) {
-                            buttons.forEach { a ->
-                                androidx.compose.material3.OutlinedButton(onClick = {
-                                    scope.launch {
-                                        val r = runCatching { repo.api()?.noteAction(a) }
-                                        val ok = r.getOrNull()?.ok == true
-                                        done = done + (n.id to if (ok) "" else (r.getOrNull()?.error?.takeIf { it.isNotBlank() }
-                                            ?: r.exceptionOrNull()?.message ?: "Could not do that."))
-                                    }
-                                }) { Text(a.label) }
+    var done by remember { mutableStateOf<String?>(null) }
+    Row(
+        modifier.fillMaxWidth().clickable(enabled = n.card != null) { n.card?.let(onCard) }.padding(vertical = LabScale.space2),
+        verticalAlignment = Alignment.Top,
+    ) {
+        Box(Modifier.padding(top = LabScale.space2).size(LabScale.dotTileSmall).clip(CircleShape).background(if (n.bad) Lab.red else Lab.green))
+        Spacer(Modifier.width(LabScale.space3))
+        Column(Modifier.weight(1f)) {
+            Text(n.text, fontSize = LabScale.textMd, color = if (n.bad) Lab.text else Lab.sub)
+            Text(stamp.format(Date(n.time * 1000)), fontSize = LabScale.textSm, color = Lab.muted)
+            val buttons = n.actions.filter { it.allowed() }
+            if (buttons.isNotEmpty()) {
+                val said = done
+                if (said != null && said.isEmpty()) Text("Done.", fontSize = LabScale.textSm, color = Lab.green)
+                else Row(horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(LabScale.space2)) {
+                    buttons.forEach { a ->
+                        androidx.compose.material3.OutlinedButton(onClick = {
+                            scope.launch {
+                                val r = runCatching { repo.api()?.noteAction(a) }
+                                val ok = r.getOrNull()?.ok == true
+                                done = if (ok) "" else (r.getOrNull()?.error?.takeIf { it.isNotBlank() }
+                                    ?: r.exceptionOrNull()?.message ?: "Could not do that.")
                             }
-                        }
-                        if (said != null && said.isNotEmpty()) Text(said, fontSize = LabScale.textSm, color = Lab.red)
+                        }) { Text(a.label) }
                     }
                 }
+                if (said != null && said.isNotEmpty()) Text(said, fontSize = LabScale.textSm, color = Lab.red)
             }
         }
     }

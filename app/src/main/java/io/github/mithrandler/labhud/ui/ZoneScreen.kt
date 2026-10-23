@@ -154,7 +154,7 @@ fun ZoneScreen(repo: LabRepository, bar: BarNav, onSignIn: () -> Unit) {
     val barScroll = rememberLabBarScroll()
     Scaffold(
         modifier = Modifier.labBarScroll(barScroll), containerColor = Lab.bg,
-        topBar = { MainTopBar(repo, bar, title = { Text(if (host.isEmpty()) "Servers" else host) }) },
+        topBar = { MainTopBar(repo, bar, title = { Text(if (host.isEmpty()) "Servers" else host) }, onBack = if (host.isEmpty()) null else ({ host = "" })) },
     ) { pad ->
         Column(Modifier.padding(pad).fillMaxSize()) {
             when {

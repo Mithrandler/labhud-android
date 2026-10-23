@@ -28,6 +28,7 @@ import io.github.mithrandler.labhud.ui.CompactTabs
 import androidx.compose.material3.Scaffold
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -208,10 +209,15 @@ class MainActivity : FragmentActivity() {
         val route = nav.currentBackStackEntryAsState().value?.destination?.route
         val landscape = androidx.compose.ui.platform.LocalConfiguration.current.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
         val tabsShown = TABS.any { it.route == route }
+        // the system's "predictive back" shrinks the window when Back leaves the app (and Android 16 ignores the manifest's opt-out
+        // for apps targeting 36): at the root of the stack the app takes Back itself and moves to the background without that animation
+        val atRoot = route != null && nav.previousBackStackEntry == null
+        androidx.activity.compose.BackHandler(enabled = atRoot) { moveTaskToBack(true) }
         androidx.compose.runtime.CompositionLocalProvider(io.github.mithrandler.labhud.ui.LocalTileH provides (if (landscape) LabScale.wallTileLow else LabScale.wallTileMin)) {
         Scaffold(
             containerColor = Lab.bg,
-            contentWindowInsets = WindowInsets(0),
+            // a screen without the tab bar keeps clear of the gesture bar at the bottom (the tab bar does it itself)
+            contentWindowInsets = if (tabsShown) WindowInsets(0) else WindowInsets.navigationBars,
             // icons only and thin; on a wide screen they stand in a column at the side, so the height is the cards'
             bottomBar = { if (tabsShown && !landscape) CompactTabs(tabItems, route, false) { nav.tab(it) } },
         ) { pad ->
@@ -223,6 +229,8 @@ class MainActivity : FragmentActivity() {
             NavHost(nav, startDestination = "home",
                 enterTransition = { fadeIn(tween(fade)) }, exitTransition = { ExitTransition.None },
                 popEnterTransition = { fadeIn(tween(fade)) }, popExitTransition = { ExitTransition.None },
+                // Back in the app: no shrinking screen either, the same fade as any other change of screen
+                predictivePopEnterTransition = { fadeIn(tween(fade)) }, predictivePopExitTransition = { ExitTransition.None },
                 modifier = Modifier.weight(1f).fillMaxHeight().background(Lab.bg)) {
                 composable("home") {
                     StatusScreen(repo, bar, onGame = { nav.open(Routes.game(it)) }, onServers = { nav.open(Routes.settings("servers")) },
@@ -279,7 +287,7 @@ class MainActivity : FragmentActivity() {
     @Composable
     private fun Settings(nav: NavHostController, bar: BarNav, signIn: Boolean) {
         val repo = (application as LabHudApp).repo
-        SettingsScreen(repo, bar, onOpen = { nav.open(Routes.settings(it)) }, signInFirst = signIn)
+        SettingsScreen(repo, bar, onOpen = { nav.open(Routes.settings(it)) }, signInFirst = signIn, onBack = { nav.popBackStack() })
     }
 
     /** Turns the wall's home screen entry on or off; Android then asks which home app to use. */

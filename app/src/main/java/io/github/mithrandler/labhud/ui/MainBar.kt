@@ -57,6 +57,8 @@ fun MainTopBar(
     nav: BarNav,
     title: @Composable () -> Unit,
     extra: @Composable RowScope.() -> Unit = {},
+    /** A screen under another (a host of Servers, Settings from the menu): a back arrow in place of the mark. */
+    onBack: (() -> Unit)? = null,
 ) {
     val st by repo.state.collectAsStateWithLifecycle()
     val conn by repo.conn.collectAsStateWithLifecycle()
@@ -71,7 +73,8 @@ fun MainTopBar(
         colors = TopAppBarDefaults.topAppBarColors(containerColor = Lab.bg),
         // labhud's mark, as on the wall's top bar
         navigationIcon = {
-            Image(painterResource(R.drawable.brand_mark), "LabHUD", Modifier.padding(start = LabScale.space4).width(LabScale.iconHero).height(LabScale.iconCard))
+            if (onBack != null) IconButton(onClick = onBack) { Icon(LabIcons.back, "Back") }
+            else Image(painterResource(R.drawable.brand_mark), "LabHUD", Modifier.padding(start = LabScale.space4).width(LabScale.iconHero).height(LabScale.iconCard))
         },
         title = title,
         actions = {
