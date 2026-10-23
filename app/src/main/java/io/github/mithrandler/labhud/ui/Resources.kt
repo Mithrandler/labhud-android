@@ -19,7 +19,7 @@ fun Metric.isResource(): Boolean = trend && when (format) {
     else -> false
 }
 
-fun Card.resources(): List<Metric> = metrics.filter { it.isResource() }
+fun Card.resources(): List<Metric> = metrics.filter { it.isResource() && it.value.isNotEmpty() && it.value != "—" }
 
 /** Shares on a fixed 0..100 scale (so 12% does not look like a mountain); temperatures on their own. */
 fun Metric.isShare(): Boolean = format != "celsius"

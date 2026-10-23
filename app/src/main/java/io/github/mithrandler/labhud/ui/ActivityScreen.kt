@@ -97,7 +97,7 @@ fun ActivityScreen(repo: LabRepository, bar: BarNav) {
             if (st == null) Text("Connecting…", color = Lab.muted, modifier = Modifier.padding(LabScale.space6))
             else androidx.compose.foundation.lazy.LazyColumn(Modifier.fillMaxSize()) {
                 // one list: the alerts now and the problems, then what this phone was sent
-                item { BellContent(st, onCard, Modifier.padding(LabScale.space4)) }
+                item { BellContent(st, rememberBell(repo, st), onCard, Modifier.padding(LabScale.space4)) }
                 item(key = "received") {
                     Row(Modifier.fillMaxWidth().padding(horizontal = LabScale.space4).padding(top = LabScale.space3), verticalAlignment = Alignment.CenterVertically) {
                         Text("RECEIVED", style = Heading, modifier = Modifier.weight(1f))

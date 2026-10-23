@@ -418,9 +418,11 @@ fun MiniCard(c: Card, server: Server?, modifier: Modifier = Modifier, chip: Stri
                 if (head == null) FitText(word.ifEmpty { text.ifEmpty { "—" } }, LabScale.textWallName, FontWeight.SemiBold,
                     Modifier.weight(1f, fill = false), color = if (c.status == "down") Lab.red else Lab.text, minSize = LabScale.textWallMin)
                 else {
-                    FitText(head.value, LabScale.textWallNum, FontWeight.SemiBold, Modifier.weight(1f, fill = false), color = sevColor(head.sev), minSize = LabScale.textWallMin)
+                    // the number is measured first and shrinks to the tile; the unit takes what is left and gives way (a narrow tile shows the number only)
+                    FitText(head.value, LabScale.textWallNum, FontWeight.SemiBold, Modifier, color = sevColor(head.sev), minSize = LabScale.textWallMin)
                     // a card that lists what is wrong needs no unit: its name says what the number counts
-                    if (broken.isEmpty()) { Spacer(Modifier.width(LabScale.space1)); Text(head.short(), fontSize = LabScale.textWallMin, color = Lab.muted, maxLines = 1, modifier = Modifier.padding(bottom = LabScale.spaceHalf)) }
+                    if (broken.isEmpty()) Text(" " + head.short(), fontSize = LabScale.textWallMin, color = Lab.muted, maxLines = 1, softWrap = false, overflow = TextOverflow.Clip,
+                        modifier = Modifier.weight(1f, fill = false).padding(bottom = LabScale.spaceHalf))
                 }
             }
             val up = c.guest?.uptime?.let { "up " + upText(it) } ?: c.metrics.firstOrNull { it.short().equals("uptime", true) }?.value?.let { "up $it" }

@@ -300,13 +300,6 @@ private fun ContainersTab(h: ZoneHost, ask: suspend (suspend LabApi.() -> ZoneAn
             said = if (r.ok) "$label: done" + (if (r.started.isNotEmpty()) " (${r.started.size} started)" else "") else "$label: ${r.refusal()}"
             tick++
         }
-        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(top = LabScale.space2), horizontalArrangement = Arrangement.spacedBy(LabScale.space2)) {
-            OutlinedButton(enabled = waiting > 0, onClick = { gate.press { bulk = "update-all" } }) { Text("Update all ($waiting)") }
-            OutlinedButton(onClick = { gate.press { bulk = "packages" } }) { Text("Host packages") }
-            OutlinedButton(onClick = { gate.press { bulk = "clean" } }) { Text("Clean") }
-            OutlinedButton(onClick = { gate.press { bulk = "reboot" } }) { Text("Reboot", color = Lab.red) }
-        }
-        Said(said)
         when (bulk) {
             "update-all", "packages", "clean" -> AlertDialog(
                 onDismissRequest = { bulk = null },
@@ -324,14 +317,26 @@ private fun ContainersTab(h: ZoneHost, ask: suspend (suspend LabApi.() -> ZoneAn
             )
             "reboot" -> TypedConfirm("Reboot ${h.name}?", h.name, "Reboot", onOk = { run("Reboot") { zoneHostPower(h.name, "reboot", h.name) } }, onDismiss = { bulk = null })
         }
-        OutlinedTextField(query, { query = it.take(60) }, singleLine = true, label = { Text("Filter") }, modifier = Modifier.fillMaxWidth().padding(top = LabScale.space2))
-        if (message.isNotEmpty()) Text(message, color = Lab.warn, fontSize = LabScale.textSm, modifier = Modifier.padding(top = LabScale.space2))
         // the list under an open sheet stays as it was: no re-sorting, no jump
         val frozen = remember { arrayOf<List<ZoneContainer>?>(null) }
         if (open == null) frozen[0] = rows
         val shown = (frozen[0] ?: rows)?.filtered(query).orEmpty()
-        if (rows == null) Text("Loading…", color = Lab.muted, modifier = Modifier.padding(top = LabScale.space3))
         LazyColumn(Modifier.fillMaxSize()) {
+            // the buttons and the filter scroll away with the list, so a small screen still reaches every container
+            item(key = "head") {
+                Column {
+                Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(top = LabScale.space2), horizontalArrangement = Arrangement.spacedBy(LabScale.space2)) {
+                        OutlinedButton(enabled = waiting > 0, onClick = { gate.press { bulk = "update-all" } }) { Text("Update all ($waiting)") }
+                        OutlinedButton(onClick = { gate.press { bulk = "packages" } }) { Text("Host packages") }
+                        OutlinedButton(onClick = { gate.press { bulk = "clean" } }) { Text("Clean") }
+                        OutlinedButton(onClick = { gate.press { bulk = "reboot" } }) { Text("Reboot", color = Lab.red) }
+                    }
+                    Said(said)
+                    OutlinedTextField(query, { query = it.take(60) }, singleLine = true, label = { Text("Filter") }, modifier = Modifier.fillMaxWidth().padding(top = LabScale.space2))
+                    if (message.isNotEmpty()) Text(message, color = Lab.warn, fontSize = LabScale.textSm, modifier = Modifier.padding(top = LabScale.space2))
+                    if (rows == null) Text("Loading…", color = Lab.muted, modifier = Modifier.padding(top = LabScale.space3))
+                }
+            }
             items(shown, key = { it.name }) { c ->
                 Row(Modifier.fillMaxWidth().clickable { open = c.name }.padding(vertical = LabScale.space3), verticalAlignment = Alignment.CenterVertically) {
                     Dot(c.tone())

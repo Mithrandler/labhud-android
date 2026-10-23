@@ -1,6 +1,13 @@
 package io.github.mithrandler.labhud.ui
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -35,10 +42,20 @@ import androidx.compose.ui.unit.dp
 fun CompactTabs(tabs: List<Triple<String, String, ImageVector>>, current: String?, vertical: Boolean, onPick: (String) -> Unit) {
     @Composable fun item(route: String, label: String, icon: ImageVector, modifier: Modifier) {
         val on = route == current
-        Box(modifier.selectable(selected = on, role = Role.Tab, onClick = { onPick(route) }), contentAlignment = Alignment.Center) {
-            Box(Modifier.clip(RoundedCornerShape(50)).background(if (on) Lab.accent.copy(alpha = 0.22f) else androidx.compose.ui.graphics.Color.Transparent)
+        // the whole cell takes the tap (a big target) but shows nothing: only the pill round the icon answers a touch
+        val touch = remember { MutableInteractionSource() }
+        val pressed by touch.collectIsPressedAsState()
+        val fill by animateColorAsState(
+            when {
+                pressed -> Lab.accent.copy(alpha = if (on) 0.32f else 0.18f)
+                on -> Lab.accent.copy(alpha = 0.22f)
+                else -> Color.Transparent
+            }, tween(90), label = "tab-fill",
+        )
+        Box(modifier.selectable(selected = on, role = Role.Tab, interactionSource = touch, indication = null, onClick = { onPick(route) }), contentAlignment = Alignment.Center) {
+            Box(Modifier.clip(RoundedCornerShape(50)).background(fill)
                 .size(width = LabScale.touch, height = LabScale.space8), contentAlignment = Alignment.Center) {
-                Icon(icon, label, tint = if (on) Lab.title else Lab.muted, modifier = Modifier.size(LabScale.iconCard))
+                Icon(icon, label, tint = if (on || pressed) Lab.title else Lab.muted, modifier = Modifier.size(LabScale.iconCard))
             }
         }
     }

@@ -252,43 +252,45 @@ private fun GameTile(g: GameServer, server: Server?, onClick: () -> Unit) {
 /** The bell: labhud's alerts (the rules that fired, the config's own), then the red cards. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BellSheet(st: LabState, onDismiss: () -> Unit, onCard: (String) -> Unit) {
+fun BellSheet(st: LabState, bell: BellItems, onDismiss: () -> Unit, onCard: (String) -> Unit) {
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Lab.card) {
-        BellContent(st, onCard, Modifier.padding(start = LabScale.space4, end = LabScale.space4, bottom = LabScale.space8))
+        BellContent(st, bell, onCard, Modifier.padding(start = LabScale.space4, end = LabScale.space4, bottom = LabScale.space8))
     }
 }
 
-/** What the bell holds, also Activity's first tab: the alerts, then the cards in trouble. */
+/** What the bell holds, also Activity's first tab: the alerts, then the cards in trouble. Each has a cross that sends it away (on this phone). */
 @Composable
-fun BellContent(st: LabState, onCard: (String) -> Unit, modifier: Modifier = Modifier) {
+fun BellContent(st: LabState, bell: BellItems, onCard: (String) -> Unit, modifier: Modifier = Modifier) {
     val time = SHORT_TIME
-    run {
-        Column(modifier.fillMaxWidth()) {
-            Text("ALERTS", style = Heading, modifier = Modifier.padding(bottom = LabScale.space2))
-            if (st.alerts.isEmpty()) Text("No alert now.", color = Lab.muted, fontSize = LabScale.textMd)
-            st.alerts.forEach { a ->
-                Row(
-                    // a card the server hides is not in the state: its alert is still shown, but there is nothing to open
-                    Modifier.fillMaxWidth().clickable(enabled = a.card != null && a.card in st.byId) { a.card?.let(onCard) }.padding(vertical = LabScale.space2),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(LabIcons.warning, null, tint = Lab.warn, modifier = Modifier.size(LabScale.iconCard))
-                    Spacer(Modifier.width(LabScale.space3))
-                    Text(a.text, fontSize = LabScale.textMd, modifier = Modifier.weight(1f))
-                    a.since?.let { Text(time.format(Date(it * 1000)), fontSize = LabScale.textSm, color = Lab.muted) }
-                }
+    Column(modifier.fillMaxWidth()) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("ALERTS", style = Heading, modifier = Modifier.weight(1f))
+            if (bell.count > 1) TextButton(onClick = { bell.dismissAll() }) { Text("Dismiss all") }
+        }
+        if (bell.alerts.isEmpty()) Text("No alert now.", color = Lab.muted, fontSize = LabScale.textMd)
+        bell.alerts.forEach { a ->
+            Row(
+                // a card the server hides is not in the state: its alert is still shown, but there is nothing to open
+                Modifier.fillMaxWidth().clickable(enabled = a.card != null && a.card in st.byId) { a.card?.let(onCard) }.padding(start = 0.dp, top = LabScale.space1, bottom = LabScale.space1),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(LabIcons.warning, null, tint = Lab.warn, modifier = Modifier.size(LabScale.iconCard))
+                Spacer(Modifier.width(LabScale.space3))
+                Text(a.text, fontSize = LabScale.textMd, modifier = Modifier.weight(1f))
+                a.since?.let { Text(time.format(Date(it * 1000)), fontSize = LabScale.textSm, color = Lab.muted) }
+                IconButton(onClick = { bell.dismiss(a) }) { Icon(LabIcons.close, "Dismiss", tint = Lab.muted, modifier = Modifier.size(LabScale.iconCard)) }
             }
-            val problems = st.problems.mapNotNull { st.byId[it] }
-            Text("PROBLEMS", style = Heading, color = if (problems.isEmpty()) Lab.title else Lab.red, modifier = Modifier.padding(top = LabScale.space4, bottom = LabScale.space2))
-            if (problems.isEmpty()) Text("Everything is fine.", color = Lab.muted, fontSize = LabScale.textMd)
-            problems.forEach { c ->
-                Row(Modifier.fillMaxWidth().clickable { onCard(c.id) }.padding(vertical = LabScale.space2), verticalAlignment = Alignment.CenterVertically) {
-                    StatusDot(c)
-                    Spacer(Modifier.width(LabScale.space3))
-                    Text(c.name, fontSize = LabScale.textMd, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
-                    Text(statusWord(c).ifEmpty { c.note.ifEmpty { "problem" } }, fontSize = LabScale.textSm, color = Lab.red, maxLines = 1,
-                        overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = LabScale.space2))
-                }
+        }
+        Text("PROBLEMS", style = Heading, color = if (bell.problems.isEmpty()) Lab.title else Lab.red, modifier = Modifier.padding(top = LabScale.space4, bottom = LabScale.space2))
+        if (bell.problems.isEmpty()) Text("Everything is fine.", color = Lab.muted, fontSize = LabScale.textMd)
+        bell.problems.forEach { c ->
+            Row(Modifier.fillMaxWidth().clickable { onCard(c.id) }.padding(top = LabScale.space1, bottom = LabScale.space1), verticalAlignment = Alignment.CenterVertically) {
+                StatusDot(c)
+                Spacer(Modifier.width(LabScale.space3))
+                Text(c.name, fontSize = LabScale.textMd, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
+                Text(statusWord(c).ifEmpty { c.note.ifEmpty { "problem" } }, fontSize = LabScale.textSm, color = Lab.red, maxLines = 1,
+                    overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = LabScale.space2))
+                IconButton(onClick = { bell.dismiss(c) }) { Icon(LabIcons.close, "Dismiss", tint = Lab.muted, modifier = Modifier.size(LabScale.iconCard)) }
             }
         }
     }

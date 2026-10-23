@@ -68,7 +68,8 @@ fun MainTopBar(
     var bell by remember { mutableStateOf(false) }
     var search by remember { mutableStateOf(false) }
     val s = st
-    val count = (s?.alerts?.size ?: 0) + (s?.problems?.size ?: 0)
+    val items = rememberBell(repo, s)
+    val count = items.count
     TopAppBar(
         colors = TopAppBarDefaults.topAppBarColors(containerColor = Lab.bg),
         // labhud's mark, as on the wall's top bar
@@ -108,7 +109,7 @@ fun MainTopBar(
                 }
             }
             }
-            if (bell && s != null) BellSheet(s, onDismiss = { bell = false }, onCard = { bell = false; nav.onCard(it) })
+            if (bell && s != null) BellSheet(s, items, onDismiss = { bell = false }, onCard = { bell = false; nav.onCard(it) })
             if (search && s != null) PaletteSheet(s, rights.admin, server, onDismiss = { search = false },
                 onPage = { search = false; nav.onPage(it) }, onCard = { search = false; nav.onCard(it) },
                 onAction = { c, a -> search = false; nav.onAction(c, a) }, onSection = { search = false; nav.onSettings(it) })

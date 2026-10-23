@@ -182,8 +182,10 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
         val buttons = showButtons && rights.admin && (c.actions.isNotEmpty() || c.maintenanceButton)
         // a host's VMs and LXCs, and a guest's host: the card's node links them
         val (guests, host) = related
-        val labels = c.metrics.filter { it.trend }.map { it.label }.toSet()
-        val trends = c.metrics.filter { it.trend } + c.charts.filter { it.label !in labels }.map {
+        // a number the machine never reports (a temperature it has no sensor for) has no history to show
+        val live = c.metrics.filter { it.trend && it.value.isNotEmpty() && it.value != "—" }
+        val labels = live.map { it.label }.toSet()
+        val trends = live + c.charts.filter { it.label !in labels }.map {
             io.github.mithrandler.labhud.data.Metric(key = it.key, label = it.label, value = "", trend = true, format = it.format)
         }
         val boxes = full?.containers.orEmpty()

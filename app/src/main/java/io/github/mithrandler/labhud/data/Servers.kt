@@ -84,6 +84,7 @@ class ServerStore(private val context: Context) {
     private fun tokenKey(id: String) = stringPreferencesKey("token_$id")
     private fun pinKey(id: String) = stringPreferencesKey("pin_$id")
     private fun lastNoteKey(id: String) = androidx.datastore.preferences.core.longPreferencesKey("last_note_$id")
+    private fun dismissedKey(id: String) = androidx.datastore.preferences.core.stringSetPreferencesKey("dismissed_$id")
     private fun clearedNotesKey(id: String) = androidx.datastore.preferences.core.longPreferencesKey("cleared_notes_$id")
     private val notifyKey = stringPreferencesKey("notify_mode")
     private val pushKey = stringPreferencesKey("push_endpoint")
@@ -131,6 +132,7 @@ class ServerStore(private val context: Context) {
             p.remove(lastNoteKey(id))
             p.remove(clearedNotesKey(id))
             p.remove(favCardsKey(id))
+            p.remove(dismissedKey(id))
             if (p[currentKey] == id) p.remove(currentKey)
         }
     }
@@ -183,6 +185,12 @@ class ServerStore(private val context: Context) {
     suspend fun toggleFavoriteSection(id: String) = context.store.edit {
         val now = it[favSectionsKey] ?: emptySet()
         it[favSectionsKey] = if (id in now) now - id else now + id
+    }
+
+    /** The alerts and problems the bell was told to forget on this phone, for one server (see ui/Dismissals.kt). */
+    fun dismissed(serverId: String): Flow<Set<String>> = context.store.data.map { it[dismissedKey(serverId)] ?: emptySet() }
+    suspend fun setDismissed(serverId: String, keys: Set<String>) = context.store.edit {
+        if (keys.isEmpty()) it.remove(dismissedKey(serverId)) else it[dismissedKey(serverId)] = keys
     }
 
     /** The cards starred on this phone for one server, shown first. */

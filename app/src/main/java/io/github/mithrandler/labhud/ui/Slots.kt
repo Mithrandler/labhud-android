@@ -35,12 +35,12 @@ internal data class Slot(
     val wide: Boolean = false,
     val mini: Boolean = false,
 ) {
-    /** Cells it takes in a line of [cols]: a title the line, a host two, every other tile one, a game server one cell on a wide screen. */
+    /** Cells it takes in a line of [cols]: a title the line, a host two, every other tile one, a game server one cell (three to a row on a phone). */
     fun span(cols: Int): Int = when {
         title != null -> cols
         wide -> 2.coerceAtMost(cols)
         group != null || card != null -> 1
-        else -> if (cols >= 4) 1 else cols
+        else -> 1
     }
 
     /** How tall it is, in dp: every tile the same. */

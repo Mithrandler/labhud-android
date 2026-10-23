@@ -51,6 +51,8 @@ data class Gauge(
     val b: GaugePart? = null,
     val temp: String? = null,
     val tempSev: String = "",
+    /** The machine is off or its numbers are old: drawn in grey, without the colours of severity. */
+    val idle: Boolean = false,
 ) {
     /** What a screen reader says: "CPU · RAM: 23 percent, 60 percent, 52 degrees". */
     val description: String get() = label + ": " + listOfNotNull(a.text, b?.text).joinToString(", ") { it.replace("%", " percent") } +
@@ -69,7 +71,7 @@ private fun gpuSev(s: String?, v: Double) = s ?: if (v >= 92) "crit" else if (v 
  * The gauges of a machine, in the order CPU·RAM, the other shares (disk…), then the GPUs. The CPU and the RAM share one ring (a
  * half each); so do a GPU's load and video memory. A card's own GPU number is dropped when [Card.gpus] has the real ones.
  */
-fun gaugesOf(c: Card, own: List<Metric>): List<Gauge> {
+fun gaugesOf(c: Card, own: List<Metric>, idle: Boolean = c.isIdle()): List<Gauge> {
     val (rings, _) = ringsAndChips(own)
     val withGpus = c.gpus.isNotEmpty()
     val rest = rings.filterNot { (m, _) -> withGpus && m.isKind("gpu") }
@@ -89,8 +91,11 @@ fun gaugesOf(c: Card, own: List<Metric>): List<Gauge> {
         val name = if (c.gpus.size > 1) "GPU${i + 1}" else "GPU"
         out += g.gauge(name)
     }
-    return out
+    return if (idle) out.map { it.copy(idle = true) } else out
 }
+
+/** Off (on purpose, on a schedule, down) or showing old numbers: whatever it last measured is no longer live. */
+fun Card.isIdle(): Boolean = frozen || (status != null && status != "up")
 
 private fun Gpu.gauge(name: String): Gauge {
     val load = GaugePart(util.coerceIn(0.0, 100.0), gpuSev(utilSev, util))
@@ -165,8 +170,9 @@ fun GaugeRing(g: Gauge, size: Dp, modifier: Modifier = Modifier) {
     LaunchedEffect(g.a.pct) { if (animate) a.animateTo(g.a.pct.toFloat(), tween(450)) else a.snapTo(g.a.pct.toFloat()) }
     LaunchedEffect(g.b?.pct) { val t = (g.b?.pct ?: 0.0).toFloat(); if (animate) b.animateTo(t, tween(450)) else b.snapTo(t) }
     val track = Lab.block
-    val colA = barColor(g.a.sev)
-    val colB = barColor(g.b?.sev.orEmpty())
+    val off = Lab.muted.copy(alpha = 0.5f)
+    val colA = if (g.idle) off else barColor(g.a.sev)
+    val colB = if (g.idle) off else barColor(g.b?.sev.orEmpty())
     val dual = g.b != null
     Column(modifier.semantics(mergeDescendants = true) { contentDescription = g.description }, horizontalAlignment = Alignment.CenterHorizontally) {
         Box(Modifier.size(size), contentAlignment = Alignment.Center) {
@@ -189,12 +195,12 @@ fun GaugeRing(g: Gauge, size: Dp, modifier: Modifier = Modifier) {
             }
             Column(Modifier.clearAndSetSemantics {}, horizontalAlignment = Alignment.CenterHorizontally) {
                 if (!dual) {
-                    GaugeNumber(g.a, size < LabScale.fieldMinS)
+                    GaugeNumber(g.a, size < LabScale.fieldMinS, idle = g.idle)
                 } else Row(Modifier.width(size - LabScale.ringStroke * 2)) {
-                    GaugeNumber(g.a, size < LabScale.fieldMinS, Modifier.weight(1f))
-                    GaugeNumber(g.b!!, size < LabScale.fieldMinS, Modifier.weight(1f))
+                    GaugeNumber(g.a, size < LabScale.fieldMinS, Modifier.weight(1f), g.idle)
+                    GaugeNumber(g.b!!, size < LabScale.fieldMinS, Modifier.weight(1f), g.idle)
                 }
-                g.temp?.let { Text(it, fontSize = LabScale.textXs, color = if (g.tempSev.isEmpty()) Lab.muted else sevColor(g.tempSev), maxLines = 1) }
+                g.temp?.let { Text(it, fontSize = LabScale.textXs, color = if (g.idle || g.tempSev.isEmpty()) Lab.muted else sevColor(g.tempSev), maxLines = 1) }
             }
         }
         Text(g.label, fontSize = LabScale.textSm, color = Lab.muted, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center,
@@ -203,7 +209,7 @@ fun GaugeRing(g: Gauge, size: Dp, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun GaugeNumber(p: GaugePart, small: Boolean, modifier: Modifier = Modifier) {
-    Text(p.text, fontSize = if (small) LabScale.textSm else LabScale.textRing, fontWeight = FontWeight.SemiBold, color = sevColor(p.sev), maxLines = 1, softWrap = false,
+private fun GaugeNumber(p: GaugePart, small: Boolean, modifier: Modifier = Modifier, idle: Boolean = false) {
+    Text(p.text, fontSize = if (small) LabScale.textSm else LabScale.textRing, fontWeight = FontWeight.SemiBold, color = if (idle) Lab.muted else sevColor(p.sev), maxLines = 1, softWrap = false,
         overflow = TextOverflow.Visible, textAlign = TextAlign.Center, modifier = modifier)
 }
