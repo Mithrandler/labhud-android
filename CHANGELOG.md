@@ -6,6 +6,25 @@ All notable changes to LabHUD for Android. The format follows
 
 ## [Unreleased]
 
+## [0.1.31] - 2026-10-24
+
+### Added
+
+- **The bell can be emptied**: a cross on every alert and problem, and "Dismiss all". It is on this phone only; a dismissed item that clears comes back if it happens again, and the badge counts only what is left.
+
+### Changed
+
+- **The tab bar answers a touch on the icon only**: the pill round the icon changes colour; the whole cell no longer flashes.
+- A machine that is off, on a schedule or showing old numbers draws its rings and temperatures in grey, without the colours of severity.
+- Games are three to a row on a phone, as every other tile.
+- A number and its unit in a narrow tile (Threats > Sentinel): the number shrinks to fit and the unit gives way.
+- Devices follows labhud 0.1.2: only physical machines, each once.
+
+### Fixed
+
+- **Containers of a host could not be reached on a short screen**: the buttons and the filter are now the first row of the list, so the whole tab scrolls.
+- "No history yet" under every number of a Docker host or server: numbers the machine never reports (a CPU temperature without a sensor) are no longer listed in History.
+
 ## [0.1.3] - 2026-10-23
 
 ### Added
