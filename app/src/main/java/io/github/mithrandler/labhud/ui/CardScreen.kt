@@ -170,7 +170,7 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
     ) { pad ->
         val c = live ?: run {
             // a cold start from a notification: the state is not here yet, and that is not "not in the config"
-            if (!loaded) Column(Modifier.padding(pad).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            if (!loaded) Column(Modifier.padding(pad).padding(LabScale.space4), verticalArrangement = Arrangement.spacedBy(LabScale.space3)) {
                 SkeletonPanel(height = 88.dp)
                 SkeletonPanel(height = 220.dp)
             } else Text("This card is not in the current config.", color = Lab.muted, modifier = Modifier.padding(pad).padding(24.dp))
@@ -202,22 +202,22 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
                 // the same rule and the same gauges as the card on Status
                 val gauges = gaugesOf(c, own)
                 if (gauges.size >= 2 || c.type == "proxmox" && gauges.isNotEmpty()) item {
-                    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(LabScale.space3)) {
                         MachineGauges(gauges)
                         val facts = others.filter { c.guestCounts.isEmpty() || it.label.uppercase() !in c.guestCounts.keys.map { k -> k.uppercase() } }
                             .filter { c.gpus.isEmpty() || !(it.format == "celsius" && "gpu" in (it.label + it.key).lowercase()) } +
                             listOfNotNull(c.guest?.uptime?.let { Metric(label = "up", value = upText(it)) }) +
                             c.guestCounts.entries.sortedBy { it.key }.mapNotNull { (k, v) -> if (v.size == 2 && v[1] > 0) Metric(label = k.uppercase(), value = "${v[0]}/${v[1]}") else null }
-                        if (facts.isNotEmpty()) FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
-                            verticalArrangement = Arrangement.spacedBy(6.dp)) { facts.forEach { Chip(it) } }
+                        if (facts.isNotEmpty()) FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(LabScale.space2, Alignment.CenterHorizontally),
+                            verticalArrangement = Arrangement.spacedBy(LabScale.space2)) { facts.forEach { Chip(it) } }
                     }
                 } else if (c.metrics.isNotEmpty()) item {
                     Panel("") {
                         c.metrics.forEach { m ->
                             if (m.pct != null) MeterRow(m, Modifier.padding(vertical = 2.dp))
-                            else Row(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-                                Text(m.label, color = Lab.sub, fontSize = 14.sp, modifier = Modifier.weight(1f))
-                                Text(m.value, color = sevColor(m.sev), fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                            else Row(Modifier.fillMaxWidth().padding(vertical = LabScale.space1)) {
+                                Text(m.label, color = Lab.sub, fontSize = LabScale.textMd, modifier = Modifier.weight(1f))
+                                Text(m.value, color = sevColor(m.sev), fontSize = LabScale.textMd, fontWeight = FontWeight.Medium)
                             }
                         }
                     }
@@ -229,13 +229,13 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
                 }
                 if ((c.actions.isNotEmpty() || c.maintenanceButton) && !rights.admin) item {
                     Surface(onClick = onSignIn, shape = CardShape, color = Lab.block, border = BorderStroke(1.dp, Lab.line)) {
-                        Text("This phone only looks. Sign in as the admin for the buttons.", fontSize = 13.sp, color = Lab.sub,
-                            modifier = Modifier.fillMaxWidth().padding(12.dp))
+                        Text("This phone only looks. Sign in as the admin for the buttons.", fontSize = LabScale.textSm, color = Lab.sub,
+                            modifier = Modifier.fillMaxWidth().padding(LabScale.space3))
                     }
                 }
                 val hasLinks = c.url.isNotEmpty() || c.links.isNotEmpty()
                 if (buttons || hasLinks || host != null || c.resources().isNotEmpty()) item {
-                    FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(LabScale.space2, Alignment.CenterHorizontally), verticalArrangement = Arrangement.spacedBy(LabScale.space2)) {
                         if (host != null) OutlinedButton(onClick = { onCard(host.id) }) { Text("Host · ${host.name}") }
                         if (c.resources().isNotEmpty()) OutlinedButton(onClick = { onHistory(c.id) }) { Text("Resources over time") }
                         if (showButtons && rights.admin) c.actions.forEach { a -> ActionButton(a) { gate.press { ask = a } } }
@@ -245,7 +245,7 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
                         (listOfNotNull(c.url.takeIf { it.isNotEmpty() }?.let { "Web UI" to it }) + c.links.map { it.label to it.url }).forEach { (label, url) ->
                             OutlinedButton(onClick = { runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) } }) {
                                 Text(label)
-                                Spacer(Modifier.width(6.dp))
+                                Spacer(Modifier.width(LabScale.space2))
                                 Icon(LabIcons.open, null, Modifier.padding(0.dp))
                             }
                         }
@@ -254,16 +254,16 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
                 if (up?.cards?.get(c.id) != null) item {
                     Panel("Uptime") {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(uptimeText(up.percent[c.id], up.coverage[c.id]).ifEmpty { "—" }, fontSize = 14.sp, fontWeight = FontWeight.Medium,
+                            Text(uptimeText(up.percent[c.id], up.coverage[c.id]).ifEmpty { "—" }, fontSize = LabScale.textMd, fontWeight = FontWeight.Medium,
                                 modifier = Modifier.weight(1f))
                             listOf(false to "24 h", true to "7 d").forEach { (w, label) ->
                                 TextButton(onClick = { week = w }) { Text(label, color = if (week == w) Lab.title else Lab.muted) }
                             }
                         }
-                        if (week) UptimeDays(up.cards.getValue(c.id), Modifier.padding(top = 4.dp))
-                        else UptimeBar(up.cards.getValue(c.id), Modifier.fillMaxWidth().padding(top = 4.dp).height(10.dp), slices = 48)
+                        if (week) UptimeDays(up.cards.getValue(c.id), Modifier.padding(top = LabScale.space1))
+                        else UptimeBar(up.cards.getValue(c.id), Modifier.fillMaxWidth().padding(top = LabScale.space1).height(10.dp), slices = 48)
                         if ((up.coverage[c.id] ?: 100.0) < 99.95) Text("Grey: LabHUD itself was off then, so it does not know.",
-                            fontSize = 12.sp, color = Lab.muted, modifier = Modifier.padding(top = 6.dp))
+                            fontSize = LabScale.textSm, color = Lab.muted, modifier = Modifier.padding(top = LabScale.space2))
                     }
                 }
             })
@@ -275,7 +275,7 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
                 val picked = stacks.firstOrNull { it.key == stackPick } ?: stacks.first()
                 val (project, members) = picked
                 if (stacks.size > 1) item(key = "stacks") {
-                    FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(LabScale.space2), verticalArrangement = Arrangement.spacedBy(LabScale.space2)) {
                         stacks.forEach { (name, list) ->
                             androidx.compose.material3.FilterChip(selected = name == project, onClick = { stackPick = name },
                                 label = { Text((name.ifEmpty { "other" }) + " ${list.count { it.up }}/${list.size}") },
@@ -288,10 +288,10 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
                     val restarts = members.filter { it.up }.map { m -> m.actions.firstOrNull { it.name.endsWith("-restart") } }
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Text(project.uppercase(), style = Heading, modifier = Modifier.weight(1f))
-                        Text("${members.count { it.up }}/${members.size} running", fontSize = 12.sp, color = Lab.muted)
+                        Text("${members.count { it.up }}/${members.size} running", fontSize = LabScale.textSm, color = Lab.muted)
                         if (rights.admin && restarts.isNotEmpty() && restarts.all { it != null }) {
                             TextButton(onClick = { gate.press { askStack = project to restarts.filterNotNull() } }) {
-                                Text("Restart stack", fontSize = 12.sp, color = Lab.accent)
+                                Text("Restart stack", fontSize = LabScale.textSm, color = Lab.accent)
                             }
                         }
                     }
@@ -313,17 +313,17 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
                         if (rights.admin && ready.size > 1) {
                             OutlinedButton(onClick = { gate.press { askAll = ready } }) { Text("Update all ${ready.size}") }
                         }
-                        if (ups.isEmpty()) Text("All containers up to date", fontSize = 13.sp, color = Lab.muted)
+                        if (ups.isEmpty()) Text("All containers up to date", fontSize = LabScale.textSm, color = Lab.muted)
                         PagedList(ups, per = 4) { u ->
-                            Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Row(Modifier.fillMaxWidth().padding(vertical = LabScale.space1), verticalAlignment = Alignment.CenterVertically) {
                                 Column(Modifier.weight(1f)) {
-                                    Text(u.name, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                                    Text("${u.host} · ${u.image}", fontSize = 12.sp, color = Lab.muted, maxLines = 1)
-                                    u.scan?.let { sc -> Text(sc.text(), fontSize = 12.sp, color = scanColor(sc)) }
+                                    Text(u.name, fontSize = LabScale.textMd, fontWeight = FontWeight.Medium)
+                                    Text("${u.host} · ${u.image}", fontSize = LabScale.textSm, color = Lab.muted, maxLines = 1)
+                                    u.scan?.let { sc -> Text(sc.text(), fontSize = LabScale.textSm, color = scanColor(sc)) }
                                 }
                                 when {
-                                    u.updating -> Text("updating…", fontSize = 12.sp, color = Lab.accent)
-                                    rights.admin && u.action != null -> TextButton(onClick = { gate.press { ask = u.action } }) { Text("Update", fontSize = 12.sp) }
+                                    u.updating -> Text("updating…", fontSize = LabScale.textSm, color = Lab.accent)
+                                    rights.admin && u.action != null -> TextButton(onClick = { gate.press { ask = u.action } }) { Text("Update", fontSize = LabScale.textSm) }
                                 }
                             }
                         }
@@ -350,7 +350,7 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
                                     }) { Text("Save") }
                                 }
                             } else {
-                                Text(text.ifBlank { "—" }, fontSize = 15.sp, lineHeight = 20.sp)
+                                Text(text.ifBlank { "—" }, fontSize = LabScale.textMd, lineHeight = 20.sp)
                             }
                         }
                     }
@@ -360,8 +360,8 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
                 item {
                     Panel("") {
                         marks.groupBy { it.group }.forEach { (group, links) ->
-                            if (marks.map { it.group }.toSet().size > 1) Text(group.uppercase(), style = Heading, modifier = Modifier.padding(top = 6.dp))
-                            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            if (marks.map { it.group }.toSet().size > 1) Text(group.uppercase(), style = Heading, modifier = Modifier.padding(top = LabScale.space2))
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(LabScale.space2)) {
                                 links.forEach { b ->
                                     OutlinedButton(onClick = { runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(b.url))) } }) { Text(b.name) }
                                 }
@@ -373,7 +373,7 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
             if (trends.isNotEmpty()) add(CTab("History") {
                 item {
                     Panel("") {
-                        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
+                        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().padding(bottom = LabScale.space2)) {
                             RANGES.forEachIndexed { i, (label, _) ->
                                 SegmentedButton(selected = range == i, onClick = { range = i },
                                     shape = SegmentedButtonDefaults.itemShape(i, RANGES.size)) { Text(label) }
@@ -383,9 +383,9 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
                         trends.forEach { m ->
                             val series = h?.series?.get(m.key).orEmpty()
                             val keep = if (h == null || h.step == 0) series.size else (RANGES[range].second / h.step).coerceAtMost(series.size)
-                            Text(if (m.value.isEmpty()) m.label else "${m.label}  ${m.value}", fontSize = 13.sp, color = Lab.sub, modifier = Modifier.padding(top = 6.dp))
+                            Text(if (m.value.isEmpty()) m.label else "${m.label}  ${m.value}", fontSize = LabScale.textSm, color = Lab.sub, modifier = Modifier.padding(top = LabScale.space2))
                             if (series.size >= 2) LineChart(series.takeLast(keep), color = Lab.accent)
-                            else Text(if (h == null) "Loading…" else "No history yet", fontSize = 12.sp, color = Lab.muted)
+                            else Text(if (h == null) "Loading…" else "No history yet", fontSize = LabScale.textSm, color = Lab.muted)
                         }
                     }
                 }
@@ -411,7 +411,7 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
                 val wide = LocalConfiguration.current.screenWidthDp
                 val side = if (tabs.getOrNull(i)?.narrow == true && wide > 672) ((wide - 640) / 2).dp else 16.dp
                 LazyColumn(Modifier.fillMaxSize(), contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = side, vertical = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)) { tabs.getOrNull(i)?.body?.invoke(this) }
+                    verticalArrangement = Arrangement.spacedBy(LabScale.space3)) { tabs.getOrNull(i)?.body?.invoke(this) }
             }
         }
     }
@@ -475,8 +475,8 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
             text = {
                 Column(Modifier.heightIn(max = 460.dp).verticalScroll(rememberScrollState())) {
                     rows.forEach { (k, v) ->
-                        Text(k, fontSize = 12.sp, color = Lab.muted, modifier = Modifier.padding(top = 6.dp))
-                        Text(v, fontSize = 13.sp)
+                        Text(k, fontSize = LabScale.textSm, color = Lab.muted, modifier = Modifier.padding(top = LabScale.space2))
+                        Text(v, fontSize = LabScale.textSm)
                     }
                 }
             },
@@ -488,7 +488,7 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
             onDismissRequest = { logs = null },
             title = { Text(name) },
             text = {
-                Text(text, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace, fontSize = 11.sp, lineHeight = 14.sp,
+                Text(text, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace, fontSize = LabScale.textXs, lineHeight = 14.sp,
                     modifier = Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState()))
             },
             confirmButton = { TextButton(onClick = { logs = null }) { Text("Close") } },
@@ -527,17 +527,17 @@ private class CTab(val name: String, val narrow: Boolean = false, val body: Lazy
 private fun ContainerCell(b: io.github.mithrandler.labhud.data.Container, server: io.github.mithrandler.labhud.data.Server?, modifier: Modifier, onClick: () -> Unit) {
     Surface(onClick = onClick, modifier = modifier, shape = CardShape, color = Lab.card,
         border = if (b.up) BorderStroke(1.dp, Lab.line) else BorderStroke(1.dp, Lab.red.copy(alpha = 0.7f))) {
-        Column(Modifier.heightIn(min = 84.dp).padding(horizontal = 10.dp, vertical = 8.dp)) {
+        Column(Modifier.heightIn(min = 84.dp).padding(horizontal = LabScale.space3, vertical = LabScale.space2)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 androidx.compose.foundation.layout.Box(Modifier.size(8.dp).clip(androidx.compose.foundation.shape.CircleShape).background(if (b.up) Lab.green else Lab.red))
-                Spacer(Modifier.width(6.dp))
-                NamedIcon(b.icon, LabIcons.container, server, 16.dp)
-                Spacer(Modifier.width(6.dp))
-                FitText(b.name, 12.sp, FontWeight.SemiBold, Modifier.weight(1f))
+                Spacer(Modifier.width(LabScale.space2))
+                NamedIcon(b.icon, LabIcons.container, server, LabScale.iconCard)
+                Spacer(Modifier.width(LabScale.space2))
+                FitText(b.name, LabScale.textSm, FontWeight.SemiBold, Modifier.weight(1f))
             }
-            Text(when { b.updating -> "updating…"; b.update -> "update available"; else -> b.status }, fontSize = 11.sp, maxLines = 1,
-                color = if (b.update || b.updating) Lab.accent else if (b.up) Lab.muted else Lab.red, modifier = Modifier.padding(top = 4.dp))
-            if (b.usage.isNotEmpty()) Text(b.usage, fontSize = 11.sp, color = Lab.muted, maxLines = 1)
+            Text(when { b.updating -> "updating…"; b.update -> "update available"; else -> b.status }, fontSize = LabScale.textXs, maxLines = 1,
+                color = if (b.update || b.updating) Lab.accent else if (b.up) Lab.muted else Lab.red, modifier = Modifier.padding(top = LabScale.space1))
+            if (b.usage.isNotEmpty()) Text(b.usage, fontSize = LabScale.textXs, color = Lab.muted, maxLines = 1)
         }
     }
 }
@@ -546,9 +546,9 @@ private fun ContainerCell(b: io.github.mithrandler.labhud.data.Container, server
 @Composable
 private fun RowCell(r: io.github.mithrandler.labhud.data.Row, modifier: Modifier) {
     Surface(modifier = modifier, shape = CardShape, color = Lab.card, border = BorderStroke(1.dp, Lab.line)) {
-        Column(Modifier.padding(horizontal = 10.dp, vertical = 8.dp)) {
-            FitText(r.name, 12.sp, FontWeight.SemiBold)
-            Text(r.value, fontSize = 11.sp, color = if (r.bad) Lab.red else Lab.muted, modifier = Modifier.padding(top = 4.dp))
+        Column(Modifier.padding(horizontal = LabScale.space3, vertical = LabScale.space2)) {
+            FitText(r.name, LabScale.textSm, FontWeight.SemiBold)
+            Text(r.value, fontSize = LabScale.textXs, color = if (r.bad) Lab.red else Lab.muted, modifier = Modifier.padding(top = LabScale.space1))
         }
     }
 }
@@ -573,31 +573,31 @@ private fun scanColor(s: io.github.mithrandler.labhud.data.Scan) = when { s.crit
 @Composable
 private fun ContainerRow(b: io.github.mithrandler.labhud.data.Container, admin: Boolean, server: io.github.mithrandler.labhud.data.Server?, onAction: (Action) -> Unit, onLogs: () -> Unit,
                          onLive: () -> Unit = {}, onDetails: () -> Unit = {}) {
-    Column(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+    Column(Modifier.fillMaxWidth().padding(vertical = LabScale.space2)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             androidx.compose.foundation.layout.Box(Modifier.size(8.dp).clip(androidx.compose.foundation.shape.CircleShape)
                 .background(if (b.up) Lab.green else Lab.red))
-            Spacer(Modifier.width(10.dp))
-            NamedIcon(b.icon, LabIcons.container, server, 18.dp)
-            Spacer(Modifier.width(8.dp))
-            Text(b.name, fontSize = 14.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
-            Text(when { b.updating -> "updating…"; b.update -> "update available"; else -> b.status }, fontSize = 12.sp,
+            Spacer(Modifier.width(LabScale.space3))
+            NamedIcon(b.icon, LabIcons.container, server, LabScale.iconCard)
+            Spacer(Modifier.width(LabScale.space2))
+            Text(b.name, fontSize = LabScale.textMd, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
+            Text(when { b.updating -> "updating…"; b.update -> "update available"; else -> b.status }, fontSize = LabScale.textSm,
                 color = if (b.update || b.updating) Lab.accent else if (b.up) Lab.muted else Lab.red, maxLines = 1)
         }
         listOf(b.usage, b.last).filter { it.isNotEmpty() }.forEach {
-            Text(it, fontSize = 12.sp, color = Lab.muted, modifier = Modifier.padding(start = 18.dp))
+            Text(it, fontSize = LabScale.textSm, color = Lab.muted, modifier = Modifier.padding(start = 18.dp))
         }
-        b.scan?.let { sc -> Text(sc.text(), fontSize = 12.sp, color = scanColor(sc), modifier = Modifier.padding(start = 18.dp)) }
+        b.scan?.let { sc -> Text(sc.text(), fontSize = LabScale.textSm, color = scanColor(sc), modifier = Modifier.padding(start = 18.dp)) }
         // FlowRow: four or five buttons do not fit one line of the dialog, and the last (Live) was squeezed out
-        if (admin) FlowRow(Modifier.padding(start = 14.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+        if (admin) FlowRow(Modifier.padding(start = LabScale.space3), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
             b.actions.forEach { a ->
                 TextButton(onClick = { onAction(a) }, enabled = !b.updating) {
-                    Text(niceLabel(a), fontSize = 12.sp, color = if (a.danger) Lab.red else Lab.accent)
+                    Text(niceLabel(a), fontSize = LabScale.textSm, color = if (a.danger) Lab.red else Lab.accent)
                 }
             }
-            TextButton(onClick = onDetails) { Text("Details", fontSize = 12.sp) }
-            TextButton(onClick = onLogs) { Text("Logs", fontSize = 12.sp) }
-            if (b.up) TextButton(onClick = onLive) { Text("Live", fontSize = 12.sp) }
+            TextButton(onClick = onDetails) { Text("Details", fontSize = LabScale.textSm) }
+            TextButton(onClick = onLogs) { Text("Logs", fontSize = LabScale.textSm) }
+            if (b.up) TextButton(onClick = onLive) { Text("Live", fontSize = LabScale.textSm) }
         }
     }
 }
@@ -605,26 +605,26 @@ private fun ContainerRow(b: io.github.mithrandler.labhud.data.Container, admin: 
 @Composable
 private fun StatusHeader(c: Card, server: io.github.mithrandler.labhud.data.Server?) {
     Surface(shape = CardShape, color = Lab.card, border = BorderStroke(1.dp, if (c.bad == true) Lab.red.copy(alpha = 0.7f) else Lab.line)) {
-        Column(Modifier.fillMaxWidth().padding(16.dp)) {
+        Column(Modifier.fillMaxWidth().padding(LabScale.space4)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 CardIcon(c, server, 28.dp)
-                Spacer(Modifier.width(12.dp))
-                if (c.status != null) { StatusDot(c, 12); Spacer(Modifier.width(10.dp)) }
+                Spacer(Modifier.width(LabScale.space3))
+                if (c.status != null) { StatusDot(c, 12); Spacer(Modifier.width(LabScale.space3)) }
                 Text(
                     when (c.status) {
                         "up" -> "Running"; "down" -> "DOWN"; "scheduled" -> "Off on schedule"; "on-demand" -> "Off · started on demand"
                         "maintenance" -> "Maintenance"; "unknown" -> "Not known yet"; else -> if (c.bad == true) "Problem" else "OK"
                     },
-                    fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = if (c.bad == true) Lab.red else Lab.text,
+                    fontSize = LabScale.textLg, fontWeight = FontWeight.SemiBold, color = if (c.bad == true) Lab.red else Lab.text,
                 )
             }
-            if (c.subtitle.isNotEmpty()) Text(c.subtitle, color = Lab.muted, fontSize = 13.sp, modifier = Modifier.padding(top = 4.dp))
-            if (c.summary.isNotEmpty() && c.metrics.isEmpty()) Text(c.summary, color = Lab.sub, fontSize = 14.sp, modifier = Modifier.padding(top = 6.dp))
+            if (c.subtitle.isNotEmpty()) Text(c.subtitle, color = Lab.muted, fontSize = LabScale.textSm, modifier = Modifier.padding(top = LabScale.space1))
+            if (c.summary.isNotEmpty() && c.metrics.isEmpty()) Text(c.summary, color = Lab.sub, fontSize = LabScale.textMd, modifier = Modifier.padding(top = LabScale.space2))
             if (c.note.isNotEmpty()) Text(c.note, color = if (c.noteKind == "error" || c.noteKind == "stale") Lab.warn else Lab.muted,
-                fontSize = 13.sp, modifier = Modifier.padding(top = 6.dp))
+                fontSize = LabScale.textSm, modifier = Modifier.padding(top = LabScale.space2))
             c.maintenanceUntil?.let {
                 Text("Maintenance until " + DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(it * 1000)),
-                    color = Lab.muted, fontSize = 13.sp, modifier = Modifier.padding(top = 4.dp))
+                    color = Lab.muted, fontSize = LabScale.textSm, modifier = Modifier.padding(top = LabScale.space1))
             }
         }
     }
@@ -640,17 +640,17 @@ fun Panel(title: String, summary: String? = null, content: @Composable () -> Uni
     Surface(shape = CardShape, color = Lab.card, border = BorderStroke(1.dp, Lab.line)) {
         Column(Modifier.fillMaxWidth()) {
             if (summary != null) Row(
-                Modifier.fillMaxWidth().clickable { open = !open }.padding(horizontal = 14.dp, vertical = 12.dp),
+                Modifier.fillMaxWidth().clickable { open = !open }.padding(horizontal = LabScale.space3, vertical = LabScale.space3),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(Modifier.weight(1f)) {
-                    Text(title, fontWeight = FontWeight.Medium, fontSize = 15.sp, color = Lab.text)
-                    if (summary.isNotEmpty()) Text(summary, fontSize = 12.sp, color = Lab.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(title, fontWeight = FontWeight.Medium, fontSize = LabScale.textMd, color = Lab.text)
+                    if (summary.isNotEmpty()) Text(summary, fontSize = LabScale.textSm, color = Lab.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
                 Icon(if (open) LabIcons.chevronDown else LabIcons.chevronRight, null, tint = Lab.muted, modifier = Modifier.size(20.dp))
             }
             if (open) Column(Modifier.fillMaxWidth().padding(start = 14.dp, end = 14.dp, bottom = 14.dp, top = if (summary == null) 14.dp else 0.dp)) {
-                if (summary == null && title.isNotEmpty()) Text(title.uppercase(), style = Heading, modifier = Modifier.padding(bottom = 6.dp))
+                if (summary == null && title.isNotEmpty()) Text(title.uppercase(), style = Heading, modifier = Modifier.padding(bottom = LabScale.space2))
                 content()
             }
         }

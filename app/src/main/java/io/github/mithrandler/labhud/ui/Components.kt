@@ -230,8 +230,8 @@ private fun CardBody(c: Card, fade: Modifier, server: Server? = null, chip: Stri
                 if (ringed) MachineGauges(gauges, Modifier.padding(vertical = 2.dp), reserve = if (facts.isNotEmpty()) 40.dp else 0.dp)
                 else rings.forEach { (m, t) -> MeterRow(m, thin = true); if (t != null) Chip(t) }
                 if (facts.isNotEmpty()) FlowRow(Modifier.fillMaxWidth().padding(top = 2.dp),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    horizontalArrangement = Arrangement.spacedBy(LabScale.space2, Alignment.CenterHorizontally),
+                    verticalArrangement = Arrangement.spacedBy(LabScale.space1)) {
                     facts.forEach { Chip(it) }
                 }
             }
@@ -251,11 +251,11 @@ private fun CardBody(c: Card, fade: Modifier, server: Server? = null, chip: Stri
 /** A number that is not a percentage, as a small chip: its label, then its value. */
 @Composable
 fun Chip(m: Metric) {
-    Row(Modifier.clip(RoundedCornerShape(50)).background(Lab.block).padding(horizontal = 10.dp, vertical = 4.dp),
+    Row(Modifier.clip(RoundedCornerShape(50)).background(Lab.block).padding(horizontal = LabScale.space3, vertical = LabScale.space1),
         verticalAlignment = Alignment.CenterVertically) {
         if (m.label.isNotEmpty() || m.key.isNotEmpty()) {
             Text(m.short(), fontSize = LabScale.textXs, color = Lab.muted, maxLines = 1)
-            Spacer(Modifier.width(6.dp))
+            Spacer(Modifier.width(LabScale.space2))
         }
         Text(m.value, fontSize = LabScale.textSm, fontWeight = FontWeight.Medium, color = sevColor(m.sev), maxLines = 1)
     }
@@ -326,15 +326,15 @@ fun UptimeDays(values: List<Double?>, modifier: Modifier = Modifier) {
     val shares = remember(values) { dayShares(values) }
     val today = java.time.LocalDate.now()
     val locale = androidx.compose.ui.platform.LocalConfiguration.current.locales.get(0)
-    Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+    Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(LabScale.space2)) {
         shares.forEachIndexed { i, v ->
             val day = today.minusDays((shares.size - 1 - i).toLong()).dayOfWeek.getDisplayName(java.time.format.TextStyle.SHORT, locale).take(2)
             val color = uptimeColor(v)
             val on = v != null && v >= 0
-            Column(Modifier.weight(1f).clip(RoundedCornerShape(8.dp)).background(if (on) color else Lab.block).padding(vertical = 8.dp),
+            Column(Modifier.weight(1f).clip(RoundedCornerShape(8.dp)).background(if (on) color else Lab.block).padding(vertical = LabScale.space2),
                 horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(day.uppercase(), fontSize = LabScale.textXs, color = if (on) androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.7f) else Lab.muted)
-                Text(if (on) "${Math.round(v!! * 100)}%" else "—", fontSize = 12.sp, fontWeight = FontWeight.Bold,
+                Text(if (on) "${Math.round(v!! * 100)}%" else "—", fontSize = LabScale.textSm, fontWeight = FontWeight.Bold,
                     color = if (on) androidx.compose.ui.graphics.Color.Black else Lab.muted)
             }
         }
@@ -345,13 +345,13 @@ fun UptimeDays(values: List<Double?>, modifier: Modifier = Modifier) {
 fun ListRow(row: DataRow, server: Server? = null) {
     Row(Modifier.fillMaxWidth().padding(vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
         if (row.icon.isNotEmpty()) {
-            NamedIcon(row.icon, LabIcons.container, server, 14.dp)
-            Spacer(Modifier.width(6.dp))
+            NamedIcon(row.icon, LabIcons.container, server, LabScale.iconCard)
+            Spacer(Modifier.width(LabScale.space2))
         }
         Text(row.name, fontSize = LabScale.textSm, color = if (row.bad) Lab.red else if (row.quiet) Lab.muted else Lab.text,
             maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
         if (row.value.isNotEmpty()) {
-            Spacer(Modifier.width(12.dp))
+            Spacer(Modifier.width(LabScale.space3))
             Text(row.value, fontSize = LabScale.textSm, color = if (row.bad) Lab.red else Lab.sub, maxLines = 1)
         }
     }
@@ -423,12 +423,12 @@ fun MiniCard(c: Card, server: Server?, modifier: Modifier = Modifier, chip: Stri
         shadowElevation = if (Lab.hud) 0.dp else 1.dp,
     ) {
         // the same three places as every wall tile (HostTile, GroupSummaryTile): name on top, the one number, one line at the bottom
-        Column(Modifier.padding(horizontal = LabScale.space2 + 2.dp, vertical = LabScale.space2), verticalArrangement = Arrangement.SpaceBetween) {
+        Column(Modifier.padding(horizontal = LabScale.space3, vertical = LabScale.space2), verticalArrangement = Arrangement.SpaceBetween) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                CardIcon(c, server, 18.dp)
-                Spacer(Modifier.width(6.dp))
+                CardIcon(c, server, LabScale.iconTile)
+                Spacer(Modifier.width(LabScale.space2))
                 FitText(c.name, LabScale.textWallName, FontWeight.SemiBold, Modifier.weight(1f), minSize = LabScale.textWallMin)
-                if (c.status != null || c.bad != null) { Spacer(Modifier.width(4.dp)); StatusDot(c, 8) }
+                if (c.status != null || c.bad != null) { Spacer(Modifier.width(LabScale.space1)); StatusDot(c, LabScale.dotTile.value.toInt()) }
             }
             val head = c.headline()
             val word = statusWord(c)
@@ -441,7 +441,7 @@ fun MiniCard(c: Card, server: Server?, modifier: Modifier = Modifier, chip: Stri
                 else {
                     FitText(head.value, LabScale.textWallNum, FontWeight.SemiBold, Modifier.weight(1f, fill = false), color = sevColor(head.sev), minSize = LabScale.textWallMin)
                     // a card that lists what is wrong needs no unit: its name says what the number counts
-                    if (broken.isEmpty()) { Spacer(Modifier.width(4.dp)); Text(head.short(), fontSize = LabScale.textWallMin, color = Lab.muted, maxLines = 1, modifier = Modifier.padding(bottom = 3.dp)) }
+                    if (broken.isEmpty()) { Spacer(Modifier.width(LabScale.space1)); Text(head.short(), fontSize = LabScale.textWallMin, color = Lab.muted, maxLines = 1, modifier = Modifier.padding(bottom = 3.dp)) }
                 }
             }
             val up = c.guest?.uptime?.let { "up " + upText(it) } ?: c.metrics.firstOrNull { it.short().equals("uptime", true) }?.value?.let { "up $it" }
