@@ -69,7 +69,7 @@ fun CalendarWidget() {
     Column(Modifier.fillMaxWidth().padding(top = 4.dp)) {
         Text(today.month.getDisplayName(TextStyle.FULL, locale) + " " + today.year, fontSize = 12.sp, color = Lab.accent, fontWeight = FontWeight.SemiBold)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            DayOfWeek.entries.forEach { Text(it.getDisplayName(TextStyle.NARROW, locale), Modifier.weight(1f), fontSize = 10.sp, color = Lab.muted, textAlign = TextAlign.Center) }
+            DayOfWeek.entries.forEach { Text(it.getDisplayName(TextStyle.NARROW, locale), Modifier.weight(1f), fontSize = LabScale.textXs, color = Lab.muted, textAlign = TextAlign.Center) }
         }
         weeks.forEach { week ->
             Row(Modifier.fillMaxWidth()) {

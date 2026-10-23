@@ -141,8 +141,8 @@ fun StatusScreen(
         Column(Modifier.padding(pad).fillMaxSize()) {
             ConnBanner(conn, repo.liveAt, onRetry = { repo.retry() })
             if (st == null) {
-                Text(if (conn is Conn.Offline) "Nothing kept from this server yet: the numbers come once it answers." else "Connecting…",
-                    color = Lab.muted, modifier = Modifier.padding(24.dp))
+                if (conn is Conn.Offline) Text("Nothing kept from this server yet: the numbers come once it answers.", color = Lab.muted, modifier = Modifier.padding(24.dp))
+                else SkeletonTiles()
                 return@Column
             }
             val byId = st.byId

@@ -45,7 +45,10 @@ import androidx.fragment.app.FragmentActivity
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
-import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.foundation.layout.imePadding
+import io.github.mithrandler.labhud.ui.rememberAnimationsOn
 import androidx.compose.animation.ExitTransition
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -83,11 +86,23 @@ import io.github.mithrandler.labhud.data.Sso
 class MainActivity : FragmentActivity() {
     /** A labhud:// link this activity was opened with: card/<id>, pair?…, settings[/<id>], oidc?r=…, open. */
     private val link = MutableStateFlow<Uri?>(null)
+    /** The stored settings and servers are known: until then the first frame is held, so a light theme never flashes the default one. */
+    @Volatile private var ready = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         link.value = intent?.data
         val repo = (application as LabHudApp).repo
+        // hold the first frame (the system's splash stays up on Android 12+) until DataStore has answered, but never longer than 1.5 s
+        val started = android.os.SystemClock.elapsedRealtime()
+        val content = findViewById<android.view.View>(android.R.id.content)
+        content.viewTreeObserver.addOnPreDrawListener(object : android.view.ViewTreeObserver.OnPreDrawListener {
+            override fun onPreDraw(): Boolean {
+                if (!ready && android.os.SystemClock.elapsedRealtime() - started < 1_500) return false
+                content.viewTreeObserver.removeOnPreDrawListener(this)
+                return true
+            }
+        })
         setContent {
             val look by repo.store.settings.collectAsStateWithLifecycle(initialValue = AppSettings())
             val darkBars = isDarkTheme(look.theme)
@@ -107,6 +122,7 @@ class MainActivity : FragmentActivity() {
                 val pending by link.collectAsStateWithLifecycle()
                 // the lock follows the stored choice before anything is shown, and asks by itself
                 settings?.let { AppLock.mode = it.lockMode }
+                LaunchedEffect(servers != null && settings != null) { if (servers != null && settings != null) ready = true }
                 LaunchedEffect(unlocked, settings?.lockMode) { if (settings != null && !unlocked) AppLock.prompt(this@MainActivity) {} }
                 when {
                     servers == null || settings == null -> Column(Modifier.fillMaxSize().background(Lab.bg)) {}
@@ -128,7 +144,7 @@ class MainActivity : FragmentActivity() {
     private suspend fun oidcReturn(u: Uri, repo: LabRepository, nav: NavHostController) {
         val said = Sso.finish(u, repo)
         Toast.makeText(this, said, Toast.LENGTH_LONG).show()
-        nav.navigate("settings/security")
+        nav.open(Routes.settings("security"))
     }
 
     @Composable
@@ -157,18 +173,18 @@ class MainActivity : FragmentActivity() {
         LaunchedEffect(pending) {
             val u = pending ?: return@LaunchedEffect
             when (u.host) {
-                "card" -> u.pathSegments.firstOrNull()?.let { nav.navigate("card/$it") }
-                "pair" -> { pairLink = u.toString(); nav.navigate("add") }
-                "settings" -> u.pathSegments.firstOrNull()?.let { nav.navigate("settings/$it") } ?: nav.tab(SETTINGS)
+                "card" -> u.pathSegments.firstOrNull()?.let { nav.open(Routes.card(it)) }
+                "pair" -> { pairLink = u.toString(); nav.open("add") }
+                "settings" -> u.pathSegments.firstOrNull()?.let { nav.open(Routes.settings(it)) } ?: nav.tab(SETTINGS)
                 "oidc" -> oidcReturn(u, repo, nav)
             }
             onLinkUsed()
         }
         val bar = remember(nav, AppLock.on) { BarNav(
-            onCard = { nav.navigate("card/$it") },
+            onCard = { nav.open(Routes.card(it)) },
             onPage = { repo.pagePick.value = it; nav.tab("home") },
-            onSettings = { nav.navigate("settings/$it") },
-            onAction = { card, action -> nav.navigate("card/$card?ask=" + Uri.encode(action)) },
+            onSettings = { nav.open(Routes.settings(it)) },
+            onAction = { card, action -> nav.open(Routes.card(card, action)) },
             onWall = { startActivity(Intent(this@MainActivity, WallActivity::class.java)) },
             onOpenSettings = { nav.navigate(SETTINGS) { launchSingleTop = true } },
             onAbout = { nav.navigate("about") { launchSingleTop = true } },
@@ -185,29 +201,32 @@ class MainActivity : FragmentActivity() {
             // icons only and thin; on a wide screen they stand in a column at the side, so the height is the cards'
             bottomBar = { if (tabsShown && !landscape) CompactTabs(tabItems, route, false) { nav.tab(it) } },
         ) { pad ->
-          androidx.compose.foundation.layout.Row(Modifier.fillMaxSize().padding(pad).consumeWindowInsets(pad)) {
+          // imePadding: the keyboard lifts every screen with a text field, the app is edge to edge
+          androidx.compose.foundation.layout.Row(Modifier.fillMaxSize().padding(pad).consumeWindowInsets(pad).imePadding()) {
             if (tabsShown && landscape) CompactTabs(tabItems, route, true) { nav.tab(it) }
+            // a screen fades in over 150 ms (at once when the system has animations off); the one under it just goes
+            val fade = if (rememberAnimationsOn()) 150 else 0
             NavHost(nav, startDestination = "home",
-                enterTransition = { EnterTransition.None }, exitTransition = { ExitTransition.None },
-                popEnterTransition = { EnterTransition.None }, popExitTransition = { ExitTransition.None },
+                enterTransition = { fadeIn(tween(fade)) }, exitTransition = { ExitTransition.None },
+                popEnterTransition = { fadeIn(tween(fade)) }, popExitTransition = { ExitTransition.None },
                 modifier = Modifier.weight(1f).fillMaxHeight().background(Lab.bg)) {
                 composable("home") {
-                    StatusScreen(repo, bar, onGame = { nav.navigate("game/$it") }, onServers = { nav.navigate("settings/servers") })
+                    StatusScreen(repo, bar, onGame = { nav.open(Routes.game(it)) }, onServers = { nav.open(Routes.settings("servers")) })
                 }
                 composable("card/{id}?ask={ask}", arguments = listOf(navArgument("ask") { type = NavType.StringType; defaultValue = "" })) {
                     CardScreen(repo, it.arguments?.getString("id").orEmpty(), onBack = { nav.popBackStack() },
-                        onHistory = { id -> nav.navigate("host/$id") }, onSignIn = { nav.navigate("signin") },
-                        askFirst = it.arguments?.getString("ask").orEmpty(), onCard = { id -> nav.navigate("card/$id") })
+                        onHistory = { id -> nav.open(Routes.host(id)) }, onSignIn = { nav.open("signin") },
+                        askFirst = it.arguments?.getString("ask").orEmpty(), onCard = { id -> nav.open(Routes.card(id)) })
                 }
                 composable("game/{id}") {
-                    GameScreen(repo, it.arguments?.getString("id").orEmpty(), onBack = { nav.popBackStack() }, onSignIn = { nav.navigate("signin") })
+                    GameScreen(repo, it.arguments?.getString("id").orEmpty(), onBack = { nav.popBackStack() }, onSignIn = { nav.open("signin") })
                 }
                 composable("host/{id}") {
                     HostHistoryScreen(repo, it.arguments?.getString("id").orEmpty(), onBack = { nav.popBackStack() },
-                        onCard = { id -> nav.navigate("card/$id") })
+                        onCard = { id -> nav.open(Routes.card(id)) })
                 }
                 composable("devices") { DevicesScreen(repo, bar) }
-                composable("zone") { ZoneScreen(repo, bar, onSignIn = { nav.navigate("signin") }) }
+                composable("zone") { ZoneScreen(repo, bar, onSignIn = { nav.open("signin") }) }
                 composable("activity") { ActivityScreen(repo, bar) }
                 composable("about") { AboutScreen(repo, onBack = { nav.popBackStack() }) }
                 composable(SETTINGS) { Settings(nav, bar, signIn = false) }
@@ -219,15 +238,15 @@ class MainActivity : FragmentActivity() {
                     if (s == null) LaunchedEffect(Unit) { nav.popBackStack() }
                     else s.screen(repo, SettingsNav(
                         back = { nav.popBackStack() },
-                        signIn = { nav.navigate("signin") },
-                        agent = { id -> nav.navigate("agent/$id") },
-                        addServer = { nav.navigate("add") },
+                        signIn = { nav.open("signin") },
+                        agent = { id -> nav.open(Routes.agent(id)) },
+                        addServer = { nav.open("add") },
                         wall = { startActivity(Intent(this@MainActivity, WallActivity::class.java)) },
                         homeApp = ::setHomeApp,
                     ))
                 }
                 composable("agent/{id}") {
-                    AgentScreen(repo, it.arguments?.getString("id").orEmpty(), onBack = { nav.popBackStack() }, onSignIn = { nav.navigate("signin") })
+                    AgentScreen(repo, it.arguments?.getString("id").orEmpty(), onBack = { nav.popBackStack() }, onSignIn = { nav.open("signin") })
                 }
                 composable("add") {
                     AddServerScreen(repo, pairLink, onBack = { nav.popBackStack() }, onDone = { pairLink = null; nav.back(to = "home") })
@@ -241,7 +260,7 @@ class MainActivity : FragmentActivity() {
     @Composable
     private fun Settings(nav: NavHostController, bar: BarNav, signIn: Boolean) {
         val repo = (application as LabHudApp).repo
-        SettingsScreen(repo, bar, onOpen = { nav.navigate("settings/$it") }, signInFirst = signIn)
+        SettingsScreen(repo, bar, onOpen = { nav.open(Routes.settings(it)) }, signInFirst = signIn)
     }
 
     /** Turns the wall's home screen entry on or off; Android then asks which home app to use. */
@@ -272,6 +291,16 @@ private fun NavHostController.tab(route: String) = navigate(route) {
     popUpTo(graph.findStartDestination().id) { saveState = true }
     launchSingleTop = true
     restoreState = true
+}
+
+private var lastOpen = "" to 0L
+
+/** Opens a screen once: one copy on top of the stack, and the same route twice within 700 ms (a double tap) is one. */
+private fun NavHostController.open(route: String) {
+    val now = android.os.SystemClock.elapsedRealtime()
+    if (route == lastOpen.first && now - lastOpen.second < 700) return
+    lastOpen = route to now
+    navigate(route) { launchSingleTop = true }
 }
 
 private fun NavHostController.back(to: String) {

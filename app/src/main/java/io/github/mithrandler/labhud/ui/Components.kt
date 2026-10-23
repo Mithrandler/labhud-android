@@ -333,7 +333,7 @@ fun UptimeDays(values: List<Double?>, modifier: Modifier = Modifier) {
             val on = v != null && v >= 0
             Column(Modifier.weight(1f).clip(RoundedCornerShape(8.dp)).background(if (on) color else Lab.block).padding(vertical = 8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(day.uppercase(), fontSize = 10.sp, color = if (on) androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.7f) else Lab.muted)
+                Text(day.uppercase(), fontSize = LabScale.textXs, color = if (on) androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.7f) else Lab.muted)
                 Text(if (on) "${Math.round(v!! * 100)}%" else "—", fontSize = 12.sp, fontWeight = FontWeight.Bold,
                     color = if (on) androidx.compose.ui.graphics.Color.Black else Lab.muted)
             }

@@ -7,17 +7,24 @@ All notable changes to LabHUD for Android. The format follows
 ## [Unreleased]
 
 ### Changed
+- Screens fade in over 150 ms and the number rings grow smoothly, neither with the system's animations off; a button you confirm gives a short haptic tick. Loading states use one grey placeholder (Status, a card).
+- No fixed 9 and 10 sp left in the day chips and the calendar header: they use the app's scale.
 - **Small tiles say one thing**: the name (13 sp, shrinking to 11), the state dot, the one number the card is about (22 sp: the worst of CPU, RAM and disk, the CPU when all are fine; a guest's RAM counts only on memory pressure) with its label, a thin bar, and how long it has run (or its state in words). A tile in trouble has a red or orange edge and ground. Everything else is on the card's screen.
 - **Status in groups**: every group of the wall has its title (red when a card in it is in trouble), the machine first and then the cards in trouble. On the first page a **Needs attention** row holds the cards in trouble as tiles (one line, “+N” for the rest). A title never ends a screen without its cards.
 - **Machine cards: rings that fit**: the CPU and the RAM are one ring (the CPU on the left half, the RAM on the right), and so are a GPU's load and its video memory; the disk is a ring of its own. The rings are the same size and the same type everywhere, in a 2×2 grid when the card is tall enough (a machine with four or more rings is a little taller in portrait) and in one row when it is not. Under a ring only its name (“CPU · RAM”, “GPU2 · VRAM”): the “Load” and “VRAM” lines are gone. Status and the card's own screen use the same rule and the same code, so a NAS has rings in both. The numbers grow smoothly (not with animations turned off in the system) and a screen reader hears “CPU · RAM: 23 percent, 60 percent, 52 degrees”.
+- **Less redrawing**: a card whose numbers did not change between two messages from the server is no longer drawn again, and the page layout is packed again only when the cards themselves change, not on every new number.
 
 ### Fixed
+- **A card opened from a notification** no longer says “This card is not in the current config.” while the state is still loading: it shows a placeholder, and the message only comes when the state is here and the card is not.
+- **“No history yet”** only after labhud answered with nothing; until then the History tab says “Loading…”.
+- **The tab you chose stays** on a card's screen when more tabs arrive after its answer (it is kept by name, not by position).
+- **Two quick taps** on a card no longer open two copies of its screen.
+- **Ids with `/`, `?`, `#` or `%`** (a card, an agent, a game) no longer break the route or open another screen: they are percent-encoded.
+- **The keyboard** lifts every screen with a text field instead of covering it (the app is edge to edge).
+- **No flash of the default theme at start**: the first frame waits (at most 1.5 s) for the stored settings, so a light theme does not start dark.
 - **Healthy VMs no longer turn orange or red on RAM**: Proxmox counts the page cache, so 95% is normal. A guest's RAM is coloured only when the server reports real memory pressure (as on the wall); with a server older than labhud 0.1.16 it stays plain.
 - **A GPU's colours** follow the server's `[display]` marks and their hysteresis, not 80 and 92 written in the app (an older server keeps those two).
 - **Battery and data in the background**: the polls of the screens (a card and its history every 30 s, the game server, the history, the Servers lists and Stats, the uptime and sparklines on Status, the clocks) now run only while the app is on screen. Before, they kept asking the server for as long as the process lived, even after Home.
-
-### Changed
-- **Less redrawing**: a card whose numbers did not change between two messages from the server is no longer drawn again, and the page layout is packed again only when the cards themselves change, not on every new number.
 
 ## [0.1.26] - 2026-10-22
 

@@ -136,7 +136,11 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
         gate.press { ask = a }
     }
 
-    fun send(name: String, label: String) = scope.launch { snack.showSnackbar(sendAction(repo, name, label)) }
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
+    fun send(name: String, label: String) = scope.launch {
+        haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+        snack.showSnackbar(sendAction(repo, name, label))
+    }
 
     Scaffold(
         containerColor = Lab.bg,
@@ -156,7 +160,11 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
         },
     ) { pad ->
         val c = live ?: run {
-            Text("This card is not in the current config.", color = Lab.muted, modifier = Modifier.padding(pad).padding(24.dp))
+            // a cold start from a notification: the state is not here yet, and that is not "not in the config"
+            if (state == null) Column(Modifier.padding(pad).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                SkeletonPanel(height = 88.dp)
+                SkeletonPanel(height = 220.dp)
+            } else Text("This card is not in the current config.", color = Lab.muted, modifier = Modifier.padding(pad).padding(24.dp))
             return@Scaffold
         }
         val up = if (week) uptimeWeek else uptimeDay
@@ -370,13 +378,18 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
                             val keep = if (h == null || h.step == 0) series.size else (RANGES[range].second / h.step).coerceAtMost(series.size)
                             Text(if (m.value.isEmpty()) m.label else "${m.label}  ${m.value}", fontSize = 13.sp, color = Lab.sub, modifier = Modifier.padding(top = 6.dp))
                             if (series.size >= 2) LineChart(series.takeLast(keep), color = Lab.accent)
-                            else Text("No history yet", fontSize = 12.sp, color = Lab.muted)
+                            else Text(if (h == null) "Loading…" else "No history yet", fontSize = 12.sp, color = Lab.muted)
                         }
                     }
                 }
             })
         }
-        val pager = rememberPagerState { tabs.size }
+        // the chosen tab is kept by its name: the list gains tabs as the card's answer arrives, and the index would land on another one
+        var tabName by rememberSaveable { mutableStateOf<String?>(null) }
+        val names = tabs.map { it.name }
+        val pager = rememberPagerState(initialPage = names.indexOf(tabName).coerceAtLeast(0)) { tabs.size }
+        LaunchedEffect(names) { names.indexOf(tabName).takeIf { it >= 0 && it != pager.currentPage }?.let { pager.scrollToPage(it) } }
+        LaunchedEffect(pager.settledPage) { names.getOrNull(pager.settledPage)?.let { tabName = it } }
         Column(Modifier.padding(pad).fillMaxSize()) {
             if (tabs.size > 1) androidx.compose.material3.ScrollableTabRow(
                 selectedTabIndex = pager.currentPage.coerceAtMost(tabs.size - 1), containerColor = Lab.bg, edgePadding = 8.dp,
