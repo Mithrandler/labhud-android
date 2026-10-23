@@ -45,7 +45,7 @@ internal fun linePath(r: List<Offset>) = Path().apply {
 fun LineChart(raw: List<Double?>, color: Color = Lab.accent, modifier: Modifier = Modifier) {
     // averaged in buckets, like the wall's sparklines: one point a minute is noise, not a trend
     val points = remember(raw) { buckets(raw, BUCKETS) }
-    Spacer(modifier.fillMaxWidth().height(96.dp).drawWithCache {
+    Spacer(modifier.fillMaxWidth().height(LabScale.chartH).drawWithCache {
         // paths built once per size and data, not on every frame
         val values = points.filterNotNull()
         val drawn = if (values.size < 2) emptyList() else {
@@ -69,7 +69,7 @@ fun LineChart(raw: List<Double?>, color: Color = Lab.accent, modifier: Modifier 
                 }
         }
         val shade = Brush.verticalGradient(listOf(color.copy(alpha = 0.25f), Color.Transparent))
-        val stroke = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
+        val stroke = Stroke(width = LabScale.strokeChart.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
         onDrawBehind {
             if (drawn.isEmpty()) return@onDrawBehind
             // grid: three faint lines
@@ -103,7 +103,7 @@ fun Sparkline(raw: List<Double?>, color: Color, modifier: Modifier = Modifier, l
             var b = hi ?: values.max()
             if (b - a < 1e-9) { a -= 1; b += 1 }
             val stepX = size.width / (points.size - 1).coerceAtLeast(1)
-            val inset = 1.5.dp.toPx()
+            val inset = LabScale.strokeThin.toPx()
             fun y(v: Double) = (inset + (size.height - 2 * inset) * (1 - (v.coerceIn(a, b) - a) / (b - a))).toFloat()
             var open = false
             points.forEachIndexed { i, v ->
@@ -111,7 +111,7 @@ fun Sparkline(raw: List<Double?>, color: Color, modifier: Modifier = Modifier, l
                 else if (!open) { line.moveTo(i * stepX, y(v)); open = true } else line.lineTo(i * stepX, y(v))
             }
         }
-        val stroke = Stroke(width = 1.5.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
+        val stroke = Stroke(width = LabScale.strokeThin.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
         onDrawBehind { if (values.size >= 2) drawPath(line, color, style = stroke) }
     })
 }

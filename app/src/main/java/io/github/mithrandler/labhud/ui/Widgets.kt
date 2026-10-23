@@ -47,7 +47,7 @@ fun ClockWidget(timezone: String) {
     val zone = zoneOf(timezone)
     val at = Instant.ofEpochMilli(now).atZone(zone)
     Column(Modifier.fillMaxWidth().padding(top = LabScale.space1), horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(at.format(DateTimeFormatter.ofPattern("HH:mm")), fontSize = 34.sp, fontWeight = FontWeight.Light, color = Lab.text)
+        Text(at.format(DateTimeFormatter.ofPattern("HH:mm")), fontSize = LabScale.textClock, fontWeight = FontWeight.Light, color = Lab.text)
         Text(at.format(DateTimeFormatter.ofPattern("EEEE d MMMM", locale)), fontSize = LabScale.textSm, color = Lab.muted)
         if (timezone.isNotEmpty()) Text(zone.id, fontSize = LabScale.textXs, color = Lab.muted)
     }

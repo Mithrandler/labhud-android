@@ -121,8 +121,8 @@ private fun GuestSheet(host: String, g: ZoneGuest, ask: ZoneAsk, gate: Gate, onC
         }
     }
 
-    Column(Modifier.fillMaxWidth().padding(horizontal = LabScale.space4).padding(bottom = 20.dp).heightIn(max = (LocalConfiguration.current.screenHeightDp * 0.9f).dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(LabScale.space2)) {
-        Text(g.name, fontSize = LabScale.textWallNum, fontWeight = FontWeight.SemiBold, color = Lab.text, modifier = Modifier.padding(end = 48.dp))
+    Column(Modifier.fillMaxWidth().padding(horizontal = LabScale.space4).padding(bottom = LabScale.space5).heightIn(max = (LocalConfiguration.current.screenHeightDp * 0.9f).dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(LabScale.space2)) {
+        Text(g.name, fontSize = LabScale.textWallNum, fontWeight = FontWeight.SemiBold, color = Lab.text, modifier = Modifier.padding(end = LabScale.touch))
         Text("${g.id} · ${g.kind()} · " + if (g.running) "running" else "stopped", fontSize = LabScale.textSm, color = Lab.muted)
         Row(horizontalArrangement = Arrangement.spacedBy(LabScale.space2)) {
             OutlinedButton(enabled = "start" in g.can && !g.running && !busy, onClick = { run("Start", { zoneGuestAct(host, g.id, "start") }) }) { Text("Start") }
@@ -134,7 +134,7 @@ private fun GuestSheet(host: String, g: ZoneGuest, ask: ZoneAsk, gate: Gate, onC
         }
         when (tab) {
             "config" -> Listing(g.id, ask, { zoneGuestConfig(host, g.id) }, { it.config }, "No configuration came back.") { x ->
-                Row(Modifier.fillMaxWidth().padding(vertical = 3.dp)) {
+                Row(Modifier.fillMaxWidth().padding(vertical = LabScale.spaceHalf)) {
                     Text(x.key, fontSize = LabScale.textSm, color = Lab.muted, modifier = Modifier.weight(0.4f))
                     Text(x.value, fontSize = LabScale.textSm, color = Lab.text, modifier = Modifier.weight(0.6f))
                 }

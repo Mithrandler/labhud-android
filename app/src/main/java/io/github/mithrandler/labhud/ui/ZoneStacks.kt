@@ -144,8 +144,8 @@ private fun StackSheet(host: String, stack: ZoneStack, isNew: Boolean, ask: Zone
         }
     }
 
-    Column(Modifier.fillMaxWidth().padding(horizontal = LabScale.space4).padding(bottom = 20.dp).heightIn(max = (LocalConfiguration.current.screenHeightDp * 0.9f).dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(LabScale.space2)) {
-        Text(stack.name, fontSize = LabScale.textWallNum, fontWeight = FontWeight.SemiBold, color = Lab.text, modifier = Modifier.padding(end = 48.dp))
+    Column(Modifier.fillMaxWidth().padding(horizontal = LabScale.space4).padding(bottom = LabScale.space5).heightIn(max = (LocalConfiguration.current.screenHeightDp * 0.9f).dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(LabScale.space2)) {
+        Text(stack.name, fontSize = LabScale.textWallNum, fontWeight = FontWeight.SemiBold, color = Lab.text, modifier = Modifier.padding(end = LabScale.touch))
         Text(if (!kept) "new stack: nothing is written until Save" else stack.line(), fontSize = LabScale.textSm, color = Lab.muted)
         Row(horizontalArrangement = Arrangement.spacedBy(LabScale.space2)) {
             OutlinedButton(enabled = kept && !busy && !dirty, onClick = { run("Redeploy", { zoneStackAct(host, stack.name, "redeploy") }) }) { Text("Redeploy") }
@@ -174,7 +174,7 @@ private fun StackSheet(host: String, stack: ZoneStack, isNew: Boolean, ask: Zone
                 }
                 OutlinedTextField(
                     if (isEnv) env else compose, { if (isEnv) env = it.take(48 * 1024) else compose = it.take(48 * 1024) },
-                    textStyle = MONO, modifier = Modifier.fillMaxWidth().heightIn(min = 220.dp, max = 360.dp),
+                    textStyle = MONO, modifier = Modifier.fillMaxWidth().heightIn(min = LabScale.fieldMin, max = LabScale.scrollS),
                 )
                 if (isEnv) Text("Values stay on the host and show as $mask. Leave a line as it is to keep its value; type a new value to change it.", fontSize = LabScale.textSm, color = Lab.muted)
             }
@@ -189,7 +189,7 @@ private fun StackSheet(host: String, stack: ZoneStack, isNew: Boolean, ask: Zone
                         TextButton(enabled = !dirty && !busy, onClick = { run("Restore", { zoneStackRestore(host, stack.name, v) }) { reload() } }) { Text("Restore") }
                     }
                 }
-                if (shown.isNotEmpty()) SelectionContainer { Text(shown, style = MONO, modifier = Modifier.fillMaxWidth().heightIn(max = 260.dp).verticalScroll(rememberScrollState())) }
+                if (shown.isNotEmpty()) SelectionContainer { Text(shown, style = MONO, modifier = Modifier.fillMaxWidth().heightIn(max = LabScale.scrollS).verticalScroll(rememberScrollState())) }
             }
             else -> GitPane(host, stack, ask, gate, busy, ::say, onChanged)
         }

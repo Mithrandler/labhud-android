@@ -186,7 +186,7 @@ private fun NotifyChoice(repo: LabRepository, mode: NotifyMode, via: String?) {
             options.forEach { (m, title, hint) ->
                 Row(
                     Modifier.fillMaxWidth().selectable(selected = m == mode, role = Role.RadioButton) { if (m != mode) pick(m) }
-                        .padding(horizontal = LabScale.space2, vertical = 2.dp),
+                        .padding(horizontal = LabScale.space2, vertical = LabScale.spaceHalf),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     RadioButton(selected = m == mode, onClick = null, modifier = Modifier.padding(LabScale.space2))

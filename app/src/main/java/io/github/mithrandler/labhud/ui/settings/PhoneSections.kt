@@ -128,7 +128,7 @@ fun ThemeSection(repo: LabRepository, nav: SettingsNav) {
                         Row(
                             Modifier.fillMaxWidth().selectable(selected = mode == settings.theme, role = Role.RadioButton) {
                                 scope.launch { repo.store.setTheme(mode) }
-                            }.padding(horizontal = LabScale.space2, vertical = 2.dp),
+                            }.padding(horizontal = LabScale.space2, vertical = LabScale.spaceHalf),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             RadioButton(selected = mode == settings.theme, onClick = null, modifier = Modifier.padding(LabScale.space2))
@@ -239,7 +239,7 @@ private fun LockChoice(current: LockMode, set: (LockMode) -> Unit) {
                             AppLock.ask(activity, if (mode == LockMode.None) current else mode,
                                 onOk = { set(mode) }, onError = { error = it })
                         }
-                        .padding(horizontal = LabScale.space2, vertical = 2.dp),
+                        .padding(horizontal = LabScale.space2, vertical = LabScale.spaceHalf),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     RadioButton(selected = mode == current, onClick = null, enabled = usable, modifier = Modifier.padding(LabScale.space2))

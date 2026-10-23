@@ -189,10 +189,10 @@ fun GaugeRing(g: Gauge, size: Dp, modifier: Modifier = Modifier) {
             }
             Column(Modifier.clearAndSetSemantics {}, horizontalAlignment = Alignment.CenterHorizontally) {
                 if (!dual) {
-                    GaugeNumber(g.a, size < 80.dp)
+                    GaugeNumber(g.a, size < LabScale.fieldMinS)
                 } else Row(Modifier.width(size - LabScale.ringStroke * 2)) {
-                    GaugeNumber(g.a, size < 80.dp, Modifier.weight(1f))
-                    GaugeNumber(g.b!!, size < 80.dp, Modifier.weight(1f))
+                    GaugeNumber(g.a, size < LabScale.fieldMinS, Modifier.weight(1f))
+                    GaugeNumber(g.b!!, size < LabScale.fieldMinS, Modifier.weight(1f))
                 }
                 g.temp?.let { Text(it, fontSize = LabScale.textXs, color = if (g.tempSev.isEmpty()) Lab.muted else sevColor(g.tempSev), maxLines = 1) }
             }

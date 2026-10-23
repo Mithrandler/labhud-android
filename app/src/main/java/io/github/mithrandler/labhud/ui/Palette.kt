@@ -157,7 +157,7 @@ fun PaletteSheet(
         HitKind.Section -> onSection(h.target)
     }
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Lab.card) {
-        Column(Modifier.fillMaxWidth().padding(start = LabScale.space4, end = LabScale.space4, bottom = 32.dp)) {
+        Column(Modifier.fillMaxWidth().padding(start = LabScale.space4, end = LabScale.space4, bottom = LabScale.space8)) {
             OutlinedTextField(q, { q = it }, Modifier.fillMaxWidth(), singleLine = true,
                 placeholder = { Text(if (admin) "Search, > for commands" else "Search the cards and pages") },
                 leadingIcon = { Icon(LabIcons.search, null) },

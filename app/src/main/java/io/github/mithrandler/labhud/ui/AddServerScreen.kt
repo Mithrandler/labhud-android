@@ -149,7 +149,7 @@ fun AddServerScreen(repo: LabRepository, initialLink: String?, onBack: (() -> Un
                 navigationIcon = { if (onBack != null) IconButton(onClick = onBack) { Icon(LabIcons.back, "Back") } },
                 title = {
                     androidx.compose.foundation.layout.Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                        io.github.mithrandler.labhud.ui.settings.BrandMark(24.dp)
+                        io.github.mithrandler.labhud.ui.settings.BrandMark(LabScale.brandS)
                         androidx.compose.foundation.layout.Spacer(Modifier.padding(start = LabScale.space3))
                         Text(if (onBack == null) "Welcome to LabHUD" else "Add a server")
                     }

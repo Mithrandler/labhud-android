@@ -37,17 +37,17 @@ fun CompactTabs(tabs: List<Triple<String, String, ImageVector>>, current: String
         val on = route == current
         Box(modifier.selectable(selected = on, role = Role.Tab, onClick = { onPick(route) }), contentAlignment = Alignment.Center) {
             Box(Modifier.clip(RoundedCornerShape(50)).background(if (on) Lab.accent.copy(alpha = 0.22f) else androidx.compose.ui.graphics.Color.Transparent)
-                .size(width = 48.dp, height = 32.dp), contentAlignment = Alignment.Center) {
-                Icon(icon, label, tint = if (on) Lab.title else Lab.muted, modifier = Modifier.size(22.dp))
+                .size(width = LabScale.touch, height = LabScale.space8), contentAlignment = Alignment.Center) {
+                Icon(icon, label, tint = if (on) Lab.title else Lab.muted, modifier = Modifier.size(LabScale.iconCard))
             }
         }
     }
     if (vertical) Column(
-        Modifier.fillMaxHeight().background(Lab.card).windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Start + WindowInsetsSides.Vertical)).width(56.dp),
+        Modifier.fillMaxHeight().background(Lab.card).windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Start + WindowInsetsSides.Vertical)).width(LabScale.navW),
         verticalArrangement = Arrangement.spacedBy(LabScale.space2, Alignment.CenterVertically), horizontalAlignment = Alignment.CenterHorizontally,
-    ) { tabs.forEach { (r, l, i) -> item(r, l, i, Modifier.size(width = 56.dp, height = 44.dp)) } }
+    ) { tabs.forEach { (r, l, i) -> item(r, l, i, Modifier.size(width = LabScale.navW, height = LabScale.navH)) } }
     else Row(
-        Modifier.fillMaxWidth().background(Lab.card).windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal)).height(44.dp),
+        Modifier.fillMaxWidth().background(Lab.card).windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal)).height(LabScale.navH),
         horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically,
-    ) { tabs.forEach { (r, l, i) -> item(r, l, i, Modifier.weight(1f).height(44.dp)) } }
+    ) { tabs.forEach { (r, l, i) -> item(r, l, i, Modifier.weight(1f).height(LabScale.navH)) } }
 }

@@ -170,7 +170,7 @@ internal fun Dot(tone: Int, size: Int = 10) {
 
 @Composable
 private fun HostList(hosts: List<ZoneHost>?, message: String, onOpen: (String) -> Unit, onRefresh: () -> Unit) {
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp, vertical = 8.dp)) {
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = LabScale.space4, vertical = LabScale.space2)) {
         if (message.isNotEmpty()) item { Text(message, color = Lab.warn, fontSize = LabScale.textSm, modifier = Modifier.padding(bottom = LabScale.space2)) }
         if (hosts == null) item { Text("Loading…", color = Lab.muted) }
         else if (hosts.isEmpty()) item { Text("No agents yet. Add one in Settings > Hosts and agents.", color = Lab.muted) }
@@ -206,7 +206,7 @@ private fun HostScreen(h: ZoneHost, ask: suspend (suspend LabApi.() -> ZoneAnswe
     }
     val tabs = TABS.filter { it.first != "vms" || h.pve }
     if (wide) Row(Modifier.fillMaxSize()) {
-        Column(Modifier.width(140.dp).verticalScroll(rememberScrollState()).padding(LabScale.space2), verticalArrangement = Arrangement.spacedBy(LabScale.space1)) {
+        Column(Modifier.width(LabScale.cellW).verticalScroll(rememberScrollState()).padding(LabScale.space2), verticalArrangement = Arrangement.spacedBy(LabScale.space1)) {
             tabs.forEach { (id, label) -> FilterChip(selected = tab == id, onClick = { tab = id }, label = { Text(label) }, modifier = Modifier.fillMaxWidth()) }
         }
         Box(Modifier.weight(1f)) { content() }
@@ -223,7 +223,7 @@ internal fun Cell(label: String, big: String, sub: String = "", modifier: Modifi
     Surface(shape = CardShape, color = Lab.card, border = BorderStroke(LabScale.hairline, Lab.line), modifier = modifier) {
         Column(Modifier.padding(LabScale.space3)) {
             Text(label, fontSize = LabScale.textSm, color = Lab.muted)
-            Text(big, fontSize = 22.sp, fontWeight = FontWeight.SemiBold, color = Lab.text)
+            Text(big, fontSize = LabScale.textTile, fontWeight = FontWeight.SemiBold, color = Lab.text)
             if (sub.isNotEmpty()) Text(sub, fontSize = LabScale.textSm, color = Lab.muted)
         }
     }
@@ -233,11 +233,11 @@ internal fun Cell(label: String, big: String, sub: String = "", modifier: Modifi
 @Composable
 private fun Overview(h: ZoneHost) {
     FlowRow(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(LabScale.space4), horizontalArrangement = Arrangement.spacedBy(LabScale.space3), verticalArrangement = Arrangement.spacedBy(LabScale.space3)) {
-        Cell("Status", if (h.online) "Online" else "Offline", if (h.version.isNotEmpty()) "agent ${h.version}" else "", Modifier.width(150.dp))
-        Cell("Containers", "${h.containers.running} / ${h.containers.total}", "running / all", Modifier.width(150.dp))
-        Cell("CPU", "${h.cpu.toInt()}%", "", Modifier.width(150.dp))
-        Cell("Memory", "${h.mem.toInt()}%", "", Modifier.width(150.dp))
-        if (h.update) Cell("Agent", "Update", "a newer agent is out", Modifier.width(150.dp))
+        Cell("Status", if (h.online) "Online" else "Offline", if (h.version.isNotEmpty()) "agent ${h.version}" else "", Modifier.width(LabScale.cellW))
+        Cell("Containers", "${h.containers.running} / ${h.containers.total}", "running / all", Modifier.width(LabScale.cellW))
+        Cell("CPU", "${h.cpu.toInt()}%", "", Modifier.width(LabScale.cellW))
+        Cell("Memory", "${h.mem.toInt()}%", "", Modifier.width(LabScale.cellW))
+        if (h.update) Cell("Agent", "Update", "a newer agent is out", Modifier.width(LabScale.cellW))
     }
 }
 
@@ -322,7 +322,7 @@ private fun ContainerSheet(host: String, c: ZoneContainer, ask: suspend (suspend
             FilterChip(view == "stats", { view = "stats" }, label = { Text("Stats") })
             FilterChip(view == "shell", { view = "shell" }, enabled = c.shell, label = { Text("Shell") })
         }
-        Spacer(Modifier.size(8.dp))
+        Spacer(Modifier.size(LabScale.space2))
         when (view) {
             "inspect" -> InspectView(host, c.name, ask)
             "stats" -> StatsView(host, c.name, ask)
@@ -365,7 +365,7 @@ private fun LogView(host: String, name: String, repo: LabRepository, ask: suspen
     }
     DisposableEffect(name) { onDispose { id?.let { i -> repo.zoneCloseLater(i) } } }
     Text(status, fontSize = LabScale.textSm, color = Lab.muted)
-    Mono(text.ifEmpty { "…" }, Modifier.fillMaxWidth().heightIn(min = 160.dp, max = 420.dp).verticalScroll(scroll))
+    Mono(text.ifEmpty { "…" }, Modifier.fillMaxWidth().heightIn(min = LabScale.fieldMin, max = LabScale.scrollM).verticalScroll(scroll))
 }
 
 /** Closes a stream when its view goes (a dispose cannot wait): its own scope, one call. */
@@ -412,7 +412,7 @@ private fun InspectView(host: String, name: String, ask: suspend (suspend LabApi
         !a.ok || a.inspect == null -> Text(a.refusal(), color = Lab.warn)
         else -> {
             val i = a.inspect
-            Column(Modifier.heightIn(max = 460.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(LabScale.space2)) {
+            Column(Modifier.heightIn(max = LabScale.scrollM).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(LabScale.space2)) {
                 @Composable fun row(k: String, v: String) { if (v.isNotEmpty()) Column { Text(k, fontSize = LabScale.textXs, color = Lab.muted); Text(v, fontSize = LabScale.textSm, color = Lab.text) } }
                 row("Image", i.image); row("Created", i.created); row("Started", i.started)
                 row("Restart", i.restart + if (i.restarts > 0) " (${i.restarts} restarts)" else ""); row("Health", i.health); row("Command", i.command)
@@ -435,11 +435,11 @@ private fun StatsView(host: String, name: String, ask: suspend (suspend LabApi.(
         else -> {
             val s = a.stats
             FlowRow(horizontalArrangement = Arrangement.spacedBy(LabScale.space3), verticalArrangement = Arrangement.spacedBy(LabScale.space3)) {
-                Cell("CPU", "${s.cpu.toInt()}%", "of one core", Modifier.width(150.dp))
-                Cell("Memory", bytesText(s.mem), if (s.memLimit > 0) "${s.memPct.toInt()}% of ${bytesText(s.memLimit)}" else "", Modifier.width(150.dp))
-                Cell("Network", "↓ ${bytesText(s.netRx)}", "↑ ${bytesText(s.netTx)} since start", Modifier.width(150.dp))
-                Cell("Disk", "r ${bytesText(s.blockRead)}", "w ${bytesText(s.blockWrite)}", Modifier.width(150.dp))
-                Cell("Processes", s.pids.toInt().toString(), "", Modifier.width(150.dp))
+                Cell("CPU", "${s.cpu.toInt()}%", "of one core", Modifier.width(LabScale.cellW))
+                Cell("Memory", bytesText(s.mem), if (s.memLimit > 0) "${s.memPct.toInt()}% of ${bytesText(s.memLimit)}" else "", Modifier.width(LabScale.cellW))
+                Cell("Network", "↓ ${bytesText(s.netRx)}", "↑ ${bytesText(s.netTx)} since start", Modifier.width(LabScale.cellW))
+                Cell("Disk", "r ${bytesText(s.blockRead)}", "w ${bytesText(s.blockWrite)}", Modifier.width(LabScale.cellW))
+                Cell("Processes", s.pids.toInt().toString(), "", Modifier.width(LabScale.cellW))
             }
         }
     }
@@ -478,7 +478,7 @@ private fun ShellView(host: String, name: String, repo: LabRepository, ask: susp
         }
     }
     Text(status, fontSize = LabScale.textSm, color = Lab.muted)
-    Mono(text.ifEmpty { "…" }, Modifier.fillMaxWidth().heightIn(min = 160.dp, max = 320.dp).verticalScroll(scroll))
+    Mono(text.ifEmpty { "…" }, Modifier.fillMaxWidth().heightIn(min = LabScale.fieldMin, max = LabScale.scrollS).verticalScroll(scroll))
     Row(Modifier.horizontalScroll(rememberScrollState()).padding(vertical = LabScale.space2), horizontalArrangement = Arrangement.spacedBy(LabScale.space2)) {
         SHELL_KEYS.forEach { (label, seq) -> OutlinedButton(onClick = { send(seq) }, enabled = id != null) { Text(label, fontSize = LabScale.textSm) } }
     }

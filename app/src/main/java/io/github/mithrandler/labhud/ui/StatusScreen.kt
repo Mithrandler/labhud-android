@@ -126,7 +126,7 @@ fun StatusScreen(
         Column(Modifier.padding(pad).fillMaxSize()) {
             ConnBanner(conn, repo.liveAt, onRetry = { repo.retry() })
             if (st == null) {
-                if (conn is Conn.Offline) Text("Nothing kept from this server yet: the numbers come once it answers.", color = Lab.muted, modifier = Modifier.padding(24.dp))
+                if (conn is Conn.Offline) Text("Nothing kept from this server yet: the numbers come once it answers.", color = Lab.muted, modifier = Modifier.padding(LabScale.space6))
                 else SkeletonTiles()
                 return@Column
             }
@@ -153,7 +153,7 @@ fun StatusScreen(
             if (pages.size > 1) LazyRow(
                 state = chips,
                 modifier = Modifier.fillMaxWidth().padding(vertical = LabScale.space1),
-                contentPadding = PaddingValues(horizontal = 16.dp),
+                contentPadding = PaddingValues(horizontal = LabScale.space4),
                 horizontalArrangement = Arrangement.spacedBy(LabScale.space2),
             ) {
                 itemsIndexed(pages, key = { _, p -> p.id }) { i, p ->
@@ -162,7 +162,7 @@ fun StatusScreen(
                         selected = i == pager.currentPage, onClick = { scope.launch { pager.animateScrollToPage(i) } },
                         label = { Text(p.title.lowercase().replaceFirstChar(Char::uppercase)) },
                         leadingIcon = if (p.icon.isNotEmpty()) ({ NamedIcon(p.icon, LabIcons.status, server, LabScale.iconCard) }) else null,
-                        trailingIcon = if (bad) ({ Box(Modifier.size(6.dp).clip(CircleShape).background(Lab.red)) }) else null,
+                        trailingIcon = if (bad) ({ Box(Modifier.size(LabScale.dotTileSmall).clip(CircleShape).background(Lab.red)) }) else null,
                         colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Lab.accent.copy(alpha = 0.2f), selectedLabelColor = Lab.title),
                     )
                 }
@@ -237,7 +237,7 @@ private fun GameTile(g: GameServer, server: Server?, onClick: () -> Unit) {
     Surface(onClick = onClick, shape = CardShape, color = Lab.card, border = BorderStroke(LabScale.hairline, Lab.line), modifier = Modifier.fillMaxWidth().height(LocalTileH.current)) {
         Column(Modifier.padding(horizontal = LabScale.space3, vertical = LabScale.space3)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(9.dp).clip(CircleShape).background(if (g.running) Lab.green else Lab.border))
+                Box(Modifier.size(LabScale.dotTileSmall).clip(CircleShape).background(if (g.running) Lab.green else Lab.border))
                 Spacer(Modifier.width(LabScale.space2))
                 NamedIcon(g.icon, LabIcons.games, server, LabScale.iconCard)
                 Spacer(Modifier.width(LabScale.space2))
@@ -254,7 +254,7 @@ private fun GameTile(g: GameServer, server: Server?, onClick: () -> Unit) {
 @Composable
 fun BellSheet(st: LabState, onDismiss: () -> Unit, onCard: (String) -> Unit) {
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Lab.card) {
-        BellContent(st, onCard, Modifier.padding(start = LabScale.space4, end = LabScale.space4, bottom = 32.dp))
+        BellContent(st, onCard, Modifier.padding(start = LabScale.space4, end = LabScale.space4, bottom = LabScale.space8))
     }
 }
 
@@ -272,7 +272,7 @@ fun BellContent(st: LabState, onCard: (String) -> Unit, modifier: Modifier = Mod
                     Modifier.fillMaxWidth().clickable(enabled = a.card != null && a.card in st.byId) { a.card?.let(onCard) }.padding(vertical = LabScale.space2),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Icon(LabIcons.warning, null, tint = Lab.warn, modifier = Modifier.size(18.dp))
+                    Icon(LabIcons.warning, null, tint = Lab.warn, modifier = Modifier.size(LabScale.iconCard))
                     Spacer(Modifier.width(LabScale.space3))
                     Text(a.text, fontSize = LabScale.textMd, modifier = Modifier.weight(1f))
                     a.since?.let { Text(time.format(Date(it * 1000)), fontSize = LabScale.textSm, color = Lab.muted) }
@@ -309,7 +309,7 @@ fun LiveMark(st: LabState, conn: Conn) {
     val text = when (conn) { Conn.Live -> "Live $time"; is Conn.Offline -> "Offline · $time"; else -> time }
     val wide = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp >= 600
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = LabScale.space1).semantics { contentDescription = text }) {
-        Box(Modifier.size(8.dp).clip(CircleShape).background(color))
+        Box(Modifier.size(LabScale.dotTileSmall).clip(CircleShape).background(color))
         if (wide) {
             Spacer(Modifier.width(LabScale.space2))
             Text(text, fontSize = LabScale.textSm, color = if (conn is Conn.Offline) Lab.warn else Lab.sub)
@@ -346,7 +346,7 @@ fun ConnBanner(conn: Conn, liveAtFlow: kotlinx.coroutines.flow.StateFlow<Long>, 
                         else -> null
                     },
                 )
-                if (parts.isNotEmpty()) Text(parts.joinToString(" · "), fontSize = LabScale.textSm, color = Lab.muted, modifier = Modifier.padding(top = 2.dp))
+                if (parts.isNotEmpty()) Text(parts.joinToString(" · "), fontSize = LabScale.textSm, color = Lab.muted, modifier = Modifier.padding(top = LabScale.spaceHalf))
             }
             if (!conn.fatal) TextButton(onClick = onRetry, enabled = !conn.trying) { Text("Retry now") }
         }
@@ -357,7 +357,7 @@ fun ConnBanner(conn: Conn, liveAtFlow: kotlinx.coroutines.flow.StateFlow<Long>, 
 fun ServerPicker(server: Server?, servers: List<Server>, onPick: (Server) -> Unit, onManage: () -> Unit) {
     var open by remember { mutableStateOf(false) }
     Box {
-        Row(Modifier.clip(androidx.compose.foundation.shape.RoundedCornerShape(8.dp)).clickable { open = true }.padding(vertical = LabScale.space2),
+        Row(Modifier.clip(androidx.compose.foundation.shape.RoundedCornerShape(LabScale.radiusInner)).clickable { open = true }.padding(vertical = LabScale.space2),
             verticalAlignment = Alignment.CenterVertically) {
             // the app's own name, not the server's: the one a server's config cannot change
             Text("LabHUD", color = Lab.title, fontSize = LabScale.textWallNum, fontWeight = FontWeight.SemiBold, maxLines = 1, softWrap = false)
@@ -384,6 +384,6 @@ fun InternetMark(n: io.github.mithrandler.labhud.data.Internet) {
         fontSize = LabScale.textSm,
         maxLines = 1,
         softWrap = false,
-        modifier = Modifier.padding(end = 2.dp).semantics { contentDescription = "Internet: download ${rateText(n.dn)}, upload ${rateText(n.up)}" },
+        modifier = Modifier.padding(end = LabScale.spaceHalf).semantics { contentDescription = "Internet: download ${rateText(n.dn)}, upload ${rateText(n.up)}" },
     )
 }

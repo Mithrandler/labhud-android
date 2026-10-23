@@ -190,7 +190,7 @@ private fun PullDialog(onDismiss: () -> Unit, onPull: (String) -> Unit) {
 private fun ImageSheet(i: ZoneImage, host: String, ask: ZoneAsk, gate: Gate, done: (String) -> Unit) {
     val scope = rememberCoroutineScope()
     var removing by remember { mutableStateOf<String?>(null) }
-    Column(Modifier.fillMaxWidth().padding(horizontal = LabScale.space4).padding(bottom = 20.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(LabScale.space2)) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = LabScale.space4).padding(bottom = LabScale.space5).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(LabScale.space2)) {
         Text(i.title(), fontSize = LabScale.textWallNum, fontWeight = FontWeight.SemiBold, color = Lab.text)
         Text("${bytesText(i.size.toDouble())} · ${i.id} · ${usedText(i.used, i.usedBy)}", fontSize = LabScale.textSm, color = Lab.muted)
         Text("Vulnerabilities", fontSize = LabScale.textSm, color = Lab.muted, modifier = Modifier.padding(top = LabScale.space3))
@@ -252,7 +252,7 @@ private fun VolumeSheet(v: ZoneVolume, host: String, ask: ZoneAsk, gate: Gate, o
     val scope = rememberCoroutineScope()
     var removing by remember { mutableStateOf(false) }
     var said by remember { mutableStateOf("") }
-    Column(Modifier.fillMaxWidth().padding(horizontal = LabScale.space4).padding(bottom = 20.dp), verticalArrangement = Arrangement.spacedBy(LabScale.space2)) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = LabScale.space4).padding(bottom = LabScale.space5), verticalArrangement = Arrangement.spacedBy(LabScale.space2)) {
         Text(v.name, fontSize = LabScale.textWallNum, fontWeight = FontWeight.SemiBold, color = Lab.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
         Text("${volumeSize(v.size)} · ${v.driver} · ${usedText(v.used, v.usedBy)}", fontSize = LabScale.textSm, color = Lab.muted)
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = LabScale.space2)) {
@@ -300,10 +300,10 @@ private fun FileBrowser(host: String, volume: String, ask: ZoneAsk) {
         when {
             f.masked && f.text.isEmpty() -> Text("Looks like a secret: its content is not shown.", color = Lab.warn, fontSize = LabScale.textSm)
             f.binary -> Text("A binary file.", color = Lab.muted, fontSize = LabScale.textSm)
-            else -> Mono(f.text.ifEmpty { "(empty)" }, Modifier.fillMaxWidth().heightIn(max = 320.dp).verticalScroll(rememberScrollState()))
+            else -> Mono(f.text.ifEmpty { "(empty)" }, Modifier.fillMaxWidth().heightIn(max = LabScale.scrollS).verticalScroll(rememberScrollState()))
         }
         TextButton(onClick = { file = null }) { Text("Back to the folder") }
-    } else Column(Modifier.heightIn(max = 340.dp).verticalScroll(rememberScrollState())) {
+    } else Column(Modifier.heightIn(max = LabScale.scrollS).verticalScroll(rememberScrollState())) {
         if (entries == null) Text("Loading…", color = Lab.muted)
         if (path != "/") Row2("..", "up", "") { path = parentOf(path) }
         entries.orEmpty().forEach { e ->
@@ -359,14 +359,14 @@ private fun NetworkSheet(n: ZoneNetwork, host: String, ask: ZoneAsk, gate: Gate,
     var now by remember(n.name) { mutableStateOf<ZoneAnswer?>(null) }
     var removing by remember { mutableStateOf(false) }
     LaunchedEffect(n.name) { now = ask { zoneNetwork(host, n.name) } }
-    Column(Modifier.fillMaxWidth().padding(horizontal = LabScale.space4).padding(bottom = 20.dp), verticalArrangement = Arrangement.spacedBy(LabScale.space2)) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = LabScale.space4).padding(bottom = LabScale.space5), verticalArrangement = Arrangement.spacedBy(LabScale.space2)) {
         Text(n.name, fontSize = LabScale.textWallNum, fontWeight = FontWeight.SemiBold, color = Lab.text)
         Text("${n.driver} · ${n.scope} · ${usedText(n.used, n.usedBy)}", fontSize = LabScale.textSm, color = Lab.muted)
         val a = now
         when {
             a == null -> Text("Loading…", color = Lab.muted)
             !a.ok || a.network == null -> Said(a.refusal())
-            else -> Column(Modifier.heightIn(max = 320.dp).verticalScroll(rememberScrollState())) {
+            else -> Column(Modifier.heightIn(max = LabScale.scrollS).verticalScroll(rememberScrollState())) {
                 if (a.network.containers.isEmpty()) Text("No container is on it.", color = Lab.muted, fontSize = LabScale.textSm)
                 a.network.containers.forEach { c -> Row2(c.name, c.ipv4, "") {} }
             }

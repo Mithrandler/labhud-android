@@ -77,7 +77,7 @@ fun GameScreen(repo: LabRepository, id: String, onBack: () -> Unit, onSignIn: ()
         },
     ) { pad ->
         if (g == null) {
-            Text("Loading…", color = Lab.muted, modifier = Modifier.padding(pad).padding(24.dp))
+            Text("Loading…", color = Lab.muted, modifier = Modifier.padding(pad).padding(LabScale.space6))
             return@Scaffold
         }
         LazyColumn(Modifier.padding(pad).fillMaxSize(), contentPadding = PaddingValues(LabScale.space4), verticalArrangement = Arrangement.spacedBy(LabScale.space3)) {

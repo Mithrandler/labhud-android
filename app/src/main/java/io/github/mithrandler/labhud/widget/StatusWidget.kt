@@ -60,15 +60,15 @@ class StatusWidget : GlanceAppWidget() {
         val color = when { n < 0 -> Hud.border; n == 0 -> Hud.green; else -> Hud.red }
         val big = LocalSize.current.height >= 100.dp
         Column(
-            GlanceModifier.fillMaxSize().background(Hud.card).cornerRadius(16.dp).padding(LabScale.space3)
+            GlanceModifier.fillMaxSize().background(Hud.card).cornerRadius(LabScale.radiusWidget).padding(LabScale.space3)
                 .clickable(actionStartActivity<MainActivity>()),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(GlanceModifier.size(10.dp).background(color).cornerRadius(5.dp)) {}
+                Box(GlanceModifier.size(LabScale.dotTile).background(color).cornerRadius(LabScale.radiusInner)) {}
                 Spacer(GlanceModifier.width(LabScale.space2))
                 Text(name, style = TextStyle(color = ColorProvider(Hud.title), fontSize = LabScale.textSm, fontWeight = FontWeight.Medium), maxLines = 1)
             }
-            Spacer(GlanceModifier.height(4.dp))
+            Spacer(GlanceModifier.height(LabScale.space1))
             Text(
                 when { n < 0 -> "Open the app"; n == 0 -> "All good"; n == 1 -> "1 problem"; else -> "$n problems" },
                 style = TextStyle(color = ColorProvider(Color.White), fontSize = LabScale.textLg, fontWeight = FontWeight.Bold), maxLines = 1,

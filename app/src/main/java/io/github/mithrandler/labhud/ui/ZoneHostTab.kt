@@ -143,8 +143,8 @@ internal fun HostTab(h: ZoneHost, ask: ZoneAsk, gate: Gate) {
 @Composable
 private fun UnitSheet(u: ZoneUnit, host: String, run: (String, suspend LabApi.() -> ZoneAnswer) -> Unit) {
     var stopping by remember(u.name) { mutableStateOf(false) }
-    Column(Modifier.fillMaxWidth().padding(horizontal = LabScale.space4).padding(bottom = 20.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(LabScale.space2)) {
-        Text(u.name, fontSize = LabScale.textWallNum, fontWeight = FontWeight.SemiBold, color = Lab.text, modifier = Modifier.padding(end = 48.dp))
+    Column(Modifier.fillMaxWidth().padding(horizontal = LabScale.space4).padding(bottom = LabScale.space5).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(LabScale.space2)) {
+        Text(u.name, fontSize = LabScale.textWallNum, fontWeight = FontWeight.SemiBold, color = Lab.text, modifier = Modifier.padding(end = LabScale.touch))
         Text("${u.active} · ${u.sub}", fontSize = LabScale.textSm, color = Lab.muted)
         Text(u.description, fontSize = LabScale.textSm, color = Lab.sub)
         Row(horizontalArrangement = Arrangement.spacedBy(LabScale.space2)) {
@@ -176,8 +176,8 @@ private fun JobSheet(job: ZoneJob, host: String, ask: ZoneAsk, gate: Gate, onDon
     var guests by remember(job.id) { mutableStateOf<List<ZoneGuest>>(emptyList()) }
     LaunchedEffect(kind) { if (kind == "backup") { val g = ask { zoneGuests(host) }; if (g.ok) guests = g.guests.filter { it.ticked && !it.template } } }
     val agent = if (kind == "update" && allHosts) "*" else if (job.agent == "*") host else job.agent
-    Column(Modifier.fillMaxWidth().padding(horizontal = LabScale.space4).padding(bottom = 20.dp).heightIn(max = (LocalConfiguration.current.screenHeightDp * 0.9f).dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(LabScale.space2)) {
-        Text(if (isNew) "New job" else job.name, fontSize = LabScale.textWallNum, fontWeight = FontWeight.SemiBold, color = Lab.text, modifier = Modifier.padding(end = 48.dp))
+    Column(Modifier.fillMaxWidth().padding(horizontal = LabScale.space4).padding(bottom = LabScale.space5).heightIn(max = (LocalConfiguration.current.screenHeightDp * 0.9f).dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(LabScale.space2)) {
+        Text(if (isNew) "New job" else job.name, fontSize = LabScale.textWallNum, fontWeight = FontWeight.SemiBold, color = Lab.text, modifier = Modifier.padding(end = LabScale.touch))
         OutlinedTextField(name, { name = it.take(60) }, singleLine = true, label = { Text("Name") }, modifier = Modifier.fillMaxWidth())
         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(LabScale.space2)) {
             JOB_KINDS.forEach { (k, label) -> FilterChip(selected = kind == k, enabled = isNew, onClick = { kind = k }, label = { Text(label) }) }

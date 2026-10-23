@@ -124,7 +124,7 @@ fun DockerHostPanel(a: AgentRow, repo: LabRepository, gate: Gate, busy: Boolean,
 
 @Composable
 private fun HostLine(name: String, detail: String, dim: Boolean) {
-    Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+    Row(Modifier.fillMaxWidth().padding(vertical = LabScale.spaceHalf), horizontalArrangement = Arrangement.SpaceBetween) {
         Text(name, fontSize = LabScale.textSm, color = if (dim) Lab.muted else Lab.text, maxLines = 2, modifier = Modifier.weight(1f))
         Text(detail, fontSize = LabScale.textSm, color = Lab.muted, modifier = Modifier.padding(start = LabScale.space2))
     }
@@ -220,7 +220,7 @@ private fun StackEditor(a: AgentRow, start: String, repo: LabRepository, gate: G
         text = {
             Column(Modifier.verticalScroll(rememberScrollState())) {
                 if (start.isEmpty()) OutlinedTextField(name, { name = it.lowercase() }, Modifier.fillMaxWidth(), singleLine = true, label = { Text("Name") })
-                OutlinedTextField(compose, { compose = it }, Modifier.fillMaxWidth().heightIn(min = 160.dp), label = { Text("compose.yaml") },
+                OutlinedTextField(compose, { compose = it }, Modifier.fillMaxWidth().heightIn(min = LabScale.fieldMin), label = { Text("compose.yaml") },
                     textStyle = androidx.compose.ui.text.TextStyle(fontFamily = FontFamily.Monospace, fontSize = LabScale.textSm))
                 // or the compose file from a git repository: the server fetches it, the token is used once and not kept
                 OutlinedTextField(gitRepo, { gitRepo = it.trim() }, Modifier.fillMaxWidth(), singleLine = true, label = { Text("or from git: https://git.example/owner/name") })
@@ -230,7 +230,7 @@ private fun StackEditor(a: AgentRow, start: String, repo: LabRepository, gate: G
                     OutlinedTextField(gitToken, { gitToken = it.trim() }, Modifier.fillMaxWidth(), singleLine = true,
                         visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(), label = { Text("Token, private repository (not saved)") })
                 }
-                OutlinedTextField(env, { env = it }, Modifier.fillMaxWidth().heightIn(min = 80.dp), enabled = !removeEnv, label = { Text(".env (empty keeps the host's)") },
+                OutlinedTextField(env, { env = it }, Modifier.fillMaxWidth().heightIn(min = LabScale.fieldMinS), enabled = !removeEnv, label = { Text(".env (empty keeps the host's)") },
                     textStyle = androidx.compose.ui.text.TextStyle(fontFamily = FontFamily.Monospace, fontSize = LabScale.textSm))
                 Row(Modifier.padding(top = LabScale.space1)) {
                     androidx.compose.material3.Checkbox(removeEnv, { removeEnv = it })
@@ -319,7 +319,7 @@ fun LiveLogDialog(agent: String, container: String, repo: LabRepository, gate: G
         text = {
             Column {
                 Text(status, fontSize = LabScale.textSm, color = Lab.muted)
-                Text(text.ifEmpty { "…" }, fontSize = LabScale.textXs, fontFamily = FontFamily.Monospace, modifier = Modifier.heightIn(max = 380.dp).verticalScroll(scroll))
+                Text(text.ifEmpty { "…" }, fontSize = LabScale.textXs, fontFamily = FontFamily.Monospace, modifier = Modifier.heightIn(max = LabScale.scrollM).verticalScroll(scroll))
             }
         },
         confirmButton = { TextButton(onClick = { streamId?.let { id -> scope.launch { repo.api()?.closeStream(id) } }; onClose() }) { Text("Close") } },

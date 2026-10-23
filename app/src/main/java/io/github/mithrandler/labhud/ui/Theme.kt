@@ -73,8 +73,8 @@ object Lab {
 
 private val hudScheme = darkColorScheme(
     primary = Hud.accent,
-    onPrimary = Color(0xFF001B3D),
-    primaryContainer = Color(0xFF1B2B45),
+    onPrimary = Hud.onAccent,
+    primaryContainer = FallbackDark.primaryContainer,
     onPrimaryContainer = Hud.title,
     secondary = Hud.title,
     background = Hud.bg,
@@ -96,23 +96,43 @@ private val hudScheme = darkColorScheme(
 
 /** Dark and light without a wallpaper to take colours from (before Android 12): labhud's blue on neutral greys. */
 private val fallbackDark = darkColorScheme(
-    primary = Hud.accent, onPrimary = Color(0xFF00315F), primaryContainer = Color(0xFF1B2B45), onPrimaryContainer = Hud.title,
-    secondary = Hud.title,
-    background = Color(0xFF111317), onBackground = Color(0xFFE2E2E9), surface = Color(0xFF111317), onSurface = Color(0xFFE2E2E9),
-    surfaceVariant = Color(0xFF43474E), onSurfaceVariant = Color(0xFFC3C6CF),
-    surfaceContainerLowest = Color(0xFF0C0E11), surfaceContainerLow = Color(0xFF191C20), surfaceContainer = Color(0xFF1D2024),
-    surfaceContainerHigh = Color(0xFF282A2F), surfaceContainerHighest = Color(0xFF33353A),
-    outline = Color(0xFF8D9099), outlineVariant = Color(0xFF43474E),
+    onPrimary = FallbackDark.onPrimary,
+    primaryContainer = FallbackDark.primaryContainer,
+    background = FallbackDark.background,
+    onBackground = FallbackDark.onBackground,
+    surface = FallbackDark.surface,
+    onSurface = FallbackDark.onSurface,
+    surfaceVariant = FallbackDark.surfaceVariant,
+    onSurfaceVariant = FallbackDark.onSurfaceVariant,
+    surfaceContainerLowest = FallbackDark.surfaceContainerLowest,
+    surfaceContainerLow = FallbackDark.surfaceContainerLow,
+    surfaceContainer = FallbackDark.surfaceContainer,
+    surfaceContainerHigh = FallbackDark.surfaceContainerHigh,
+    surfaceContainerHighest = FallbackDark.surfaceContainerHighest,
+    outline = FallbackDark.outline,
+    outlineVariant = FallbackDark.outlineVariant,
+    primary = Hud.accent, onPrimaryContainer = Hud.title, secondary = Hud.title,
 )
 
 private val fallbackLight = lightColorScheme(
-    primary = Color(0xFF0B57D0), onPrimary = Color.White, primaryContainer = Color(0xFFD8E2FF), onPrimaryContainer = Color(0xFF001A41),
-    secondary = Color(0xFF565F71),
-    background = Color(0xFFF9F9FF), onBackground = Color(0xFF1A1C20), surface = Color(0xFFF9F9FF), onSurface = Color(0xFF1A1C20),
-    surfaceVariant = Color(0xFFE0E2EC), onSurfaceVariant = Color(0xFF44474E),
-    surfaceContainerLowest = Color.White, surfaceContainerLow = Color(0xFFF3F3FA), surfaceContainer = Color(0xFFEDEDF4),
-    surfaceContainerHigh = Color(0xFFE7E8EE), surfaceContainerHighest = Color(0xFFE2E2E9),
-    outline = Color(0xFF74777F), outlineVariant = Color(0xFFC4C6D0),
+    primary = FallbackLight.primary,
+    onPrimary = FallbackLight.onPrimary,
+    primaryContainer = FallbackLight.primaryContainer,
+    onPrimaryContainer = FallbackLight.onPrimaryContainer,
+    secondary = FallbackLight.secondary,
+    background = FallbackLight.background,
+    onBackground = FallbackLight.onBackground,
+    surface = FallbackLight.surface,
+    onSurface = FallbackLight.onSurface,
+    surfaceVariant = FallbackLight.surfaceVariant,
+    onSurfaceVariant = FallbackLight.onSurfaceVariant,
+    surfaceContainerLowest = FallbackLight.surfaceContainerLowest,
+    surfaceContainerLow = FallbackLight.surfaceContainerLow,
+    surfaceContainer = FallbackLight.surfaceContainer,
+    surfaceContainerHigh = FallbackLight.surfaceContainerHigh,
+    surfaceContainerHighest = FallbackLight.surfaceContainerHighest,
+    outline = FallbackLight.outline,
+    outlineVariant = FallbackLight.outlineVariant,
 )
 
 /**
@@ -144,9 +164,9 @@ private fun paletteOf(cs: ColorScheme, dark: Boolean) = LabPalette(
     bg = cs.background, card = cs.surfaceContainerLow, block = cs.surfaceContainerHigh, line = cs.outlineVariant, border = cs.outline,
     text = cs.onSurface, sub = cs.onSurfaceVariant, muted = cs.onSurfaceVariant.copy(alpha = 0.75f),
     accent = cs.primary, title = cs.primary, onTitle = cs.onPrimary,
-    green = if (dark) Hud.green else Color(0xFF1E8E3E), warn = if (dark) Hud.warn else Color(0xFFB45309),
-    red = if (dark) Hud.red else Color(0xFFD93025),
-    redBg = if (dark) Hud.redBg else Color(0xFFFDE7EA), redText = if (dark) Hud.redText else Color(0xFF7A1020),
+    green = if (dark) Hud.green else LightStatus.green, warn = if (dark) Hud.warn else LightStatus.warn,
+    red = if (dark) Hud.red else LightStatus.red,
+    redBg = if (dark) Hud.redBg else LightStatus.redBg, redText = if (dark) Hud.redText else LightStatus.redText,
     infoBg = cs.surfaceContainer,
 )
 

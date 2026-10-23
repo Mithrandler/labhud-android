@@ -1,4 +1,4 @@
-// Written by labhud's design/build.py from its design/tokens.json (0d17297ceeed): edit there, not here.
+// Written by labhud's design/build.py from its design/tokens.json (7f8eac319fef): edit there, not here.
 package io.github.mithrandler.labhud.ui
 
 import androidx.compose.ui.graphics.Color
@@ -46,6 +46,8 @@ object Hud {
     val redText = Color(0xFFFFD9E2)
     /** behind a form being filled in */
     val infoBg = Color(0xFF0E1824)
+    /** text on the accent colour (the app's primary button) */
+    val onAccent = Color(0xFF001B3D)
 }
 
 /** The "Dark grey" board's ground, cards and edges (the wall's settings.js says the same). */
@@ -60,6 +62,55 @@ object HudGrey {
     val line = Color(0xFF333844)
     /** card edges */
     val border = Color(0xFF454C59)
+}
+
+/** The fallback Material schemes (no wallpaper colours to take, before Android 12): labhud's blue on neutral greys. */
+object FallbackDark {
+    val onPrimary = Color(0xFF00315F)
+    val primaryContainer = Color(0xFF1B2B45)
+    val background = Color(0xFF111317)
+    val onBackground = Color(0xFFE2E2E9)
+    val surface = Color(0xFF111317)
+    val onSurface = Color(0xFFE2E2E9)
+    val surfaceVariant = Color(0xFF43474E)
+    val onSurfaceVariant = Color(0xFFC3C6CF)
+    val surfaceContainerLowest = Color(0xFF0C0E11)
+    val surfaceContainerLow = Color(0xFF191C20)
+    val surfaceContainer = Color(0xFF1D2024)
+    val surfaceContainerHigh = Color(0xFF282A2F)
+    val surfaceContainerHighest = Color(0xFF33353A)
+    val outline = Color(0xFF8D9099)
+    val outlineVariant = Color(0xFF43474E)
+}
+
+object FallbackLight {
+    val primary = Color(0xFF0B57D0)
+    val onPrimary = Color(0xFFFFFFFF)
+    val primaryContainer = Color(0xFFD8E2FF)
+    val onPrimaryContainer = Color(0xFF001A41)
+    val secondary = Color(0xFF565F71)
+    val background = Color(0xFFF9F9FF)
+    val onBackground = Color(0xFF1A1C20)
+    val surface = Color(0xFFF9F9FF)
+    val onSurface = Color(0xFF1A1C20)
+    val surfaceVariant = Color(0xFFE0E2EC)
+    val onSurfaceVariant = Color(0xFF44474E)
+    val surfaceContainerLowest = Color(0xFFFFFFFF)
+    val surfaceContainerLow = Color(0xFFF3F3FA)
+    val surfaceContainer = Color(0xFFEDEDF4)
+    val surfaceContainerHigh = Color(0xFFE7E8EE)
+    val surfaceContainerHighest = Color(0xFFE2E2E9)
+    val outline = Color(0xFF74777F)
+    val outlineVariant = Color(0xFFC4C6D0)
+}
+
+/** Status colours on the light theme (the HUD's are for a dark ground). */
+object LightStatus {
+    val green = Color(0xFF1E8E3E)
+    val warn = Color(0xFFB45309)
+    val red = Color(0xFFD93025)
+    val redBg = Color(0xFFFDE7EA)
+    val redText = Color(0xFF7A1020)
 }
 
 /** The sizes of the wall and ⚙: gaps, corners, type, a meter's bar. */
@@ -130,6 +181,54 @@ object LabScale {
     val pagerH = 4.dp
     /** a border or divider line */
     val hairline = 1.dp
+    /** a hairline's gap: between a name and its line, a chip's vertical padding */
+    val spaceHalf = 2.dp
+    /** under a sheet's content, an icon's indent */
+    val space5 = 20.dp
+    /** around a message on an empty screen */
+    val space6 = 24.dp
+    /** the bottom of a long sheet, around the splash */
+    val space8 = 32.dp
+    /** the least a finger target, a tab's width */
+    val touch = 48.dp
+    /** a navigation bar's height */
+    val navH = 44.dp
+    /** a navigation rail's width */
+    val navW = 56.dp
+    /** a number cell's width on a host screen */
+    val cellW = 150.dp
+    /** the tallest a short scrolling block gets (a file, a log excerpt) */
+    val scrollS = 320.dp
+    /** the tallest a long one gets (inspect, logs) */
+    val scrollM = 420.dp
+    /** a multi-line field's least height */
+    val fieldMin = 160.dp
+    /** a small multi-line field's least height */
+    val fieldMinS = 80.dp
+    /** the height of a sparkline chart */
+    val chartH = 96.dp
+    /** the height of a history chart */
+    val chartHBig = 140.dp
+    /** a loading placeholder's height */
+    val skeletonH = 88.dp
+    /** a chart line */
+    val strokeChart = 2.dp
+    /** a thin line: a bar's slices, an inset */
+    val strokeThin = 1.5.dp
+    /** the icon at the head of a card's screen */
+    val iconHero = 28.dp
+    /** the logo, small */
+    val brandS = 24.dp
+    /** the logo, medium */
+    val brandM = 40.dp
+    /** the logo, large */
+    val brandL = 56.dp
+    /** the big clock digits on the widget screen */
+    val textClock = 34.sp
+    /** a tile's height on a wide, low screen */
+    val wallTileLow = 84.dp
+    /** a home-screen widget's corners */
+    val radiusWidget = 16.dp
 }
 
 /** The icons of the wall and ⚙: thin lines on a 24×24 grid, tinted by Icon() like any other. */

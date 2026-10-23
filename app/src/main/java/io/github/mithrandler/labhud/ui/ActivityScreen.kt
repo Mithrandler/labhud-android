@@ -102,7 +102,7 @@ fun ActivityScreen(repo: LabRepository, bar: BarNav) {
         }
         if (tab == 0) {
             val st = state
-            if (st == null) Text("Connecting…", color = Lab.muted, modifier = Modifier.padding(24.dp))
+            if (st == null) Text("Connecting…", color = Lab.muted, modifier = Modifier.padding(LabScale.space6))
             else androidx.compose.foundation.lazy.LazyColumn(Modifier.fillMaxSize()) {
                 item { BellContent(st, onCard, Modifier.padding(LabScale.space4)) }
             }
@@ -115,7 +115,7 @@ fun ActivityScreen(repo: LabRepository, bar: BarNav) {
         val list = events
         val days = remember(list) { list.orEmpty().groupBy { DAY.format(Date(it.t * 1000)) } }
         if (list == null) {
-            Text(error.ifEmpty { "Loading…" }, color = Lab.muted, modifier = Modifier.padding(24.dp))
+            Text(error.ifEmpty { "Loading…" }, color = Lab.muted, modifier = Modifier.padding(LabScale.space6))
             return@Column
         }
         if (list.isEmpty()) { Text("Nothing happened yet.", color = Lab.muted, modifier = Modifier.padding(LabScale.space4)); return@Column }
@@ -133,10 +133,10 @@ fun ActivityScreen(repo: LabRepository, bar: BarNav) {
             } else {
                 val e = (line as Pair<*, *>).second as Event
                 Row(
-                    Modifier.fillMaxWidth().clickable(enabled = e.card != null) { e.card?.let(onCard) }.padding(vertical = 9.dp),
+                    Modifier.fillMaxWidth().clickable(enabled = e.card != null) { e.card?.let(onCard) }.padding(vertical = LabScale.space3),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Box(Modifier.size(8.dp).clip(CircleShape).background(if (e.bad) Lab.red else Lab.border))
+                    Box(Modifier.size(LabScale.dotTileSmall).clip(CircleShape).background(if (e.bad) Lab.red else Lab.border))
                     Spacer(Modifier.width(LabScale.space3))
                     Text(e.name, fontSize = LabScale.textMd, color = if (e.bad) Lab.text else Lab.sub, modifier = Modifier.weight(1f))
                     Spacer(Modifier.width(LabScale.space3))
@@ -154,7 +154,7 @@ private fun NotesList(notes: List<Note>?, error: String, onCard: (String) -> Uni
     val scope = rememberCoroutineScope()
     var done by remember { mutableStateOf(mapOf<Long, String>()) }
     val list = notes ?: run {
-        Text(error.ifEmpty { "Loading…" }, color = Lab.muted, modifier = Modifier.padding(24.dp))
+        Text(error.ifEmpty { "Loading…" }, color = Lab.muted, modifier = Modifier.padding(LabScale.space6))
         return
     }
     if (list.isEmpty()) { Text("No notifications.", color = Lab.muted, modifier = Modifier.padding(LabScale.space4)); return }
@@ -164,7 +164,7 @@ private fun NotesList(notes: List<Note>?, error: String, onCard: (String) -> Uni
                 Modifier.fillMaxWidth().clickable(enabled = n.card != null) { n.card?.let(onCard) }.padding(vertical = LabScale.space2),
                 verticalAlignment = Alignment.Top,
             ) {
-                Box(Modifier.padding(top = LabScale.space2).size(8.dp).clip(CircleShape).background(if (n.bad) Lab.red else Lab.green))
+                Box(Modifier.padding(top = LabScale.space2).size(LabScale.dotTileSmall).clip(CircleShape).background(if (n.bad) Lab.red else Lab.green))
                 Spacer(Modifier.width(LabScale.space3))
                 Column(Modifier.weight(1f)) {
                     Text(n.text, fontSize = LabScale.textMd, color = if (n.bad) Lab.text else Lab.sub)

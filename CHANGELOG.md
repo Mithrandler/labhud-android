@@ -6,6 +6,9 @@ All notable changes to LabHUD for Android. The format follows
 
 ## [Unreleased]
 
+### Changed
+- **No loose dp/sp left**: every size, gap and colour in the app comes from `LabScale` / `Hud` / `FallbackDark` / `FallbackLight` / `LightStatus` (generated from design/tokens.json); `ThemeScaleTest` allows none (but zero, letter spacing, text-fit steps and the widget's sizes).
+
 ## [0.1.28] - 2026-10-23
 
 ### Changed

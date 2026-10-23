@@ -58,7 +58,7 @@ fun SettingsPage(section: Section, nav: SettingsNav, content: LazyListScope.() -
                 navigationIcon = { IconButton(onClick = nav.back) { Icon(LabIcons.back, "Back") } },
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(section.icon(), null, tint = Lab.title, modifier = Modifier.size(22.dp))
+                        Icon(section.icon(), null, tint = Lab.title, modifier = Modifier.size(LabScale.iconCard))
                         Spacer(Modifier.width(LabScale.space3))
                         Text(section.title)
                     }
@@ -68,7 +68,7 @@ fun SettingsPage(section: Section, nav: SettingsNav, content: LazyListScope.() -
     ) { pad ->
         LazyColumn(
             Modifier.padding(pad).fillMaxSize(),
-            contentPadding = PaddingValues(16.dp),
+            contentPadding = PaddingValues(LabScale.space4),
             verticalArrangement = Arrangement.spacedBy(LabScale.space3),
             content = content,
         )
@@ -87,11 +87,11 @@ fun WallOnly(where: String, what: List<String>) {
     Surface(shape = CardShape, color = Lab.card, border = BorderStroke(LabScale.hairline, Lab.line)) {
         Column(Modifier.fillMaxWidth().padding(LabScale.space3)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(LabIcons.wall, null, tint = Lab.accent, modifier = Modifier.size(18.dp))
+                Icon(LabIcons.wall, null, tint = Lab.accent, modifier = Modifier.size(LabScale.iconCard))
                 Spacer(Modifier.width(LabScale.space2))
                 Text("Done on the LabHUD screen", fontWeight = FontWeight.Medium)
             }
-            Text("On the wall or in a browser: $where.", fontSize = LabScale.textSm, color = Lab.muted, modifier = Modifier.padding(top = 2.dp, bottom = LabScale.space2))
+            Text("On the wall or in a browser: $where.", fontSize = LabScale.textSm, color = Lab.muted, modifier = Modifier.padding(top = LabScale.spaceHalf, bottom = LabScale.space2))
             what.forEach { Text("·  $it", fontSize = LabScale.textSm, color = Lab.sub, modifier = Modifier.padding(vertical = LabScale.hairline)) }
         }
     }
@@ -99,6 +99,6 @@ fun WallOnly(where: String, what: List<String>) {
 
 /** labhud's mark (static/brand/mark.svg): three cards with status dots. */
 @Composable
-fun BrandMark(height: Dp = 22.dp) {
+fun BrandMark(height: Dp = LabScale.iconCard) {
     Image(painterResource(R.drawable.brand_mark), "LabHUD", Modifier.height(height).width(height * 304f / 256f))
 }

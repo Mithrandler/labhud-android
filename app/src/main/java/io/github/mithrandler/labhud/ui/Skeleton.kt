@@ -31,7 +31,7 @@ fun SkeletonBlock(modifier: Modifier = Modifier, shape: Shape = CardShape) {
 
 /** A card's screen while it loads: a header block and a bigger one. */
 @Composable
-fun SkeletonPanel(modifier: Modifier = Modifier, height: Dp = 96.dp) {
+fun SkeletonPanel(modifier: Modifier = Modifier, height: Dp = LabScale.chartH) {
     SkeletonBlock(modifier.fillMaxWidth().height(height))
 }
 

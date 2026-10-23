@@ -152,17 +152,17 @@ class MainActivity : FragmentActivity() {
     @Composable
     private fun LockScreen() {
         Column(
-            Modifier.fillMaxSize().background(Lab.bg).padding(32.dp),
+            Modifier.fillMaxSize().background(Lab.bg).padding(LabScale.space8),
             verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            BrandMark(56.dp)
-            Spacer(Modifier.height(20.dp))
+            BrandMark(LabScale.brandL)
+            Spacer(Modifier.height(LabScale.space5))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(LabIcons.lock, null, tint = Lab.muted, modifier = Modifier.size(LabScale.iconCard))
                 Spacer(Modifier.width(LabScale.space2))
                 Text("LabHUD is locked", fontSize = LabScale.textWallNum)
             }
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(LabScale.space6))
             Button(onClick = { AppLock.prompt(this@MainActivity) {} }) { Text("Unlock") }
         }
     }
@@ -196,7 +196,7 @@ class MainActivity : FragmentActivity() {
         val route = nav.currentBackStackEntryAsState().value?.destination?.route
         val landscape = androidx.compose.ui.platform.LocalConfiguration.current.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
         val tabsShown = TABS.any { it.route == route }
-        androidx.compose.runtime.CompositionLocalProvider(io.github.mithrandler.labhud.ui.LocalTileH provides (if (landscape) 84.dp else 112.dp)) {
+        androidx.compose.runtime.CompositionLocalProvider(io.github.mithrandler.labhud.ui.LocalTileH provides (if (landscape) LabScale.wallTileLow else LabScale.wallTileMin)) {
         Scaffold(
             containerColor = Lab.bg,
             contentWindowInsets = WindowInsets(0),

@@ -71,7 +71,7 @@ fun MainTopBar(
         colors = TopAppBarDefaults.topAppBarColors(containerColor = Lab.bg),
         // labhud's mark, as on the wall's top bar
         navigationIcon = {
-            Image(painterResource(R.drawable.brand_mark), "LabHUD", Modifier.padding(start = LabScale.space4).width(26.dp).height(22.dp))
+            Image(painterResource(R.drawable.brand_mark), "LabHUD", Modifier.padding(start = LabScale.space4).width(LabScale.iconHero).height(LabScale.iconCard))
         },
         title = title,
         actions = {

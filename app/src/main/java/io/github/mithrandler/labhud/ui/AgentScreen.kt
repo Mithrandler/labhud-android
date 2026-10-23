@@ -111,7 +111,7 @@ fun AgentScreen(repo: LabRepository, id: String, onBack: () -> Unit, onSignIn: (
             )
         },
     ) { pad ->
-        LazyColumn(Modifier.padding(pad).fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(LabScale.space3)) {
+        LazyColumn(Modifier.padding(pad).fillMaxSize(), contentPadding = PaddingValues(LabScale.space4), verticalArrangement = Arrangement.spacedBy(LabScale.space3)) {
             if (message.isNotEmpty()) item { Text(message, color = Lab.warn, fontSize = LabScale.textSm) }
             if (a == null) {
                 item { Text(if (all == null) "Unlock to see the agent." else "This agent is gone.", color = Lab.muted) }
@@ -127,7 +127,7 @@ fun AgentScreen(repo: LabRepository, id: String, onBack: () -> Unit, onSignIn: (
                     Text("It downloads the release from GitHub, checks it, and starts again in a few seconds.",
                         fontSize = LabScale.textSm, color = Lab.muted)
                     Button(onClick = { confirmUpdate = true }, enabled = !busy && a.online, modifier = Modifier.padding(top = LabScale.space2)) {
-                        Icon(LabIcons.update, null, Modifier.size(18.dp)); Text("  Update to v${a.update}")
+                        Icon(LabIcons.update, null, Modifier.size(LabScale.iconCard)); Text("  Update to v${a.update}")
                     }
                 }
             } else if (all!!.release.isNotEmpty() && a.version.isNotEmpty() && a.version != all!!.release) item {
@@ -168,7 +168,7 @@ fun AgentScreen(repo: LabRepository, id: String, onBack: () -> Unit, onSignIn: (
                                 Row(
                                     Modifier.fillMaxWidth().toggleable(value = t in ticked, enabled = !busy, role = Role.Checkbox) { want ->
                                         change { api -> api.agentTargets(a.id, cap, if (want) ticked + t else ticked - t) }
-                                    }.padding(vertical = 2.dp),
+                                    }.padding(vertical = LabScale.spaceHalf),
                                     verticalAlignment = Alignment.CenterVertically,
                                 ) {
                                     Checkbox(checked = t in ticked, onCheckedChange = null, enabled = !busy)
@@ -313,7 +313,7 @@ private fun DockerExtras(a: AgentRow, containers: List<String>, busy: Boolean, o
             Row(
                 Modifier.fillMaxWidth().toggleable(value = t in a.auto, enabled = !busy, role = Role.Checkbox) { want ->
                     onAuto(if (want) a.auto + t else a.auto - t)
-                }.padding(vertical = 2.dp),
+                }.padding(vertical = LabScale.spaceHalf),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Checkbox(checked = t in a.auto, onCheckedChange = null, enabled = !busy)
@@ -326,7 +326,7 @@ private fun DockerExtras(a: AgentRow, containers: List<String>, busy: Boolean, o
         Text("An address that updates the container when it is called (a registry's push hook). Shown once; a new one replaces the old.", fontSize = LabScale.textSm, color = Lab.muted)
         containers.forEach { t ->
             val has = t in a.hooks
-            Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.fillMaxWidth().padding(vertical = LabScale.spaceHalf), verticalAlignment = Alignment.CenterVertically) {
                 Text(t, fontSize = LabScale.textMd, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
                 if (has) TextButton(onClick = { onUnhook(t) }, enabled = !busy) { Text("Remove", color = Lab.red) }
                 TextButton(onClick = { onHook(t) }, enabled = !busy) { Text(if (has) "New" else "Create") }

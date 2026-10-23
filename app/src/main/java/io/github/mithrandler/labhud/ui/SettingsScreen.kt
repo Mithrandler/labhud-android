@@ -70,7 +70,7 @@ fun SettingsScreen(repo: LabRepository, bar: BarNav, onOpen: (String) -> Unit, s
     ) { pad ->
         LazyColumn(
             Modifier.padding(pad).fillMaxSize(),
-            contentPadding = PaddingValues(16.dp),
+            contentPadding = PaddingValues(LabScale.space4),
             verticalArrangement = Arrangement.spacedBy(LabScale.space3),
         ) {
             item {
@@ -108,7 +108,7 @@ private fun SectionGroup(rows: List<Section>, favs: Set<String>, onOpen: (String
     Surface(shape = CardShape, color = Lab.card, border = BorderStroke(LabScale.hairline, Lab.line)) {
         Column {
             rows.forEachIndexed { i, s ->
-                if (i > 0) HorizontalDivider(color = Lab.line, modifier = Modifier.padding(start = 52.dp))
+                if (i > 0) HorizontalDivider(color = Lab.line, modifier = Modifier.padding(start = LabScale.touch))
                 Row(
                     Modifier.fillMaxWidth().clickable { onOpen(s.id) }.padding(horizontal = LabScale.space3, vertical = LabScale.space3),
                     verticalAlignment = Alignment.CenterVertically,

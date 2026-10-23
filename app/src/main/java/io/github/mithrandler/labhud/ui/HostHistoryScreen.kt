@@ -87,7 +87,7 @@ fun HostHistoryScreen(repo: LabRepository, id: String, onBack: () -> Unit, onCar
         val metrics = card?.resources().orEmpty()
         LazyColumn(
             Modifier.padding(pad).fillMaxSize(),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(LabScale.space4),
             verticalArrangement = Arrangement.spacedBy(LabScale.space3),
         ) {
             item {
@@ -147,7 +147,7 @@ fun ScrubChart(raw: List<Double?>, step: Int, m: Metric, modifier: Modifier = Mo
             val at = indexOf(f)
             "${m.show(points[at])} · ${time.format(Date(now - (points.size - 1 - at) * pointMs))}"
         }
-        Box(Modifier.fillMaxWidth().height(140.dp).pointerInput(points.size) {
+        Box(Modifier.fillMaxWidth().height(LabScale.chartHBig).pointerInput(points.size) {
             awaitEachGesture {
                 val down = awaitFirstDown()
                 touch.value = down.position.x / size.width
@@ -169,7 +169,7 @@ fun ScrubChart(raw: List<Double?>, step: Int, m: Metric, modifier: Modifier = Mo
                 line to fill
             }
             val shade = Brush.verticalGradient(listOf(color.copy(alpha = 0.28f), Color.Transparent))
-            val stroke = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
+            val stroke = Stroke(width = LabScale.strokeChart.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
             val dash = PathEffect.dashPathEffect(floatArrayOf(8f, 8f))
             onDrawBehind {
                 for (i in 0..4) {
@@ -187,7 +187,7 @@ fun ScrubChart(raw: List<Double?>, step: Int, m: Metric, modifier: Modifier = Mo
                     val at = indexOf(f)
                     val x = at * stepX
                     drawLine(Lab.sub, Offset(x, 0f), Offset(x, size.height), strokeWidth = LabScale.hairline.toPx())
-                    points[at]?.let { drawCircle(color, 4.dp.toPx(), Offset(x, y(it))) }
+                    points[at]?.let { drawCircle(color, LabScale.space1.toPx(), Offset(x, y(it))) }
                 }
             }
         })

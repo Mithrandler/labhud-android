@@ -152,9 +152,9 @@ fun HudCard(
         shadowElevation = if (Lab.hud) 0.dp else LabScale.hairline,
     ) {
         Box {
-            if (sev.isNotEmpty()) Box(Modifier.width(3.dp).fillMaxHeight().background(barColor(sev)).align(Alignment.CenterStart))
-            Column(Modifier.fillMaxWidth().heightIn(min = if (compact) 72.dp else 92.dp)
-                .padding(horizontal = LabScale.space3, vertical = if (compact) 6.dp else 10.dp)) {
+            if (sev.isNotEmpty()) Box(Modifier.width(LabScale.spaceHalf).fillMaxHeight().background(barColor(sev)).align(Alignment.CenterStart))
+            Column(Modifier.fillMaxWidth().heightIn(min = if (compact) LabScale.wallTileLow else LabScale.wallTileMin)
+                .padding(horizontal = LabScale.space3, vertical = if (compact) LabScale.space2 else LabScale.space3)) {
                 CardHead(c, server)
                 val fade = Modifier.alpha(if (c.frozen) 0.45f else 1f)
                 CardBody(c, fade, server, chip)
@@ -166,17 +166,17 @@ fun HudCard(
                 val main = c.metrics.firstOrNull { it.trend && sparks[it.key]?.count { v -> v != null }?.let { n -> n >= 2 } == true }
                 if (main != null && !c.frozen && !bigMachine) {
                     Row(Modifier.padding(top = LabScale.space2), verticalAlignment = Alignment.CenterVertically) {
-                        Text(main.short(), fontSize = LabScale.textXs, color = Lab.muted, maxLines = 1, modifier = Modifier.widthIn(max = 56.dp))
+                        Text(main.short(), fontSize = LabScale.textXs, color = Lab.muted, maxLines = 1, modifier = Modifier.widthIn(max = LabScale.navW))
                         Spacer(Modifier.width(LabScale.space2))
                         Sparkline(sparks.getValue(main.key), if (main.sev.isEmpty()) Lab.accent else barColor(main.sev),
-                            Modifier.weight(1f).height(18.dp))
+                            Modifier.weight(1f).height(LabScale.iconCard))
                     }
                 }
                 if (!uptime.isNullOrEmpty() && !bigMachine) {
                     UptimeBar(uptime, Modifier.fillMaxWidth().padding(top = LabScale.space2).height(LabScale.bar), slices = 24)
                     val words = uptimeText(percent, coverage)
                     if (words.isNotEmpty()) Text("24 h · $words", fontSize = LabScale.textXs, color = Lab.muted, maxLines = 1,
-                        overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 2.dp))
+                        overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = LabScale.spaceHalf))
                 }
             }
         }
@@ -227,9 +227,9 @@ private fun CardBody(c: Card, fade: Modifier, server: Server? = null, chip: Stri
                 val counts = c.guestCounts.entries.sortedBy { it.key }.mapNotNull { (k, v) -> if (v.size == 2 && v[1] > 0) Metric(label = k.uppercase(), value = "${v[0]}/${v[1]}") else null }
                 val facts = others.filter { o -> counts.isEmpty() || counts.none { it.label.equals(o.label, true) } }.filter { c.gpus.isEmpty() || !(it.format == "celsius" && "gpu" in (it.label + it.key).lowercase()) } + listOfNotNull(c.guest?.uptime?.let { Metric(label = "up", value = upText(it)) }) + counts +
                     listOfNotNull(chip).map { Metric(value = it) }
-                if (ringed) MachineGauges(gauges, Modifier.padding(vertical = 2.dp), reserve = if (facts.isNotEmpty()) 40.dp else 0.dp)
+                if (ringed) MachineGauges(gauges, Modifier.padding(vertical = LabScale.spaceHalf), reserve = if (facts.isNotEmpty()) LabScale.brandM else 0.dp)
                 else rings.forEach { (m, t) -> MeterRow(m, thin = true); if (t != null) Chip(t) }
-                if (facts.isNotEmpty()) FlowRow(Modifier.fillMaxWidth().padding(top = 2.dp),
+                if (facts.isNotEmpty()) FlowRow(Modifier.fillMaxWidth().padding(top = LabScale.spaceHalf),
                     horizontalArrangement = Arrangement.spacedBy(LabScale.space2, Alignment.CenterHorizontally),
                     verticalArrangement = Arrangement.spacedBy(LabScale.space1)) {
                     facts.forEach { Chip(it) }
@@ -264,13 +264,13 @@ fun Chip(m: Metric) {
 /** A percentage as a bar: its label and value on one line, the bar (orange and red past its marks) under them. */
 @Composable
 fun MeterRow(m: Metric, modifier: Modifier = Modifier, thin: Boolean = false) {
-    Column(modifier.fillMaxWidth().padding(vertical = if (thin) LabScale.hairline else 3.dp)) {
+    Column(modifier.fillMaxWidth().padding(vertical = if (thin) LabScale.hairline else LabScale.spaceHalf)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(m.short(), fontSize = LabScale.textXs, color = Lab.muted, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
             Text(m.value, fontSize = LabScale.textSm, fontWeight = FontWeight.Medium, color = sevColor(m.sev), maxLines = 1,
                 modifier = Modifier.padding(start = LabScale.space2))
         }
-        Meter(m.pct ?: 0.0, m.sev, Modifier.fillMaxWidth().padding(top = if (thin) LabScale.hairline else 3.dp), height = if (thin) 4.dp else LabScale.bar)
+        Meter(m.pct ?: 0.0, m.sev, Modifier.fillMaxWidth().padding(top = if (thin) LabScale.hairline else LabScale.spaceHalf), height = if (thin) LabScale.space1 else LabScale.bar)
     }
 }
 
@@ -306,10 +306,10 @@ fun UptimeBar(values: List<Double?>, modifier: Modifier, slices: Int = 48) {
     }
     Canvas(modifier) {
         if (parts.isEmpty()) return@Canvas
-        val gap = 1.5.dp.toPx()
+        val gap = LabScale.strokeThin.toPx()
         val w = (size.width - gap * (n - 1)) / n
         val offset = n - parts.size   // a young history fills from the right
-        val r = CornerRadius(1.5.dp.toPx())
+        val r = CornerRadius(LabScale.strokeThin.toPx())
         parts.forEachIndexed { i, v ->
             val x = (offset + i) * (w + gap)
             if (v == null) {
@@ -331,7 +331,7 @@ fun UptimeDays(values: List<Double?>, modifier: Modifier = Modifier) {
             val day = today.minusDays((shares.size - 1 - i).toLong()).dayOfWeek.getDisplayName(java.time.format.TextStyle.SHORT, locale).take(2)
             val color = uptimeColor(v)
             val on = v != null && v >= 0
-            Column(Modifier.weight(1f).clip(RoundedCornerShape(8.dp)).background(if (on) color else Lab.block).padding(vertical = LabScale.space2),
+            Column(Modifier.weight(1f).clip(RoundedCornerShape(LabScale.radiusInner)).background(if (on) color else Lab.block).padding(vertical = LabScale.space2),
                 horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(day.uppercase(), fontSize = LabScale.textXs, color = if (on) androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.7f) else Lab.muted)
                 Text(if (on) "${Math.round(v!! * 100)}%" else "—", fontSize = LabScale.textSm, fontWeight = FontWeight.Bold,
@@ -343,7 +343,7 @@ fun UptimeDays(values: List<Double?>, modifier: Modifier = Modifier) {
 
 @Composable
 fun ListRow(row: DataRow, server: Server? = null) {
-    Row(Modifier.fillMaxWidth().padding(vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(Modifier.fillMaxWidth().padding(vertical = LabScale.spaceHalf), verticalAlignment = Alignment.CenterVertically) {
         if (row.icon.isNotEmpty()) {
             NamedIcon(row.icon, LabIcons.container, server, LabScale.iconCard)
             Spacer(Modifier.width(LabScale.space2))
@@ -361,7 +361,7 @@ fun ListRow(row: DataRow, server: Server? = null) {
 @Composable
 fun SectionTitle(title: String, bad: Boolean = false, modifier: Modifier = Modifier) {
     Row(modifier.fillMaxWidth().padding(top = LabScale.space2), verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.size(6.dp).clip(CircleShape).background(if (bad) Lab.red else Lab.title))
+        Box(Modifier.size(LabScale.dotTileSmall).clip(CircleShape).background(if (bad) Lab.red else Lab.title))
         Spacer(Modifier.width(LabScale.space2))
         Text(title.uppercase(), style = Heading, maxLines = 1, overflow = TextOverflow.Ellipsis)
         Spacer(Modifier.width(LabScale.space2))
@@ -371,7 +371,7 @@ fun SectionTitle(title: String, bad: Boolean = false, modifier: Modifier = Modif
 
 
 /** The height of every small card on Status: the same everywhere (112 dp, 84 dp on a wide, low screen), so the grid has the same gap in every direction. */
-val LocalTileH = androidx.compose.runtime.compositionLocalOf { 112.dp }
+val LocalTileH = androidx.compose.runtime.compositionLocalOf { LabScale.wallTileMin }
 
 /** How a card sits in the grid of equal cells: [span] cells wide ([cols] to a row), [rows] cells tall. */
 fun Card.tileSpan(cols: Int): Int = when {
@@ -411,7 +411,7 @@ fun Card.isBig(): Boolean = kind != "guest" && (type == "proxmox" || type == "na
 fun MiniCard(c: Card, server: Server?, modifier: Modifier = Modifier, chip: String? = null, onClick: () -> Unit) {
     val sev = c.severity().let { if (c.bad == true) "crit" else it }
     val tint = when (sev) { "crit" -> Lab.red; "warn" -> Lab.warn; else -> null }
-    val low = LocalTileH.current < 100.dp   // a wide, low screen: no room for the last line
+    val low = LocalTileH.current < LabScale.wallTileMin   // a wide, low screen: no room for the last line
     Surface(
         onClick = onClick, modifier = modifier.fillMaxWidth().height(LocalTileH.current), shape = CardShape,
         color = tint?.copy(alpha = 0.12f)?.compositeOver(Lab.card) ?: Lab.card,
@@ -441,7 +441,7 @@ fun MiniCard(c: Card, server: Server?, modifier: Modifier = Modifier, chip: Stri
                 else {
                     FitText(head.value, LabScale.textWallNum, FontWeight.SemiBold, Modifier.weight(1f, fill = false), color = sevColor(head.sev), minSize = LabScale.textWallMin)
                     // a card that lists what is wrong needs no unit: its name says what the number counts
-                    if (broken.isEmpty()) { Spacer(Modifier.width(LabScale.space1)); Text(head.short(), fontSize = LabScale.textWallMin, color = Lab.muted, maxLines = 1, modifier = Modifier.padding(bottom = 3.dp)) }
+                    if (broken.isEmpty()) { Spacer(Modifier.width(LabScale.space1)); Text(head.short(), fontSize = LabScale.textWallMin, color = Lab.muted, maxLines = 1, modifier = Modifier.padding(bottom = LabScale.spaceHalf)) }
                 }
             }
             val up = c.guest?.uptime?.let { "up " + upText(it) } ?: c.metrics.firstOrNull { it.short().equals("uptime", true) }?.value?.let { "up $it" }

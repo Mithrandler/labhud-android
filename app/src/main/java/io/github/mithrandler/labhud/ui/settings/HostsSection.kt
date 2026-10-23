@@ -78,7 +78,7 @@ fun HostsSection(repo: LabRepository, nav: SettingsNav) {
                     if (list.isEmpty()) Text("No agent yet: Add agent makes the line that installs one.", color = Lab.muted, fontSize = LabScale.textMd)
                     list.forEach { a ->
                         Row(Modifier.fillMaxWidth().clickable { nav.agent(a.id) }.padding(vertical = LabScale.space2), verticalAlignment = Alignment.CenterVertically) {
-                            Box(Modifier.size(8.dp).clip(CircleShape).background(if (a.online) Lab.green else Lab.red))
+                            Box(Modifier.size(LabScale.dotTileSmall).clip(CircleShape).background(if (a.online) Lab.green else Lab.red))
                             Spacer(Modifier.width(LabScale.space3))
                             Column(Modifier.weight(1f)) {
                                 Text(a.name, fontWeight = FontWeight.Medium, fontSize = LabScale.textMd)

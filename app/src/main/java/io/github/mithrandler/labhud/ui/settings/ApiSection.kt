@@ -183,8 +183,8 @@ private fun TokenRow(t: ApiToken, onRevoke: () -> Unit) {
 fun ScopeTag(scope: String) {
     val c = scopeColor(scope)
     Text(scope.uppercase(), fontSize = LabScale.textXs, fontWeight = FontWeight.SemiBold, letterSpacing = 0.6.sp, color = c,
-        modifier = Modifier.padding(start = LabScale.space2).clip(RoundedCornerShape(5.dp)).background(c.copy(alpha = 0.18f))
-            .padding(horizontal = LabScale.space2, vertical = 2.dp))
+        modifier = Modifier.padding(start = LabScale.space2).clip(RoundedCornerShape(LabScale.radiusInner)).background(c.copy(alpha = 0.18f))
+            .padding(horizontal = LabScale.space2, vertical = LabScale.spaceHalf))
 }
 
 fun scopeColor(scope: String): Color = when (scope) {
@@ -252,7 +252,7 @@ private fun ShowOnceDialog(t: NewToken, onDone: () -> Unit) {
                 Text("LabHUD keeps only its hash and will not show it again.", fontSize = LabScale.textSm, color = Lab.sub)
                 SelectionContainer {
                     Text(t.token, fontFamily = FontFamily.Monospace, fontSize = LabScale.textSm,
-                        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(6.dp)).background(Lab.block).padding(LabScale.space2))
+                        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(LabScale.radiusInner)).background(Lab.block).padding(LabScale.space2))
                 }
                 if (copied) Text("Copied.", fontSize = LabScale.textSm, color = Lab.green)
             }

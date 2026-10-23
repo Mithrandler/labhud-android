@@ -134,7 +134,7 @@ private fun Num(value: Int, min: Int, max: Int, label: String, onValue: (Int) ->
     OutlinedTextField(
         text, { t -> text = t.filter { it.isDigit() }.take(4); text.toIntOrNull()?.takeIf { it in min..max }?.let(onValue) },
         singleLine = true, label = { Text(label) }, isError = n == null || n !in min..max,
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.width(96.dp),
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.width(LabScale.chartH),
     )
 }
 

@@ -99,7 +99,7 @@ fun SystemSection(repo: LabRepository, nav: SettingsNav) {
         item {
             Panel("") {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    BrandMark(40.dp)
+                    BrandMark(LabScale.brandM)
                     Spacer(Modifier.width(LabScale.space3))
                     Column {
                         Text(info?.title ?: server?.name ?: "LabHUD", fontWeight = FontWeight.SemiBold, fontSize = LabScale.textMd)

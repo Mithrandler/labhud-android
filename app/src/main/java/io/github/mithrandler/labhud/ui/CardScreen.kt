@@ -162,7 +162,7 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
                 actions = {
                     val sid = server?.id
                     if (sid != null && live != null) IconButton(onClick = { scope.launch { repo.store.toggleFavoriteCard(sid, id) } }) {
-                        Text(if (id in favs) "★" else "☆", fontSize = 22.sp, color = if (id in favs) Lab.title else Lab.muted)
+                        Text(if (id in favs) "★" else "☆", fontSize = LabScale.textTile, color = if (id in favs) Lab.title else Lab.muted)
                     }
                 },
             )
@@ -171,9 +171,9 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
         val c = live ?: run {
             // a cold start from a notification: the state is not here yet, and that is not "not in the config"
             if (!loaded) Column(Modifier.padding(pad).padding(LabScale.space4), verticalArrangement = Arrangement.spacedBy(LabScale.space3)) {
-                SkeletonPanel(height = 88.dp)
-                SkeletonPanel(height = 220.dp)
-            } else Text("This card is not in the current config.", color = Lab.muted, modifier = Modifier.padding(pad).padding(24.dp))
+                SkeletonPanel(height = LabScale.skeletonH)
+                SkeletonPanel(height = LabScale.scrollS)
+            } else Text("This card is not in the current config.", color = Lab.muted, modifier = Modifier.padding(pad).padding(LabScale.space6))
             return@Scaffold
         }
         val up = if (week) uptimeWeek else uptimeDay
@@ -214,7 +214,7 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
                 } else if (c.metrics.isNotEmpty()) item {
                     Panel("") {
                         c.metrics.forEach { m ->
-                            if (m.pct != null) MeterRow(m, Modifier.padding(vertical = 2.dp))
+                            if (m.pct != null) MeterRow(m, Modifier.padding(vertical = LabScale.spaceHalf))
                             else Row(Modifier.fillMaxWidth().padding(vertical = LabScale.space1)) {
                                 Text(m.label, color = Lab.sub, fontSize = LabScale.textMd, modifier = Modifier.weight(1f))
                                 Text(m.value, color = sevColor(m.sev), fontSize = LabScale.textMd, fontWeight = FontWeight.Medium)
@@ -261,7 +261,7 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
                             }
                         }
                         if (week) UptimeDays(up.cards.getValue(c.id), Modifier.padding(top = LabScale.space1))
-                        else UptimeBar(up.cards.getValue(c.id), Modifier.fillMaxWidth().padding(top = LabScale.space1).height(10.dp), slices = 48)
+                        else UptimeBar(up.cards.getValue(c.id), Modifier.fillMaxWidth().padding(top = LabScale.space1).height(LabScale.dotTile), slices = 48)
                         if ((up.coverage[c.id] ?: 100.0) < 99.95) Text("Grey: LabHUD itself was off then, so it does not know.",
                             fontSize = LabScale.textSm, color = Lab.muted, modifier = Modifier.padding(top = LabScale.space2))
                     }
@@ -350,7 +350,7 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
                                     }) { Text("Save") }
                                 }
                             } else {
-                                Text(text.ifBlank { "—" }, fontSize = LabScale.textMd, lineHeight = 20.sp)
+                                Text(text.ifBlank { "—" }, fontSize = LabScale.textMd, lineHeight = LabScale.textWallNum)
                             }
                         }
                     }
@@ -399,7 +399,7 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
         LaunchedEffect(pager.settledPage) { names.getOrNull(pager.settledPage)?.let { tabName = it } }
         Column(Modifier.padding(pad).fillMaxSize()) {
             if (tabs.size > 1) androidx.compose.material3.ScrollableTabRow(
-                selectedTabIndex = pager.currentPage.coerceAtMost(tabs.size - 1), containerColor = Lab.bg, edgePadding = 8.dp,
+                selectedTabIndex = pager.currentPage.coerceAtMost(tabs.size - 1), containerColor = Lab.bg, edgePadding = LabScale.space2,
             ) {
                 tabs.forEachIndexed { i, t ->
                     androidx.compose.material3.Tab(selected = pager.currentPage == i, onClick = { scope.launch { pager.scrollToPage(i) } },
@@ -409,8 +409,8 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
             HorizontalPager(pager, Modifier.fillMaxSize(), key = { tabs.getOrNull(it)?.name ?: it }) { i ->
                 // the Overview is a column of facts: on a wide screen it stays 640 dp wide in the middle
                 val wide = LocalConfiguration.current.screenWidthDp
-                val side = if (tabs.getOrNull(i)?.narrow == true && wide > 672) ((wide - 640) / 2).dp else 16.dp
-                LazyColumn(Modifier.fillMaxSize(), contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = side, vertical = 16.dp),
+                val side = if (tabs.getOrNull(i)?.narrow == true && wide > 672) ((wide - 640) / 2).dp else LabScale.space4
+                LazyColumn(Modifier.fillMaxSize(), contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = side, vertical = LabScale.space4),
                     verticalArrangement = Arrangement.spacedBy(LabScale.space3)) { tabs.getOrNull(i)?.body?.invoke(this) }
             }
         }
@@ -473,7 +473,7 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
             onDismissRequest = { details = null },
             title = { Text(name) },
             text = {
-                Column(Modifier.heightIn(max = 460.dp).verticalScroll(rememberScrollState())) {
+                Column(Modifier.heightIn(max = LabScale.scrollM).verticalScroll(rememberScrollState())) {
                     rows.forEach { (k, v) ->
                         Text(k, fontSize = LabScale.textSm, color = Lab.muted, modifier = Modifier.padding(top = LabScale.space2))
                         Text(v, fontSize = LabScale.textSm)
@@ -488,8 +488,8 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
             onDismissRequest = { logs = null },
             title = { Text(name) },
             text = {
-                Text(text, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace, fontSize = LabScale.textXs, lineHeight = 14.sp,
-                    modifier = Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState()))
+                Text(text, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace, fontSize = LabScale.textXs, lineHeight = LabScale.textMd,
+                    modifier = Modifier.heightIn(max = LabScale.scrollM).verticalScroll(rememberScrollState()))
             },
             confirmButton = { TextButton(onClick = { logs = null }) { Text("Close") } },
         )
@@ -527,9 +527,9 @@ private class CTab(val name: String, val narrow: Boolean = false, val body: Lazy
 private fun ContainerCell(b: io.github.mithrandler.labhud.data.Container, server: io.github.mithrandler.labhud.data.Server?, modifier: Modifier, onClick: () -> Unit) {
     Surface(onClick = onClick, modifier = modifier, shape = CardShape, color = Lab.card,
         border = if (b.up) BorderStroke(LabScale.hairline, Lab.line) else BorderStroke(LabScale.hairline, Lab.red.copy(alpha = 0.7f))) {
-        Column(Modifier.heightIn(min = 84.dp).padding(horizontal = LabScale.space3, vertical = LabScale.space2)) {
+        Column(Modifier.heightIn(min = LabScale.wallTileLow).padding(horizontal = LabScale.space3, vertical = LabScale.space2)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                androidx.compose.foundation.layout.Box(Modifier.size(8.dp).clip(androidx.compose.foundation.shape.CircleShape).background(if (b.up) Lab.green else Lab.red))
+                androidx.compose.foundation.layout.Box(Modifier.size(LabScale.dotTileSmall).clip(androidx.compose.foundation.shape.CircleShape).background(if (b.up) Lab.green else Lab.red))
                 Spacer(Modifier.width(LabScale.space2))
                 NamedIcon(b.icon, LabIcons.container, server, LabScale.iconCard)
                 Spacer(Modifier.width(LabScale.space2))
@@ -575,7 +575,7 @@ private fun ContainerRow(b: io.github.mithrandler.labhud.data.Container, admin: 
                          onLive: () -> Unit = {}, onDetails: () -> Unit = {}) {
     Column(Modifier.fillMaxWidth().padding(vertical = LabScale.space2)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            androidx.compose.foundation.layout.Box(Modifier.size(8.dp).clip(androidx.compose.foundation.shape.CircleShape)
+            androidx.compose.foundation.layout.Box(Modifier.size(LabScale.dotTileSmall).clip(androidx.compose.foundation.shape.CircleShape)
                 .background(if (b.up) Lab.green else Lab.red))
             Spacer(Modifier.width(LabScale.space3))
             NamedIcon(b.icon, LabIcons.container, server, LabScale.iconCard)
@@ -585,11 +585,11 @@ private fun ContainerRow(b: io.github.mithrandler.labhud.data.Container, admin: 
                 color = if (b.update || b.updating) Lab.accent else if (b.up) Lab.muted else Lab.red, maxLines = 1)
         }
         listOf(b.usage, b.last).filter { it.isNotEmpty() }.forEach {
-            Text(it, fontSize = LabScale.textSm, color = Lab.muted, modifier = Modifier.padding(start = 18.dp))
+            Text(it, fontSize = LabScale.textSm, color = Lab.muted, modifier = Modifier.padding(start = LabScale.iconCard))
         }
-        b.scan?.let { sc -> Text(sc.text(), fontSize = LabScale.textSm, color = scanColor(sc), modifier = Modifier.padding(start = 18.dp)) }
+        b.scan?.let { sc -> Text(sc.text(), fontSize = LabScale.textSm, color = scanColor(sc), modifier = Modifier.padding(start = LabScale.iconCard)) }
         // FlowRow: four or five buttons do not fit one line of the dialog, and the last (Live) was squeezed out
-        if (admin) FlowRow(Modifier.padding(start = LabScale.space3), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+        if (admin) FlowRow(Modifier.padding(start = LabScale.space3), horizontalArrangement = Arrangement.spacedBy(LabScale.spaceHalf)) {
             b.actions.forEach { a ->
                 TextButton(onClick = { onAction(a) }, enabled = !b.updating) {
                     Text(niceLabel(a), fontSize = LabScale.textSm, color = if (a.danger) Lab.red else Lab.accent)
@@ -607,7 +607,7 @@ private fun StatusHeader(c: Card, server: io.github.mithrandler.labhud.data.Serv
     Surface(shape = CardShape, color = Lab.card, border = BorderStroke(LabScale.hairline, if (c.bad == true) Lab.red.copy(alpha = 0.7f) else Lab.line)) {
         Column(Modifier.fillMaxWidth().padding(LabScale.space4)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                CardIcon(c, server, 28.dp)
+                CardIcon(c, server, LabScale.iconHero)
                 Spacer(Modifier.width(LabScale.space3))
                 if (c.status != null) { StatusDot(c, 12); Spacer(Modifier.width(LabScale.space3)) }
                 Text(
@@ -649,7 +649,7 @@ fun Panel(title: String, summary: String? = null, content: @Composable () -> Uni
                 }
                 Icon(if (open) LabIcons.chevronDown else LabIcons.chevronRight, null, tint = Lab.muted, modifier = Modifier.size(LabScale.iconCard))
             }
-            if (open) Column(Modifier.fillMaxWidth().padding(start = 14.dp, end = 14.dp, bottom = 14.dp, top = if (summary == null) 14.dp else 0.dp)) {
+            if (open) Column(Modifier.fillMaxWidth().padding(start = LabScale.space3, end = LabScale.space3, bottom = LabScale.space3, top = if (summary == null) LabScale.space3 else 0.dp)) {
                 if (summary == null && title.isNotEmpty()) Text(title.uppercase(), style = Heading, modifier = Modifier.padding(bottom = LabScale.space2))
                 content()
             }

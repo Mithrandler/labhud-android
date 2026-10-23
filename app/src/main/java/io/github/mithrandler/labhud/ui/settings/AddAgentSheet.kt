@@ -65,12 +65,12 @@ fun AddAgentSheet(code: AgentCode, onNewCode: () -> Unit, onDismiss: () -> Unit)
         while (left > 0) { kotlinx.coroutines.delay(1000); left-- }
     }
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Lab.card, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
-        Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(start = LabScale.space4, end = LabScale.space4, bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(LabScale.space3)) {
+        Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(start = LabScale.space4, end = LabScale.space4, bottom = LabScale.space8), verticalArrangement = Arrangement.spacedBy(LabScale.space3)) {
             Text("ADD AN AGENT", style = Heading)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text("Code", fontSize = LabScale.textSm, color = Lab.muted)
-                    Text(code.code, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.SemiBold, fontSize = 22.sp)
+                    Text(code.code, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.SemiBold, fontSize = LabScale.textTile)
                 }
                 Text(if (left > 0) countdown(left) else "expired", fontSize = LabScale.textMd, color = if (left > 0) Lab.sub else Lab.red)
             }
@@ -99,7 +99,7 @@ fun AddAgentSheet(code: AgentCode, onNewCode: () -> Unit, onDismiss: () -> Unit)
 @Composable
 private fun Line(text: String) = SelectionContainer {
     Text(text, fontFamily = FontFamily.Monospace, fontSize = LabScale.textXs,
-        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(6.dp)).background(Lab.block).padding(LabScale.space2))
+        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(LabScale.radiusInner)).background(Lab.block).padding(LabScale.space2))
 }
 
 /** [text] as a QR code in black on white (white border, so a camera finds it in dark mode too). */
@@ -111,7 +111,7 @@ private fun Qr(text: String, modifier: Modifier = Modifier) {
                 mapOf(EncodeHintType.ERROR_CORRECTION to ErrorCorrectionLevel.L, EncodeHintType.MARGIN to 2))
         }.getOrNull()
     } ?: return
-    Canvas(modifier.size(220.dp).background(Color.White)) {
+    Canvas(modifier.size(LabScale.skeletonH * 2.5f).background(Color.White)) {
         val cell = size.width / matrix.width
         for (y in 0 until matrix.height) for (x in 0 until matrix.width) {
             if (matrix[x, y]) drawRect(Color.Black, Offset(x * cell, y * cell), Size(cell + 0.5f, cell + 0.5f))

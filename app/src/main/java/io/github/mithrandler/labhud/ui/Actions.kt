@@ -90,14 +90,14 @@ fun niceLabel(a: Action): String {
 @Composable
 fun ActionButton(a: Action, enabled: Boolean = true, onClick: () -> Unit) {
     val k = if (a.choices.isNotEmpty()) Kind.Power else kindOf(a.name, a.label)
-    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.widthIn(max = 72.dp)) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.widthIn(max = LabScale.brandL + LabScale.space4)) {
         FilledTonalIconButton(
             onClick = onClick, enabled = enabled,
-            modifier = Modifier.size(44.dp).then(if (a.danger) Modifier.border(LabScale.hairline, Lab.red.copy(alpha = 0.6f), CircleShape) else Modifier),
+            modifier = Modifier.size(LabScale.touch).then(if (a.danger) Modifier.border(LabScale.hairline, Lab.red.copy(alpha = 0.6f), CircleShape) else Modifier),
             colors = IconButtonDefaults.filledTonalIconButtonColors(containerColor = Lab.block,
                 contentColor = if (a.danger) Lab.red else if (k == Kind.Wake || k == Kind.Start) Lab.green else Lab.accent),
         ) { Icon(k.icon, a.label) }
-        Text(niceLabel(a), fontSize = LabScale.textXs, color = Lab.sub, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 3.dp))
+        Text(niceLabel(a), fontSize = LabScale.textXs, color = Lab.sub, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = LabScale.spaceHalf))
     }
 }
 

@@ -123,9 +123,9 @@ private fun SourceSheet(src: SourceItem, repo: LabRepository, gate: io.github.mi
     var said by remember(src.name) { mutableStateOf("") }
     var busy by remember(src.name) { mutableStateOf(false) }
     var forgetting by remember(src.name) { mutableStateOf(false) }
-    Column(Modifier.fillMaxWidth().padding(horizontal = LabScale.space4).padding(bottom = 20.dp)
+    Column(Modifier.fillMaxWidth().padding(horizontal = LabScale.space4).padding(bottom = LabScale.space5)
         .heightIn(max = (LocalConfiguration.current.screenHeightDp * 0.9f).dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(LabScale.space2)) {
-        Text(src.title, fontSize = LabScale.textWallNum, fontWeight = FontWeight.SemiBold, color = Lab.text, modifier = Modifier.padding(end = 48.dp))
+        Text(src.title, fontSize = LabScale.textWallNum, fontWeight = FontWeight.SemiBold, color = Lab.text, modifier = Modifier.padding(end = LabScale.touch))
         Text(src.about, fontSize = LabScale.textSm, color = Lab.sub)
         src.fields.forEach { f ->
             OutlinedTextField(

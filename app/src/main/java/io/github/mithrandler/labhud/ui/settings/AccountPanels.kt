@@ -86,7 +86,7 @@ fun SessionsPanel(repo: LabRepository, gate: Gate) {
             val now = System.currentTimeMillis() / 1000
             if (a.sessions.isEmpty()) Text("No browser is signed in.", fontSize = LabScale.textSm, color = Lab.muted)
             a.sessions.forEach { s ->
-                Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(Modifier.fillMaxWidth().padding(vertical = LabScale.spaceHalf), verticalAlignment = Alignment.CenterVertically) {
                     Text(sessionLine(s, now), fontSize = LabScale.textSm, color = Lab.sub, modifier = Modifier.weight(1f))
                     TextButton(onClick = { gate.press { scope.launch { done(runCatching { repo.api()?.revokeSession(s.id) }.getOrNull()) } } }) {
                         Text("Sign out", color = Lab.red)
