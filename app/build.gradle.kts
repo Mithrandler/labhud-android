@@ -17,9 +17,10 @@ val keystoreFile = signing("LABHUD_KEYSTORE", "storeFile")
 
 // The version comes from the tag in CI (LABHUD_VERSION=0.1.0); 1.2.3 becomes versionCode 1010203.
 // The 1000000 keeps 0.1.0 above the old numbering (0.3.15 was 315), so it installs over it.
+// The series goes 0.1.29, 0.1.3, 0.1.31 (a digit is added to wrap): a patch of one digit counts as tens, so 0.1.3 (1000130) is above 0.1.29.
 val version = System.getenv("LABHUD_VERSION")?.removePrefix("v") ?: "0.1.0-dev"
 val code = Regex("""(\d+)\.(\d+)\.(\d+)""").find(version)?.destructured
-    ?.let { (a, b, c) -> 1_000_000 + a.toInt() * 10000 + b.toInt() * 100 + c.toInt() } ?: 1
+    ?.let { (a, b, c) -> 1_000_000 + a.toInt() * 10000 + b.toInt() * 100 + (if (c.length == 1 && c != "0") c.toInt() * 10 else c.toInt()) } ?: 1
 
 composeCompiler {
     stabilityConfigurationFiles.add(layout.projectDirectory.file("compose_compiler_config.conf"))

@@ -6,32 +6,28 @@ All notable changes to LabHUD for Android. The format follows
 
 ## [Unreleased]
 
-- The menu lists the cards the server marks `menu` (the notes), which are on no page.
-
-- Back without the shrinking "predictive back" animation: the manifest opts out, the app takes Back itself at the root, and the screens under it fade as for any change.
-- A back arrow on a host of Servers and on Settings opened from the menu; screens without the tab bar keep clear of the gesture bar.
-- Activity: Alerts and the notifications this phone received are one list (alerts now, problems, then received); the empty Notifications segment is gone, and the empty text says where they are chosen (Settings > Notifications).
-
-- A group tile with nothing wrong says a green "OK" instead of "0" and "all fine".
-
-- A card is one page, no tabs: the overview, lists, History and the rest in one column. Uptime is one bar for 24 h and 7 d (the day squares are gone).
+## [0.1.3] - 2026-10-23
 
 ### Added
 
-- Servers lists the Docker hosts as a table (health, name, containers, CPU, RAM, updates, agent); a container with a newer image shows "update"; Update all, Host packages, Clean and Reboot on a host's Containers tab.
+- **Servers is the Docker table**: health, name, containers, CPU, RAM, updates and agent for each Docker host; a container with a newer image shows "update"; Update all, Host packages, Clean and Reboot on a host's Containers tab.
 - A Proxmox guest with an agent opens Servers at that host.
+- The menu lists the cards the server marks `menu` (the notes), which are on no page.
+- Activity: Alerts and the notifications this phone received are one list (alerts now, problems, then received); the empty Notifications segment is gone, and the empty text says where they are chosen (Settings > Notifications).
 
 ### Changed
 
+- **One unlock per opening**: the fingerprint that opens the app also opens the wall's sealed PIN; the PIN dialog waits for the fingerprint instead of showing beside it. The PIN is held in memory until the app has been 5 minutes in the background.
+- **A card is one page, no tabs**: the overview, lists, History and the rest in one column. Uptime is one bar for 24 h and 7 d (the day squares are gone).
 - Devices shows only physical machines: Proxmox, NAS & backup, PCs.
+- A group tile with nothing wrong says a green "OK" instead of "0" and "all fine".
+- Back without the shrinking "predictive back" animation: the manifest opts out, the app takes Back itself at the root, and the screens under it fade as for any change.
+- A back arrow on a host of Servers and on Settings opened from the menu; screens without the tab bar keep clear of the gesture bar.
+- The version code reads a one-digit patch as tens (0.1.3 is 1000130), so 0.1.3 installs over 0.1.29.
 
 ### Fixed
 
-- Buttons no longer answer "forbidden" after a few minutes of only reading: the unlock ticket is no longer extended by the app alone, a heartbeat keeps it alive on the server while the app is in front, and a "locked" answer renews it and repeats the call.
-
-### Changed
-
-- One unlock per opening: the fingerprint that opens the app also opens the sealed wall PIN; the PIN dialog waits for the fingerprint instead of showing beside it. After 5 minutes in the background everything locks again.
+- **Buttons answered "forbidden" after a few minutes of only reading**: the unlock ticket is no longer extended by the app alone; a heartbeat keeps it alive on the server while the app is in front, and a "locked" answer renews it and repeats the call.
 
 ## [0.1.29] - 2026-10-23
 
@@ -324,7 +320,8 @@ those parts are simply not shown.
   back in the settings or the camera was switched off in Quick Settings. It now asks again, offers
   the system settings after a permanent refusal, and pasting the link or signing in always works.
 
-[Unreleased]: https://github.com/Mithrandler/labhud-android/compare/v0.1.29...HEAD
+[Unreleased]: https://github.com/Mithrandler/labhud-android/compare/v0.1.3...HEAD
+[0.1.3]: https://github.com/Mithrandler/labhud-android/compare/v0.1.29...v0.1.3
 [0.1.29]: https://github.com/Mithrandler/labhud-android/compare/v0.1.28...v0.1.29
 [0.1.28]: https://github.com/Mithrandler/labhud-android/compare/v0.1.27...v0.1.28
 [0.1.27]: https://github.com/Mithrandler/labhud-android/compare/v0.1.26...v0.1.27
