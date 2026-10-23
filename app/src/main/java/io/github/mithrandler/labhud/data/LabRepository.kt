@@ -85,6 +85,9 @@ class LabRepository(private val context: Context, val store: ServerStore) {
         }
     }
 
+    /** The state as it is now, for a screen's first frame (a composable must not read [state]'s value itself). */
+    fun snapshot(): LabState? = _state.value
+
     /** Starts the live stream for the shown server; [stop] ends it. */
     @OptIn(ExperimentalCoroutinesApi::class)
     fun run() {

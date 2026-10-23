@@ -64,6 +64,8 @@ import io.github.mithrandler.labhud.data.Card
 import io.github.mithrandler.labhud.data.History
 import io.github.mithrandler.labhud.data.LabRepository
 import io.github.mithrandler.labhud.data.Section
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import java.text.DateFormat
 import java.util.Date
@@ -77,8 +79,15 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
                askFirst: String = "",
                /** Another card (a VM's host, a host's VM): opens its screen. */
                onCard: (String) -> Unit = {}) {
-    val state by repo.state.collectAsStateWithLifecycle()
-    val live = state?.byId?.get(id)
+    // only what this screen draws is taken from the stream: another card's new number does not redraw it
+    val live by remember(id) { repo.state.map { it?.byId?.get(id) }.distinctUntilChanged() }
+        .collectAsStateWithLifecycle(initialValue = repo.snapshot()?.byId?.get(id))
+    val loaded by remember { repo.state.map { it != null }.distinctUntilChanged() }.collectAsStateWithLifecycle(initialValue = repo.snapshot() != null)
+    val boardView by remember { repo.state.map { it?.view }.distinctUntilChanged() }.collectAsStateWithLifecycle(initialValue = repo.snapshot()?.view)
+    val cardNode = live?.node.orEmpty()
+    val cardIsGuest = live?.kind == "guest"
+    val related by remember(cardNode, cardIsGuest) { repo.state.map { relatedCards(it?.cards.orEmpty(), cardNode, cardIsGuest) }.distinctUntilChanged() }
+        .collectAsStateWithLifecycle(initialValue = relatedCards(repo.snapshot()?.cards.orEmpty(), cardNode, cardIsGuest))
     var sections by remember { mutableStateOf<List<Section>>(emptyList()) }
     var full by remember { mutableStateOf<Card?>(null) }
     var logs by remember { mutableStateOf<Pair<String, String>?>(null) }
@@ -95,7 +104,7 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
     var range by remember { mutableStateOf(0) }
     val server by repo.server.collectAsStateWithLifecycle()
     val prefs by repo.store.settings.collectAsStateWithLifecycle(initialValue = io.github.mithrandler.labhud.data.AppSettings())
-    val showButtons = effectiveView(prefs.phoneView, state?.view).buttons()
+    val showButtons = effectiveView(prefs.phoneView, boardView).buttons()
     val favs by (server?.id?.let { repo.store.favoriteCards(it) } ?: kotlinx.coroutines.flow.flowOf(emptySet())).collectAsStateWithLifecycle(initialValue = emptySet())
     val info by repo.info.collectAsStateWithLifecycle()
     var week by remember { mutableStateOf(false) }
@@ -161,7 +170,7 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
     ) { pad ->
         val c = live ?: run {
             // a cold start from a notification: the state is not here yet, and that is not "not in the config"
-            if (state == null) Column(Modifier.padding(pad).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            if (!loaded) Column(Modifier.padding(pad).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 SkeletonPanel(height = 88.dp)
                 SkeletonPanel(height = 220.dp)
             } else Text("This card is not in the current config.", color = Lab.muted, modifier = Modifier.padding(pad).padding(24.dp))
@@ -169,10 +178,8 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
         }
         val up = if (week) uptimeWeek else uptimeDay
         val buttons = showButtons && rights.admin && (c.actions.isNotEmpty() || c.maintenanceButton)
-        val all = state?.cards.orEmpty()
         // a host's VMs and LXCs, and a guest's host: the card's node links them
-        val guests = if (c.kind == "guest" || c.node.isEmpty()) emptyList() else all.filter { it.kind == "guest" && it.node == c.node }.sortedBy { it.name.lowercase() }
-        val host = if (c.kind != "guest" || c.node.isEmpty()) null else all.firstOrNull { it.kind != "guest" && it.node == c.node }
+        val (guests, host) = related
         val labels = c.metrics.filter { it.trend }.map { it.label }.toSet()
         val trends = c.metrics.filter { it.trend } + c.charts.filter { it.label !in labels }.map {
             io.github.mithrandler.labhud.data.Metric(key = it.key, label = it.label, value = "", trend = true, format = it.format)
@@ -647,3 +654,8 @@ fun Panel(title: String, summary: String? = null, content: @Composable () -> Uni
         }
     }
 }
+
+/** A host's VMs and LXCs (by name), or a guest's host: the cards that share the card's node. */
+internal fun relatedCards(all: List<Card>, node: String, isGuest: Boolean): Pair<List<Card>, Card?> =
+    (if (isGuest || node.isEmpty()) emptyList() else all.filter { it.kind == "guest" && it.node == node }.sortedBy { it.name.lowercase() }) to
+        (if (!isGuest || node.isEmpty()) null else all.firstOrNull { it.kind != "guest" && it.node == node })
