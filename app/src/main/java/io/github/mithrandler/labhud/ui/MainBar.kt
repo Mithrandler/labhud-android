@@ -71,7 +71,7 @@ fun MainTopBar(
         colors = TopAppBarDefaults.topAppBarColors(containerColor = Lab.bg),
         // labhud's mark, as on the wall's top bar
         navigationIcon = {
-            Image(painterResource(R.drawable.brand_mark), "LabHUD", Modifier.padding(start = 16.dp).width(26.dp).height(22.dp))
+            Image(painterResource(R.drawable.brand_mark), "LabHUD", Modifier.padding(start = LabScale.space4).width(26.dp).height(22.dp))
         },
         title = title,
         actions = {
@@ -88,7 +88,7 @@ fun MainTopBar(
             Box {
             IconButton(onClick = { menu = true }) { Icon(LabIcons.more, "More") }
             DropdownMenu(expanded = menu, onDismissRequest = { menu = false }, containerColor = Lab.card,
-                border = BorderStroke(1.dp, Lab.line)) {
+                border = BorderStroke(LabScale.hairline, Lab.line)) {
                 DropdownMenuItem(text = { Text("Settings") }, leadingIcon = { Icon(LabIcons.settings, null) },
                     onClick = { menu = false; nav.onOpenSettings() })
                 DropdownMenuItem(text = { Text("Wall mode") }, leadingIcon = { Icon(LabIcons.wall, null) },

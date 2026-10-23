@@ -1,5 +1,6 @@
 package io.github.mithrandler.labhud.ui.settings
 
+import io.github.mithrandler.labhud.ui.LabScale
 import androidx.compose.foundation.clickable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
@@ -87,20 +88,20 @@ fun ContainersSection(repo: LabRepository, nav: SettingsNav) {
 
     SettingsPage(section("containers")!!, nav) {
         if (agents == null) item { Unlock { gate.press { load() } } }
-        if (message.isNotEmpty()) item { Text(message, color = Lab.warn, fontSize = 13.sp) }
+        if (message.isNotEmpty()) item { Text(message, color = Lab.warn, fontSize = LabScale.textSm) }
         agents?.let { list ->
             item {
                 val containers = list.sumOf { (it.targets["docker"] ?: emptyList()).size }
                 Panel("Docker hosts", "${list.size} hosts · $containers containers · ${list.count { !it.online }} offline") {
-                    Text("Each Docker host's containers: which update on their own, and cleaning unused images.", fontSize = 13.sp, color = Lab.sub)
-                    if (list.isEmpty()) Text("No agent runs Docker yet.", color = Lab.muted, fontSize = 14.sp, modifier = Modifier.padding(top = 8.dp))
+                    Text("Each Docker host's containers: which update on their own, and cleaning unused images.", fontSize = LabScale.textSm, color = Lab.sub)
+                    if (list.isEmpty()) Text("No agent runs Docker yet.", color = Lab.muted, fontSize = LabScale.textMd, modifier = Modifier.padding(top = LabScale.space2))
                     list.forEach { a ->
-                        Row(Modifier.fillMaxWidth().clickable { nav.agent(a.id) }.padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(LabIcons.container, null, tint = if (a.online) Lab.accent else Lab.muted, modifier = Modifier.size(20.dp))
-                            Spacer(Modifier.width(10.dp))
+                        Row(Modifier.fillMaxWidth().clickable { nav.agent(a.id) }.padding(vertical = LabScale.space2), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(LabIcons.container, null, tint = if (a.online) Lab.accent else Lab.muted, modifier = Modifier.size(LabScale.iconCard))
+                            Spacer(Modifier.width(LabScale.space3))
                             Column(Modifier.weight(1f)) {
-                                Text(a.name, fontWeight = FontWeight.Medium, fontSize = 14.sp)
-                                Text(if (a.online) "${(a.targets["docker"] ?: emptyList()).size} containers · ${a.auto.size} update on their own" else "offline", fontSize = 12.sp, color = if (a.online) Lab.muted else Lab.red)
+                                Text(a.name, fontWeight = FontWeight.Medium, fontSize = LabScale.textMd)
+                                Text(if (a.online) "${(a.targets["docker"] ?: emptyList()).size} containers · ${a.auto.size} update on their own" else "offline", fontSize = LabScale.textSm, color = if (a.online) Lab.muted else Lab.red)
                             }
                             Icon(LabIcons.chevronRight, null, tint = Lab.muted)
                         }
@@ -146,8 +147,8 @@ private fun UpdateWindowPanel(w: UpdateWindow, agentsAuto: Boolean, enabled: Boo
     var auto by remember(agentsAuto) { mutableStateOf(agentsAuto) }
     val changed = days != w.days.toSet() || at != w.at || auto != agentsAuto
     Panel("Update window", w.words()) {
-        Text("The containers ticked “on their own” are updated then, on the server's clock.", fontSize = 13.sp, color = Lab.sub)
-        Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+        Text("The containers ticked “on their own” are updated then, on the server's clock.", fontSize = LabScale.textSm, color = Lab.sub)
+        Row(Modifier.fillMaxWidth().padding(top = LabScale.space2), horizontalArrangement = Arrangement.SpaceBetween) {
             names.forEachIndexed { i, n ->
                 val on = i in days
                 androidx.compose.material3.FilterChip(
@@ -158,21 +159,21 @@ private fun UpdateWindowPanel(w: UpdateWindow, agentsAuto: Boolean, enabled: Boo
                 )
             }
         }
-        Row(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text("At", fontSize = 13.sp, color = Lab.sub)
+        Row(Modifier.padding(top = LabScale.space1), horizontalArrangement = Arrangement.spacedBy(LabScale.space2), verticalAlignment = Alignment.CenterVertically) {
+            Text("At", fontSize = LabScale.textSm, color = Lab.sub)
             androidx.compose.material3.OutlinedButton(onClick = {
                 val (h, m) = at.split(":").let { (it.getOrNull(0)?.toIntOrNull() ?: 4) to (it.getOrNull(1)?.toIntOrNull() ?: 0) }
                 android.app.TimePickerDialog(context, { _, hh, mm -> at = "%02d:%02d".format(hh, mm) }, h, m, true).show()
             }) { Text(at) }
         }
-        Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f).padding(end = 12.dp)) {
-                Text("Update agents too", fontWeight = FontWeight.Medium, fontSize = 14.sp)
-                Text("An agent with an older version updates itself when it dials in.", fontSize = 12.sp, color = Lab.muted)
+        Row(Modifier.fillMaxWidth().padding(top = LabScale.space2), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f).padding(end = LabScale.space3)) {
+                Text("Update agents too", fontWeight = FontWeight.Medium, fontSize = LabScale.textMd)
+                Text("An agent with an older version updates itself when it dials in.", fontSize = LabScale.textSm, color = Lab.muted)
             }
             androidx.compose.material3.Switch(checked = auto, onCheckedChange = { auto = it })
         }
-        Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(Modifier.padding(top = LabScale.space2), horizontalArrangement = Arrangement.spacedBy(LabScale.space2)) {
             androidx.compose.material3.Button(onClick = { onSave(days.sorted(), at, auto) }, enabled = enabled && changed) { Text("Save") }
             if (changed) androidx.compose.material3.OutlinedButton(onClick = { days = w.days.toSet(); at = w.at; auto = agentsAuto }, enabled = enabled) { Text("Discard") }
         }

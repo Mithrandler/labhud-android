@@ -1,5 +1,6 @@
 package io.github.mithrandler.labhud.ui.settings
 
+import io.github.mithrandler.labhud.ui.LabScale
 import android.content.ClipData
 import android.content.ClipDescription
 import android.content.ClipboardManager
@@ -64,32 +65,32 @@ fun AddAgentSheet(code: AgentCode, onNewCode: () -> Unit, onDismiss: () -> Unit)
         while (left > 0) { kotlinx.coroutines.delay(1000); left-- }
     }
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Lab.card, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
-        Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(start = LabScale.space4, end = LabScale.space4, bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(LabScale.space3)) {
             Text("ADD AN AGENT", style = Heading)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text("Code", fontSize = 12.sp, color = Lab.muted)
+                    Text("Code", fontSize = LabScale.textSm, color = Lab.muted)
                     Text(code.code, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.SemiBold, fontSize = 22.sp)
                 }
-                Text(if (left > 0) countdown(left) else "expired", fontSize = 14.sp, color = if (left > 0) Lab.sub else Lab.red)
+                Text(if (left > 0) countdown(left) else "expired", fontSize = LabScale.textMd, color = if (left > 0) Lab.sub else Lab.red)
             }
             if (code.install.isNotEmpty()) {
-                Text("Run this on the host (it carries the code):", fontSize = 13.sp, color = Lab.sub)
+                Text("Run this on the host (it carries the code):", fontSize = LabScale.textSm, color = Lab.sub)
                 Line(code.install)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(LabScale.space2)) {
                     OutlinedButton(onClick = { copy(context, "LabHUD agent install line", code.install); copied = "line" }) { Text("Copy line") }
                     OutlinedButton(onClick = { copy(context, "LabHUD agent code", code.code); copied = "code" }) { Text("Copy code") }
                 }
                 if (code.docker.isNotEmpty()) {
-                    Text("Or as a container:", fontSize = 13.sp, color = Lab.sub)
+                    Text("Or as a container:", fontSize = LabScale.textSm, color = Lab.sub)
                     Line(code.docker)
                     OutlinedButton(onClick = { copy(context, "LabHUD agent container", code.docker); copied = "docker" }) { Text("Copy container line") }
                 }
                 Qr(code.install, Modifier.align(Alignment.CenterHorizontally))
             } else {
-                Text("This LabHUD is too old to give the line: use the code with the installer.", fontSize = 13.sp, color = Lab.muted)
+                Text("This LabHUD is too old to give the line: use the code with the installer.", fontSize = LabScale.textSm, color = Lab.muted)
             }
-            if (copied.isNotEmpty()) Text("Copied.", fontSize = 12.sp, color = Lab.green)
+            if (copied.isNotEmpty()) Text("Copied.", fontSize = LabScale.textSm, color = Lab.green)
             OutlinedButton(onClick = onNewCode, modifier = Modifier.fillMaxWidth()) { Text("Make a new code") }
         }
     }
@@ -97,8 +98,8 @@ fun AddAgentSheet(code: AgentCode, onNewCode: () -> Unit, onDismiss: () -> Unit)
 
 @Composable
 private fun Line(text: String) = SelectionContainer {
-    Text(text, fontFamily = FontFamily.Monospace, fontSize = 11.sp,
-        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(6.dp)).background(Lab.block).padding(8.dp))
+    Text(text, fontFamily = FontFamily.Monospace, fontSize = LabScale.textXs,
+        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(6.dp)).background(Lab.block).padding(LabScale.space2))
 }
 
 /** [text] as a QR code in black on white (white border, so a camera finds it in dark mode too). */

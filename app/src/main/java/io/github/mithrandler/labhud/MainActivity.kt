@@ -1,5 +1,6 @@
 package io.github.mithrandler.labhud
 
+import io.github.mithrandler.labhud.ui.LabScale
 import android.content.ComponentName
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
@@ -157,9 +158,9 @@ class MainActivity : FragmentActivity() {
             BrandMark(56.dp)
             Spacer(Modifier.height(20.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(LabIcons.lock, null, tint = Lab.muted, modifier = Modifier.size(20.dp))
-                Spacer(Modifier.width(8.dp))
-                Text("LabHUD is locked", fontSize = 20.sp)
+                Icon(LabIcons.lock, null, tint = Lab.muted, modifier = Modifier.size(LabScale.iconCard))
+                Spacer(Modifier.width(LabScale.space2))
+                Text("LabHUD is locked", fontSize = LabScale.textWallNum)
             }
             Spacer(Modifier.height(24.dp))
             Button(onClick = { AppLock.prompt(this@MainActivity) {} }) { Text("Unlock") }

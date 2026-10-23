@@ -1,5 +1,6 @@
 package io.github.mithrandler.labhud.ui.settings
 
+import io.github.mithrandler.labhud.ui.LabScale
 import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
@@ -52,20 +53,20 @@ fun PhonesSection(repo: LabRepository, nav: SettingsNav) {
 
     SettingsPage(section("phones")!!, nav) {
         if (phones == null) item { Unlock { gate.press { load() } } }
-        if (message.isNotEmpty()) item { Text(message, color = Lab.warn, fontSize = 13.sp) }
+        if (message.isNotEmpty()) item { Text(message, color = Lab.warn, fontSize = LabScale.textSm) }
         phones?.let { list ->
             item {
                 Panel("") {
-                    if (list.isEmpty()) Text("No phone paired.", color = Lab.muted, fontSize = 14.sp)
+                    if (list.isEmpty()) Text("No phone paired.", color = Lab.muted, fontSize = LabScale.textMd)
                     list.forEach { p ->
-                        Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Row(Modifier.fillMaxWidth().padding(vertical = LabScale.space1), verticalAlignment = Alignment.CenterVertically) {
                             Column(Modifier.weight(1f)) {
-                                Text(p.name, fontWeight = FontWeight.Medium, fontSize = 14.sp)
+                                Text(p.name, fontWeight = FontWeight.Medium, fontSize = LabScale.textMd)
                                 Text(listOfNotNull(
                                     if (p.admin) "admin" else "looks only",
                                     if (p.push) "instant notifications" else null,
                                     p.seen.takeIf { it > 0 }?.let { "seen " + stamp(it) },
-                                ).joinToString(" · "), fontSize = 12.sp, color = Lab.muted)
+                                ).joinToString(" · "), fontSize = LabScale.textSm, color = Lab.muted)
                             }
                             TextButton(onClick = { removing = p }) { Text("Remove", color = Lab.red) }
                         }
@@ -102,8 +103,8 @@ fun PhonesSection(repo: LabRepository, nav: SettingsNav) {
 @Composable
 fun Unlock(onUnlock: () -> Unit) {
     Panel("") {
-        Text("Unlock to see this LabHUD's settings.", color = Lab.sub, fontSize = 14.sp)
-        Button(onClick = onUnlock, modifier = Modifier.padding(top = 8.dp)) { Text("Unlock") }
+        Text("Unlock to see this LabHUD's settings.", color = Lab.sub, fontSize = LabScale.textMd)
+        Button(onClick = onUnlock, modifier = Modifier.padding(top = LabScale.space2)) { Text("Unlock") }
     }
 }
 

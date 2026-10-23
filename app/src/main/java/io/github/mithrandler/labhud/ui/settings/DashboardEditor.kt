@@ -1,5 +1,6 @@
 package io.github.mithrandler.labhud.ui.settings
 
+import io.github.mithrandler.labhud.ui.LabScale
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -52,13 +53,13 @@ import io.github.mithrandler.labhud.ui.Panel
 fun LazyListScope.pagesList(pages: List<LayoutPage>, enabled: Boolean, onChange: (List<LayoutPage>) -> Unit, onOpen: (String) -> Unit) {
     item {
         Panel("") {
-            Text("Pages · ${pages.sumOf { p -> p.groups.sumOf { it.cards.size } }} cards", fontWeight = FontWeight.Medium, fontSize = 15.sp)
-            Text("The order here is the order on the screen. Tap a page for its groups and cards.", fontSize = 13.sp, color = Lab.sub)
+            Text("Pages · ${pages.sumOf { p -> p.groups.sumOf { it.cards.size } }} cards", fontWeight = FontWeight.Medium, fontSize = LabScale.textMd)
+            Text("The order here is the order on the screen. Tap a page for its groups and cards.", fontSize = LabScale.textSm, color = Lab.sub)
             pages.forEachIndexed { i, p ->
-                Row(Modifier.fillMaxWidth().clickable { onOpen(p.id) }.padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(Modifier.fillMaxWidth().clickable { onOpen(p.id) }.padding(vertical = LabScale.space1), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
-                        Text(p.title, fontWeight = FontWeight.Medium, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text("${p.groups.size} groups · ${p.groups.sumOf { it.cards.size }} cards", fontSize = 12.sp, color = Lab.muted)
+                        Text(p.title, fontWeight = FontWeight.Medium, fontSize = LabScale.textMd, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text("${p.groups.size} groups · ${p.groups.sumOf { it.cards.size }} cards", fontSize = LabScale.textSm, color = Lab.muted)
                     }
                     Arrows(up = enabled && i > 0, down = enabled && i < pages.lastIndex,
                         onUp = { onChange(pages.movePage(p.id, -1)) }, onDown = { onChange(pages.movePage(p.id, 1)) })
@@ -82,10 +83,10 @@ fun LazyListScope.pageEditor(pages: List<LayoutPage>, pageId: String, enabled: B
                     Arrows(up = enabled && gi > 0, down = enabled && gi < page.groups.lastIndex,
                         onUp = { onChange(pages.moveGroup(pageId, g.id, -1)) }, onDown = { onChange(pages.moveGroup(pageId, g.id, 1)) })
                 }
-                if (g.auto) Text("Adds the guests by itself; it cannot be moved into or emptied here.", fontSize = 12.sp, color = Lab.muted, modifier = Modifier.padding(top = 4.dp))
+                if (g.auto) Text("Adds the guests by itself; it cannot be moved into or emptied here.", fontSize = LabScale.textSm, color = Lab.muted, modifier = Modifier.padding(top = LabScale.space1))
                 else Row(Modifier.fillMaxWidth().toggleable(value = g.hidden, enabled = enabled, role = Role.Switch) { v -> onChange(pages.editGroup(g.id) { it.copy(hidden = v) }) }
-                    .padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text("Hide this group", modifier = Modifier.weight(1f), fontSize = 14.sp)
+                    .padding(vertical = LabScale.space1), verticalAlignment = Alignment.CenterVertically) {
+                    Text("Hide this group", modifier = Modifier.weight(1f), fontSize = LabScale.textMd)
                     Switch(checked = g.hidden, onCheckedChange = null, enabled = enabled)
                 }
                 g.cards.forEachIndexed { ci, c ->
@@ -105,10 +106,10 @@ private fun PageLook(page: LayoutPage, enabled: Boolean, edit: ((LayoutPage) -> 
         OutlinedTextField(page.title, { v -> edit { it.copy(title = v.take(60)) } }, singleLine = true, enabled = enabled,
             label = { Text("Page title") }, modifier = Modifier.fillMaxWidth())
         OutlinedTextField(page.icon, { v -> edit { it.copy(icon = iconName(v)) } }, singleLine = true, enabled = enabled,
-            label = { Text("Icon (a name like proxmox)") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
-        Text("Columns", fontSize = 13.sp, color = Lab.sub, modifier = Modifier.padding(top = 8.dp))
+            label = { Text("Icon (a name like proxmox)") }, modifier = Modifier.fillMaxWidth().padding(top = LabScale.space2))
+        Text("Columns", fontSize = LabScale.textSm, color = Lab.sub, modifier = Modifier.padding(top = LabScale.space2))
         Chips(listOf("Auto" to 0, "1" to 1, "2" to 2, "3" to 3, "4" to 4, "5" to 5, "6" to 6), page.columns, enabled) { v -> edit { it.copy(columns = v) } }
-        Text("Density", fontSize = 13.sp, color = Lab.sub, modifier = Modifier.padding(top = 8.dp))
+        Text("Density", fontSize = LabScale.textSm, color = Lab.sub, modifier = Modifier.padding(top = LabScale.space2))
         Chips(listOf("Default" to "", "Compact" to "compact", "Normal" to "normal"), page.density, enabled) { v -> edit { it.copy(density = v) } }
     }
 }
@@ -117,25 +118,25 @@ private fun PageLook(page: LayoutPage, enabled: Boolean, edit: ((LayoutPage) -> 
 private fun CardEditor(c: LayoutCard, enabled: Boolean, first: Boolean, last: Boolean, onEdit: ((LayoutCard) -> LayoutCard) -> Unit,
                        onUp: () -> Unit, onDown: () -> Unit, onMove: () -> Unit) {
     var open by remember(c.id) { mutableStateOf(false) }
-    Column(Modifier.fillMaxWidth().padding(top = 6.dp)) {
+    Column(Modifier.fillMaxWidth().padding(top = LabScale.space2)) {
         Row(Modifier.fillMaxWidth().clickable { open = !open }, verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f).padding(vertical = 6.dp)) {
-                Text(c.name, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis,
+            Column(Modifier.weight(1f).padding(vertical = LabScale.space2)) {
+                Text(c.name, fontSize = LabScale.textMd, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis,
                     color = if (c.hidden) Lab.muted else Lab.text)
                 val bits = listOfNotNull(c.size.uppercase().ifEmpty { null }, if (c.hidden) "hidden" else null, c.icon.ifEmpty { null })
-                if (bits.isNotEmpty()) Text(bits.joinToString(" · "), fontSize = 12.sp, color = Lab.muted)
+                if (bits.isNotEmpty()) Text(bits.joinToString(" · "), fontSize = LabScale.textSm, color = Lab.muted)
             }
             Arrows(up = enabled && !first, down = enabled && !last, onUp = onUp, onDown = onDown)
             Icon(if (open) LabIcons.chevronUp else LabIcons.chevronDown, null, tint = Lab.muted)
         }
-        if (open) Column(Modifier.padding(start = 8.dp, bottom = 6.dp)) {
-            Text("Size", fontSize = 13.sp, color = Lab.sub)
+        if (open) Column(Modifier.padding(start = LabScale.space2, bottom = LabScale.space2)) {
+            Text("Size", fontSize = LabScale.textSm, color = Lab.sub)
             Chips(listOf("Auto" to "", "S" to "s", "M" to "m", "L" to "l", "XL" to "xl"), c.size, enabled) { v -> onEdit { it.copy(size = v) } }
             OutlinedTextField(c.icon, { v -> onEdit { it.copy(icon = iconName(v)) } }, singleLine = true, enabled = enabled,
-                label = { Text("Icon") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
+                label = { Text("Icon") }, modifier = Modifier.fillMaxWidth().padding(top = LabScale.space2))
             Row(Modifier.fillMaxWidth().toggleable(value = c.hidden, enabled = enabled, role = Role.Switch) { v -> onEdit { it.copy(hidden = v) } }
-                .padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("Hide this card", modifier = Modifier.weight(1f), fontSize = 14.sp)
+                .padding(vertical = LabScale.space2), verticalAlignment = Alignment.CenterVertically) {
+                Text("Hide this card", modifier = Modifier.weight(1f), fontSize = LabScale.textMd)
                 Switch(checked = c.hidden, onCheckedChange = null, enabled = enabled)
             }
             TextButton(onClick = onMove, enabled = enabled) { Text("Move to…") }
@@ -148,15 +149,15 @@ internal fun iconName(text: String): String = text.lowercase().filter { it.isLet
 
 @Composable
 private fun <T> Chips(options: List<Pair<String, T>>, selected: T, enabled: Boolean, onPick: (T) -> Unit) {
-    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(LabScale.space2)) {
         options.forEach { (label, value) -> FilterChip(selected = value == selected, onClick = { onPick(value) }, label = { Text(label) }, enabled = enabled) }
     }
 }
 
 @Composable
 private fun Arrows(up: Boolean, down: Boolean, onUp: () -> Unit, onDown: () -> Unit) {
-    IconButton(onClick = onUp, enabled = up) { Icon(LabIcons.chevronUp, "Up", Modifier.size(20.dp)) }
-    IconButton(onClick = onDown, enabled = down) { Icon(LabIcons.chevronDown, "Down", Modifier.size(20.dp)) }
+    IconButton(onClick = onUp, enabled = up) { Icon(LabIcons.chevronUp, "Up", Modifier.size(LabScale.iconCard)) }
+    IconButton(onClick = onDown, enabled = down) { Icon(LabIcons.chevronDown, "Down", Modifier.size(LabScale.iconCard)) }
 }
 
 /** Where a card goes: a page, then one of its groups or a new group (made with a title). */
@@ -173,19 +174,19 @@ fun MoveCardDialog(pages: List<LayoutPage>, cardId: String, onDone: (List<Layout
         title = { Text("Move ${pages.flatMap { p -> p.groups.flatMap { it.cards } }.firstOrNull { it.id == cardId }?.name ?: "the card"}") },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState())) {
-                Text("Page", fontSize = 13.sp, color = Lab.sub)
+                Text("Page", fontSize = LabScale.textSm, color = Lab.sub)
                 Chips(pages.map { it.title to it.id }, pageId, true) { id ->
                     pageId = id
                     groupId = pages.firstOrNull { it.id == id }?.groups.orEmpty().firstOrNull { !it.auto }?.id
                 }
-                Text("Group", fontSize = 13.sp, color = Lab.sub, modifier = Modifier.padding(top = 10.dp))
+                Text("Group", fontSize = LabScale.textSm, color = Lab.sub, modifier = Modifier.padding(top = LabScale.space3))
                 groups.forEach { g ->
                     Row(Modifier.fillMaxWidth().selectable(selected = groupId == g.id, role = Role.RadioButton) { groupId = g.id }, verticalAlignment = Alignment.CenterVertically) {
-                        RadioButton(selected = groupId == g.id, onClick = null, modifier = Modifier.padding(8.dp)); Text(g.title, fontSize = 14.sp)
+                        RadioButton(selected = groupId == g.id, onClick = null, modifier = Modifier.padding(LabScale.space2)); Text(g.title, fontSize = LabScale.textMd)
                     }
                 }
                 Row(Modifier.fillMaxWidth().selectable(selected = groupId == null, role = Role.RadioButton) { groupId = null }, verticalAlignment = Alignment.CenterVertically) {
-                    RadioButton(selected = groupId == null, onClick = null, modifier = Modifier.padding(8.dp)); Text("A new group", fontSize = 14.sp)
+                    RadioButton(selected = groupId == null, onClick = null, modifier = Modifier.padding(LabScale.space2)); Text("A new group", fontSize = LabScale.textMd)
                 }
                 if (groupId == null) OutlinedTextField(title, { title = it.take(60) }, singleLine = true, label = { Text("Group title") }, modifier = Modifier.fillMaxWidth())
             }

@@ -1,5 +1,6 @@
 package io.github.mithrandler.labhud.ui.settings
 
+import io.github.mithrandler.labhud.ui.LabScale
 import android.content.ClipData
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
@@ -92,36 +93,36 @@ fun ApiSection(repo: LabRepository, nav: SettingsNav) {
 
     SettingsPage(section("api")!!, nav) {
         if (tokens == null) item { Unlock { gate.press { load() } } }
-        if (message.isNotEmpty()) item { Text(message, color = Lab.warn, fontSize = 13.sp) }
+        if (message.isNotEmpty()) item { Text(message, color = Lab.warn, fontSize = LabScale.textSm) }
         tokens?.let { list ->
             item {
                 Panel("API tokens", if (!enabled) "Need a data folder" else if (list.isEmpty()) "None yet" else "${list.size} token(s)") {
                     Text("For scripts: Authorization: Bearer lh_…. read sees the state, act also presses the cards' buttons, admin also changes settings.",
-                        fontSize = 12.sp, color = Lab.muted, modifier = Modifier.padding(bottom = 6.dp))
-                    if (!enabled) Text("Tokens need LABHUD_DATA (a folder LabHUD can write).", color = Lab.muted, fontSize = 14.sp)
-                    else if (list.isEmpty()) Text("No token yet.", color = Lab.muted, fontSize = 14.sp)
+                        fontSize = LabScale.textSm, color = Lab.muted, modifier = Modifier.padding(bottom = LabScale.space2))
+                    if (!enabled) Text("Tokens need LABHUD_DATA (a folder LabHUD can write).", color = Lab.muted, fontSize = LabScale.textMd)
+                    else if (list.isEmpty()) Text("No token yet.", color = Lab.muted, fontSize = LabScale.textMd)
                     list.forEach { t -> TokenRow(t) { revoking = t } }
-                    if (enabled) Button(onClick = { making = true }, modifier = Modifier.padding(top = 8.dp)) { Text("Make a token") }
+                    if (enabled) Button(onClick = { making = true }, modifier = Modifier.padding(top = LabScale.space2)) { Text("Make a token") }
                 }
             }
             item {
                 Panel("Audit log", "Who did what, kept 90 days") {
-                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(LabScale.space2)) {
                         listOf(false to "All", true to "Refused").forEach { (refused, label) ->
                             FilterChip(selected = onlyRefused == refused, onClick = { onlyRefused = refused; loadAudit() }, label = { Text(label) },
                                 colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Lab.accent.copy(alpha = 0.2f), selectedLabelColor = Lab.title))
                         }
                     }
                     OutlinedTextField(who, { who = it.take(60) }, singleLine = true, label = { Text("Who (admin, phone, token…)") },
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        modifier = Modifier.fillMaxWidth().padding(vertical = LabScale.space1),
                         trailingIcon = { TextButton(onClick = { loadAudit() }) { Text("Filter") } })
-                    if (rows.isEmpty()) Text("Nothing matches.", color = Lab.muted, fontSize = 14.sp, modifier = Modifier.padding(top = 4.dp))
+                    if (rows.isEmpty()) Text("Nothing matches.", color = Lab.muted, fontSize = LabScale.textMd, modifier = Modifier.padding(top = LabScale.space1))
                     rows.forEachIndexed { i, r ->
                         if (i > 0) HorizontalDivider(color = Lab.line)
                         AuditLine(r)
                     }
                     if (more) TextButton(onClick = { loadAudit(append = true) }) { Text("Older") }
-                    Text("Kept 90 days.", fontSize = 11.sp, color = Lab.muted, modifier = Modifier.padding(top = 4.dp))
+                    Text("Kept 90 days.", fontSize = LabScale.textXs, color = Lab.muted, modifier = Modifier.padding(top = LabScale.space1))
                 }
             }
         }
@@ -161,10 +162,10 @@ fun ApiSection(repo: LabRepository, nav: SettingsNav) {
 
 @Composable
 private fun TokenRow(t: ApiToken, onRevoke: () -> Unit) {
-    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(Modifier.fillMaxWidth().padding(vertical = LabScale.space1), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(t.name, fontWeight = FontWeight.Medium, fontSize = 14.sp, color = if (t.expired) Lab.muted else Lab.text,
+                Text(t.name, fontWeight = FontWeight.Medium, fontSize = LabScale.textMd, color = if (t.expired) Lab.muted else Lab.text,
                     maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
                 ScopeTag(t.scope)
             }
@@ -172,7 +173,7 @@ private fun TokenRow(t: ApiToken, onRevoke: () -> Unit) {
                 "made " + stamp(t.made),
                 if (t.last > 0) "used " + stamp(t.last) + (if (t.ip.isNotEmpty()) " from ${t.ip}" else "") else "never used",
                 when { t.expired -> "expired"; t.expires > 0 -> "expires " + day(t.expires); else -> "no expiry" },
-            ).joinToString(" · "), fontSize = 12.sp, color = Lab.muted)
+            ).joinToString(" · "), fontSize = LabScale.textSm, color = Lab.muted)
         }
         TextButton(onClick = onRevoke) { Text("Revoke", color = Lab.red) }
     }
@@ -181,9 +182,9 @@ private fun TokenRow(t: ApiToken, onRevoke: () -> Unit) {
 @Composable
 fun ScopeTag(scope: String) {
     val c = scopeColor(scope)
-    Text(scope.uppercase(), fontSize = 10.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 0.6.sp, color = c,
-        modifier = Modifier.padding(start = 6.dp).clip(RoundedCornerShape(5.dp)).background(c.copy(alpha = 0.18f))
-            .padding(horizontal = 6.dp, vertical = 2.dp))
+    Text(scope.uppercase(), fontSize = LabScale.textXs, fontWeight = FontWeight.SemiBold, letterSpacing = 0.6.sp, color = c,
+        modifier = Modifier.padding(start = LabScale.space2).clip(RoundedCornerShape(5.dp)).background(c.copy(alpha = 0.18f))
+            .padding(horizontal = LabScale.space2, vertical = 2.dp))
 }
 
 fun scopeColor(scope: String): Color = when (scope) {
@@ -194,14 +195,14 @@ fun scopeColor(scope: String): Color = when (scope) {
 
 @Composable
 private fun AuditLine(r: AuditRow) {
-    Column(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+    Column(Modifier.fillMaxWidth().padding(vertical = LabScale.space2)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(r.action + if (r.target.isNotEmpty()) " · ${r.target}" else "", fontWeight = FontWeight.Medium, fontSize = 13.sp,
+            Text(r.action + if (r.target.isNotEmpty()) " · ${r.target}" else "", fontWeight = FontWeight.Medium, fontSize = LabScale.textSm,
                 maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-            Text(if (r.ok) "ok" else "refused", fontSize = 12.sp, color = if (r.ok) Lab.green else Lab.red,
+            Text(if (r.ok) "ok" else "refused", fontSize = LabScale.textSm, color = if (r.ok) Lab.green else Lab.red,
                 fontWeight = if (r.ok) FontWeight.Normal else FontWeight.SemiBold)
         }
-        Text(listOf(auditTime(r.ts), r.who, r.ip).filter { it.isNotEmpty() }.joinToString(" · "), fontSize = 12.sp, color = Lab.muted,
+        Text(listOf(auditTime(r.ts), r.who, r.ip).filter { it.isNotEmpty() }.joinToString(" · "), fontSize = LabScale.textSm, color = Lab.muted,
             maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
@@ -215,17 +216,17 @@ private fun MakeTokenDialog(onDismiss: () -> Unit, onMake: (String, String, Int?
         onDismissRequest = onDismiss,
         title = { Text("A new API token") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(LabScale.space2)) {
                 OutlinedTextField(name, { name = it.take(40) }, singleLine = true, label = { Text("Name (e.g. home-assistant)") }, modifier = Modifier.fillMaxWidth())
-                Text("May", fontSize = 12.sp, color = Lab.muted)
-                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("May", fontSize = LabScale.textSm, color = Lab.muted)
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(LabScale.space2)) {
                     listOf("read", "act", "admin").forEach { s ->
                         FilterChip(selected = scope == s, onClick = { scope = s }, label = { Text(s) },
                             colors = FilterChipDefaults.filterChipColors(selectedContainerColor = scopeColor(s).copy(alpha = 0.2f), selectedLabelColor = scopeColor(s)))
                     }
                 }
-                Text("Expires", fontSize = 12.sp, color = Lab.muted)
-                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("Expires", fontSize = LabScale.textSm, color = Lab.muted)
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(LabScale.space2)) {
                     listOf(null to "never", 30 to "30 days", 90 to "90 days", 365 to "1 year").forEach { (d, label) ->
                         FilterChip(selected = days == d, onClick = { days = d }, label = { Text(label) },
                             colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Lab.accent.copy(alpha = 0.2f), selectedLabelColor = Lab.title))
@@ -247,13 +248,13 @@ private fun ShowOnceDialog(t: NewToken, onDone: () -> Unit) {
         onDismissRequest = {},
         title = { Text("${t.name}: copy it now") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("LabHUD keeps only its hash and will not show it again.", fontSize = 13.sp, color = Lab.sub)
+            Column(verticalArrangement = Arrangement.spacedBy(LabScale.space2)) {
+                Text("LabHUD keeps only its hash and will not show it again.", fontSize = LabScale.textSm, color = Lab.sub)
                 SelectionContainer {
-                    Text(t.token, fontFamily = FontFamily.Monospace, fontSize = 12.sp,
-                        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(6.dp)).background(Lab.block).padding(8.dp))
+                    Text(t.token, fontFamily = FontFamily.Monospace, fontSize = LabScale.textSm,
+                        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(6.dp)).background(Lab.block).padding(LabScale.space2))
                 }
-                if (copied) Text("Copied.", fontSize = 12.sp, color = Lab.green)
+                if (copied) Text("Copied.", fontSize = LabScale.textSm, color = Lab.green)
             }
         },
         confirmButton = { TextButton(onClick = onDone) { Text("Done") } },

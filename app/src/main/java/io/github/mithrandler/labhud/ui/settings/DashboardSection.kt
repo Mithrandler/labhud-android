@@ -1,5 +1,6 @@
 package io.github.mithrandler.labhud.ui.settings
 
+import io.github.mithrandler.labhud.ui.LabScale
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -102,11 +103,11 @@ fun DashboardSection(repo: LabRepository, nav: SettingsNav) {
 
     SettingsPage(section("dashboard")!!, nav) {
         if (list == null && pages == null) item { Unlock { gate.press { load() } } }
-        if (message.isNotEmpty()) item { Text(message, color = Lab.warn, fontSize = 13.sp) }
+        if (message.isNotEmpty()) item { Text(message, color = Lab.warn, fontSize = LabScale.textSm) }
         if (dirty) item {
             Panel("") {
-                Text("Changes not saved yet.", fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Changes not saved yet.", fontSize = LabScale.textMd, fontWeight = FontWeight.Medium)
+                Row(Modifier.padding(top = LabScale.space2), horizontalArrangement = Arrangement.spacedBy(LabScale.space2)) {
                     Button(onClick = { save() }, enabled = !busy) { Text("Save") }
                     OutlinedButton(onClick = { pages = saved }, enabled = !busy) { Text("Discard") }
                 }
@@ -124,24 +125,24 @@ fun DashboardSection(repo: LabRepository, nav: SettingsNav) {
             item {
                 Panel("Discovered · to approve", if (l.items.isEmpty()) "Nothing new" else "${l.items.size} to approve") {
                     Text("Found, with no card yet. A card added here lands on the page \"discovered\"; move it from the wall's ⚙ > Dashboard.",
-                        fontSize = 13.sp, color = Lab.sub)
-                    if (l.items.isEmpty()) Text("Nothing new.", color = Lab.muted, fontSize = 14.sp, modifier = Modifier.padding(top = 8.dp))
+                        fontSize = LabScale.textSm, color = Lab.sub)
+                    if (l.items.isEmpty()) Text("Nothing new.", color = Lab.muted, fontSize = LabScale.textMd, modifier = Modifier.padding(top = LabScale.space2))
                     l.items.forEach { d ->
                         Row(
                             Modifier.fillMaxWidth().toggleable(value = d.key in picked, enabled = !busy, role = Role.Checkbox) { want ->
                                 picked = if (want) picked + d.key else picked - d.key
-                            }.padding(vertical = 4.dp),
+                            }.padding(vertical = LabScale.space1),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Checkbox(checked = d.key in picked, onCheckedChange = null, enabled = !busy)
-                            Spacer(Modifier.width(8.dp))
+                            Spacer(Modifier.width(LabScale.space2))
                             Column(Modifier.weight(1f)) {
-                                Text(d.name, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                                Text(listOf(d.kind, d.detail).filter { it.isNotEmpty() }.joinToString(" · "), fontSize = 12.sp, color = Lab.muted)
+                                Text(d.name, fontSize = LabScale.textMd, fontWeight = FontWeight.Medium)
+                                Text(listOf(d.kind, d.detail).filter { it.isNotEmpty() }.joinToString(" · "), fontSize = LabScale.textSm, color = Lab.muted)
                             }
                         }
                     }
-                    if (l.items.isNotEmpty()) Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (l.items.isNotEmpty()) Row(Modifier.padding(top = LabScale.space2), horizontalArrangement = Arrangement.spacedBy(LabScale.space2)) {
                         Button(enabled = !busy && picked.isNotEmpty(), onClick = { val keys = picked.toList(); change("Not added") { it.discoverApprove(keys) } }) {
                             Text("Add ${picked.size}")
                         }

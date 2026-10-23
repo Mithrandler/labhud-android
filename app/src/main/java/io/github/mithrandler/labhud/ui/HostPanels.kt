@@ -74,29 +74,29 @@ fun DockerHostPanel(a: AgentRow, repo: LabRepository, gate: Gate, busy: Boolean,
             reading = false
         }
     }
-    Column(Modifier.padding(top = 12.dp)) {
+    Column(Modifier.padding(top = LabScale.space3)) {
         Text("Docker host", fontWeight = FontWeight.SemiBold)
-        Text("Images, volumes and networks with their sizes, read when you ask.", fontSize = 12.sp, color = Lab.muted)
-        OutlinedButton(onClick = { read() }, enabled = !busy && !reading && a.online, modifier = Modifier.padding(top = 6.dp)) {
+        Text("Images, volumes and networks with their sizes, read when you ask.", fontSize = LabScale.textSm, color = Lab.muted)
+        OutlinedButton(onClick = { read() }, enabled = !busy && !reading && a.online, modifier = Modifier.padding(top = LabScale.space2)) {
             Text(if (reading) "Reading…" else if (inv == null) "Show images, volumes, networks" else "Read again")
         }
         inv?.let { i ->
             Text("${i.images.size} images (${sizeText(i.totals.images)}, ${sizeText(i.totals.unusedImages)} unused) · " +
                 "${i.volumes.size} volumes (${sizeText(i.totals.volumes)}) · ${i.networks.size} networks",
-                fontSize = 12.sp, color = Lab.sub, modifier = Modifier.padding(top = 8.dp))
-            Text("Images", fontSize = 11.sp, color = Lab.muted, modifier = Modifier.padding(top = 8.dp))
+                fontSize = LabScale.textSm, color = Lab.sub, modifier = Modifier.padding(top = LabScale.space2))
+            Text("Images", fontSize = LabScale.textXs, color = Lab.muted, modifier = Modifier.padding(top = LabScale.space2))
             i.images.forEach { im ->
                 HostLine(im.tags.joinToString(", ").ifEmpty { "(untagged) ${im.id}" }, sizeText(im.size) + " · " + if (im.used > 0) "${im.used} in use" else "unused", im.used == 0)
             }
-            Text("Volumes", fontSize = 11.sp, color = Lab.muted, modifier = Modifier.padding(top = 8.dp))
+            Text("Volumes", fontSize = LabScale.textXs, color = Lab.muted, modifier = Modifier.padding(top = LabScale.space2))
             i.volumes.forEach { v ->
                 HostLine(if (v.anonymous) "(anonymous) ${v.name.take(12)}" else v.name, sizeText(v.size) + " · " + if (v.used > 0) "${v.used} in use" else "unused", v.used == 0)
             }
-            Text("Networks", fontSize = 11.sp, color = Lab.muted, modifier = Modifier.padding(top = 8.dp))
+            Text("Networks", fontSize = LabScale.textXs, color = Lab.muted, modifier = Modifier.padding(top = LabScale.space2))
             i.networks.forEach { n -> HostLine(n.name + if (n.builtin) " (built in)" else "", "${n.driver} · ${n.used} on it", false) }
-            if (i.more.isNotEmpty()) Text("More than shown: " + i.more.entries.joinToString(", ") { "${it.value} ${it.key}" } + ".", fontSize = 12.sp, color = Lab.muted)
+            if (i.more.isNotEmpty()) Text("More than shown: " + i.more.entries.joinToString(", ") { "${it.value} ${it.key}" } + ".", fontSize = LabScale.textSm, color = Lab.muted)
             CLEANINGS.forEach { c ->
-                OutlinedButton(onClick = { ask = c }, enabled = !busy && !reading, modifier = Modifier.padding(top = 6.dp)) { Text("Clean: " + c.second) }
+                OutlinedButton(onClick = { ask = c }, enabled = !busy && !reading, modifier = Modifier.padding(top = LabScale.space2)) { Text("Clean: " + c.second) }
             }
         }
     }
@@ -125,8 +125,8 @@ fun DockerHostPanel(a: AgentRow, repo: LabRepository, gate: Gate, busy: Boolean,
 @Composable
 private fun HostLine(name: String, detail: String, dim: Boolean) {
     Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(name, fontSize = 13.sp, color = if (dim) Lab.muted else Lab.text, maxLines = 2, modifier = Modifier.weight(1f))
-        Text(detail, fontSize = 12.sp, color = Lab.muted, modifier = Modifier.padding(start = 8.dp))
+        Text(name, fontSize = LabScale.textSm, color = if (dim) Lab.muted else Lab.text, maxLines = 2, modifier = Modifier.weight(1f))
+        Text(detail, fontSize = LabScale.textSm, color = Lab.muted, modifier = Modifier.padding(start = LabScale.space2))
     }
 }
 
@@ -148,13 +148,13 @@ fun StacksPanel(a: AgentRow, repo: LabRepository, gate: Gate, busy: Boolean, onM
             onChanged()
         }
     }
-    Column(Modifier.padding(top = 12.dp)) {
+    Column(Modifier.padding(top = LabScale.space3)) {
         Text("Stacks", fontWeight = FontWeight.SemiBold)
-        Text("A compose file is checked before anything changes. It can do anything the Docker socket can.", fontSize = 12.sp, color = Lab.muted)
-        if (a.stacks.isEmpty()) Text(if (a.online) "No stack yet." else "Shown when the agent is online.", fontSize = 13.sp, color = Lab.muted, modifier = Modifier.padding(top = 6.dp))
+        Text("A compose file is checked before anything changes. It can do anything the Docker socket can.", fontSize = LabScale.textSm, color = Lab.muted)
+        if (a.stacks.isEmpty()) Text(if (a.online) "No stack yet." else "Shown when the agent is online.", fontSize = LabScale.textSm, color = Lab.muted, modifier = Modifier.padding(top = LabScale.space2))
         a.stacks.toSortedMap().forEach { (name, x) -> StackRow(name, x, enabled = !busy && !working && a.online,
             onEdit = { edit = name }, onVerb = { verb -> confirm = verb to name }) }
-        OutlinedButton(onClick = { edit = "" }, enabled = !busy && !working && a.online, modifier = Modifier.padding(top = 6.dp)) { Text("New stack") }
+        OutlinedButton(onClick = { edit = "" }, enabled = !busy && !working && a.online, modifier = Modifier.padding(top = LabScale.space2)) { Text("New stack") }
     }
     confirm?.let { (verb, name) ->
         AlertDialog(
@@ -176,9 +176,9 @@ fun StacksPanel(a: AgentRow, repo: LabRepository, gate: Gate, busy: Boolean, onM
 
 @Composable
 private fun StackRow(name: String, x: StackInfo, enabled: Boolean, onEdit: () -> Unit, onVerb: (String) -> Unit) {
-    Column(Modifier.fillMaxWidth().padding(top = 8.dp)) {
-        Text("$name  ·  ${x.running}/${x.services} running" + if (x.env) "  ·  .env" else "", fontSize = 14.sp, fontWeight = FontWeight.Medium)
-        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+    Column(Modifier.fillMaxWidth().padding(top = LabScale.space2)) {
+        Text("$name  ·  ${x.running}/${x.services} running" + if (x.env) "  ·  .env" else "", fontSize = LabScale.textMd, fontWeight = FontWeight.Medium)
+        Row(horizontalArrangement = Arrangement.spacedBy(LabScale.space1)) {
             TextButton(onClick = onEdit, enabled = enabled) { Text("Edit") }
             TextButton(onClick = { onVerb("redeploy") }, enabled = enabled) { Text("Redeploy") }
             TextButton(onClick = { onVerb("restart") }, enabled = enabled) { Text("Restart") }
@@ -221,7 +221,7 @@ private fun StackEditor(a: AgentRow, start: String, repo: LabRepository, gate: G
             Column(Modifier.verticalScroll(rememberScrollState())) {
                 if (start.isEmpty()) OutlinedTextField(name, { name = it.lowercase() }, Modifier.fillMaxWidth(), singleLine = true, label = { Text("Name") })
                 OutlinedTextField(compose, { compose = it }, Modifier.fillMaxWidth().heightIn(min = 160.dp), label = { Text("compose.yaml") },
-                    textStyle = androidx.compose.ui.text.TextStyle(fontFamily = FontFamily.Monospace, fontSize = 12.sp))
+                    textStyle = androidx.compose.ui.text.TextStyle(fontFamily = FontFamily.Monospace, fontSize = LabScale.textSm))
                 // or the compose file from a git repository: the server fetches it, the token is used once and not kept
                 OutlinedTextField(gitRepo, { gitRepo = it.trim() }, Modifier.fillMaxWidth(), singleLine = true, label = { Text("or from git: https://git.example/owner/name") })
                 if (gitRepo.isNotEmpty()) {
@@ -231,12 +231,12 @@ private fun StackEditor(a: AgentRow, start: String, repo: LabRepository, gate: G
                         visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(), label = { Text("Token, private repository (not saved)") })
                 }
                 OutlinedTextField(env, { env = it }, Modifier.fillMaxWidth().heightIn(min = 80.dp), enabled = !removeEnv, label = { Text(".env (empty keeps the host's)") },
-                    textStyle = androidx.compose.ui.text.TextStyle(fontFamily = FontFamily.Monospace, fontSize = 12.sp))
-                Row(Modifier.padding(top = 4.dp)) {
+                    textStyle = androidx.compose.ui.text.TextStyle(fontFamily = FontFamily.Monospace, fontSize = LabScale.textSm))
+                Row(Modifier.padding(top = LabScale.space1)) {
                     androidx.compose.material3.Checkbox(removeEnv, { removeEnv = it })
-                    Text("Remove the .env", fontSize = 13.sp, modifier = Modifier.padding(top = 12.dp))
+                    Text("Remove the .env", fontSize = LabScale.textSm, modifier = Modifier.padding(top = LabScale.space3))
                 }
-                if (note.isNotEmpty()) Text(note, fontSize = 12.sp, color = Lab.muted)
+                if (note.isNotEmpty()) Text(note, fontSize = LabScale.textSm, color = Lab.muted)
             }
         },
         confirmButton = { Button(enabled = !busy && name.matches(Regex("[a-z0-9][a-z0-9_-]{0,63}")) && (if (gitRepo.isNotEmpty()) gitPath.isNotEmpty() else compose.isNotBlank()), onClick = {
@@ -318,8 +318,8 @@ fun LiveLogDialog(agent: String, container: String, repo: LabRepository, gate: G
         title = { Text("$container · live log") },
         text = {
             Column {
-                Text(status, fontSize = 12.sp, color = Lab.muted)
-                Text(text.ifEmpty { "…" }, fontSize = 11.sp, fontFamily = FontFamily.Monospace, modifier = Modifier.heightIn(max = 380.dp).verticalScroll(scroll))
+                Text(status, fontSize = LabScale.textSm, color = Lab.muted)
+                Text(text.ifEmpty { "…" }, fontSize = LabScale.textXs, fontFamily = FontFamily.Monospace, modifier = Modifier.heightIn(max = 380.dp).verticalScroll(scroll))
             }
         },
         confirmButton = { TextButton(onClick = { streamId?.let { id -> scope.launch { repo.api()?.closeStream(id) } }; onClose() }) { Text("Close") } },

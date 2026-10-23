@@ -95,7 +95,7 @@ fun ActivityScreen(repo: LabRepository, bar: BarNav) {
         },
     ) { pad ->
       Column(Modifier.padding(pad).fillMaxSize()) {
-        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().padding(horizontal = LabScale.space4)) {
             listOf("Alerts", "Timeline", "Notifications").forEachIndexed { i, label ->
                 SegmentedButton(selected = tab == i, onClick = { tab = i }, shape = SegmentedButtonDefaults.itemShape(i, 3)) { Text(label) }
             }
@@ -104,7 +104,7 @@ fun ActivityScreen(repo: LabRepository, bar: BarNav) {
             val st = state
             if (st == null) Text("Connecting…", color = Lab.muted, modifier = Modifier.padding(24.dp))
             else androidx.compose.foundation.lazy.LazyColumn(Modifier.fillMaxSize()) {
-                item { BellContent(st, onCard, Modifier.padding(16.dp)) }
+                item { BellContent(st, onCard, Modifier.padding(LabScale.space4)) }
             }
             return@Column
         }
@@ -118,7 +118,7 @@ fun ActivityScreen(repo: LabRepository, bar: BarNav) {
             Text(error.ifEmpty { "Loading…" }, color = Lab.muted, modifier = Modifier.padding(24.dp))
             return@Column
         }
-        if (list.isEmpty()) { Text("Nothing happened yet.", color = Lab.muted, modifier = Modifier.padding(16.dp)); return@Column }
+        if (list.isEmpty()) { Text("Nothing happened yet.", color = Lab.muted, modifier = Modifier.padding(LabScale.space4)); return@Column }
         // the day's heading and its events as one list, a few to a page; a page that starts mid-day names the day again
         val lines = remember(days) {
             days.flatMap { (heading, rows) -> listOf<Any>(heading to rows) + rows.map { heading to it } }
@@ -129,7 +129,7 @@ fun ActivityScreen(repo: LabRepository, bar: BarNav) {
                 val rows = line.second as List<Event>
                 val bad = rows.count { it.bad }
                 Text("${(line.first as String).uppercase()} · ${rows.size}" + if (bad > 0) " · $bad bad" else "", style = Heading,
-                    modifier = Modifier.padding(top = 10.dp, bottom = 4.dp))
+                    modifier = Modifier.padding(top = LabScale.space3, bottom = LabScale.space1))
             } else {
                 val e = (line as Pair<*, *>).second as Event
                 Row(
@@ -137,10 +137,10 @@ fun ActivityScreen(repo: LabRepository, bar: BarNav) {
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Box(Modifier.size(8.dp).clip(CircleShape).background(if (e.bad) Lab.red else Lab.border))
-                    Spacer(Modifier.width(12.dp))
-                    Text(e.name, fontSize = 14.sp, color = if (e.bad) Lab.text else Lab.sub, modifier = Modifier.weight(1f))
-                    Spacer(Modifier.width(12.dp))
-                    Text(time.format(Date(e.t * 1000)), fontSize = 12.sp, color = Lab.muted)
+                    Spacer(Modifier.width(LabScale.space3))
+                    Text(e.name, fontSize = LabScale.textMd, color = if (e.bad) Lab.text else Lab.sub, modifier = Modifier.weight(1f))
+                    Spacer(Modifier.width(LabScale.space3))
+                    Text(time.format(Date(e.t * 1000)), fontSize = LabScale.textSm, color = Lab.muted)
                 }
             }
         }
@@ -157,23 +157,23 @@ private fun NotesList(notes: List<Note>?, error: String, onCard: (String) -> Uni
         Text(error.ifEmpty { "Loading…" }, color = Lab.muted, modifier = Modifier.padding(24.dp))
         return
     }
-    if (list.isEmpty()) { Text("No notifications.", color = Lab.muted, modifier = Modifier.padding(16.dp)); return }
+    if (list.isEmpty()) { Text("No notifications.", color = Lab.muted, modifier = Modifier.padding(LabScale.space4)); return }
     PagedScreen(list, per = 4) { n ->
         run {
             Row(
-                Modifier.fillMaxWidth().clickable(enabled = n.card != null) { n.card?.let(onCard) }.padding(vertical = 8.dp),
+                Modifier.fillMaxWidth().clickable(enabled = n.card != null) { n.card?.let(onCard) }.padding(vertical = LabScale.space2),
                 verticalAlignment = Alignment.Top,
             ) {
-                Box(Modifier.padding(top = 6.dp).size(8.dp).clip(CircleShape).background(if (n.bad) Lab.red else Lab.green))
-                Spacer(Modifier.width(12.dp))
+                Box(Modifier.padding(top = LabScale.space2).size(8.dp).clip(CircleShape).background(if (n.bad) Lab.red else Lab.green))
+                Spacer(Modifier.width(LabScale.space3))
                 Column(Modifier.weight(1f)) {
-                    Text(n.text, fontSize = 14.sp, color = if (n.bad) Lab.text else Lab.sub)
-                    Text(stamp.format(Date(n.time * 1000)), fontSize = 12.sp, color = Lab.muted)
+                    Text(n.text, fontSize = LabScale.textMd, color = if (n.bad) Lab.text else Lab.sub)
+                    Text(stamp.format(Date(n.time * 1000)), fontSize = LabScale.textSm, color = Lab.muted)
                     val buttons = n.actions.filter { it.allowed() }
                     if (buttons.isNotEmpty()) {
                         val said = done[n.id]
-                        if (said != null && said.isEmpty()) Text("Done.", fontSize = 12.sp, color = Lab.green)
-                        else Row(horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
+                        if (said != null && said.isEmpty()) Text("Done.", fontSize = LabScale.textSm, color = Lab.green)
+                        else Row(horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(LabScale.space2)) {
                             buttons.forEach { a ->
                                 androidx.compose.material3.OutlinedButton(onClick = {
                                     scope.launch {
@@ -185,7 +185,7 @@ private fun NotesList(notes: List<Note>?, error: String, onCard: (String) -> Uni
                                 }) { Text(a.label) }
                             }
                         }
-                        if (said != null && said.isNotEmpty()) Text(said, fontSize = 12.sp, color = Lab.red)
+                        if (said != null && said.isNotEmpty()) Text(said, fontSize = LabScale.textSm, color = Lab.red)
                     }
                 }
             }

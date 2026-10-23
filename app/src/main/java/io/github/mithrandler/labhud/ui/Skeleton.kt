@@ -38,9 +38,9 @@ fun SkeletonPanel(modifier: Modifier = Modifier, height: Dp = 96.dp) {
 /** Status while it has nothing to show yet: two rows of tiles, as many to a row as the page will have. */
 @Composable
 fun SkeletonTiles(cols: Int = 3, rows: Int = 2, modifier: Modifier = Modifier) {
-    Column(modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(modifier.padding(LabScale.space3), verticalArrangement = Arrangement.spacedBy(LabScale.space3)) {
         repeat(rows) {
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(LabScale.space3)) {
                 repeat(cols) { SkeletonBlock(Modifier.weight(1f).height(LocalTileH.current)) }
             }
         }

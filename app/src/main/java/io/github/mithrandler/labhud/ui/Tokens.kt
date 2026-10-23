@@ -1,4 +1,4 @@
-// Written by labhud's design/build.py from its design/tokens.json (1a8e275bd972): edit there, not here.
+// Written by labhud's design/build.py from its design/tokens.json (e145c17e4392): edit there, not here.
 package io.github.mithrandler.labhud.ui
 
 import androidx.compose.ui.graphics.Color
@@ -114,6 +114,8 @@ object LabScale {
     val pagerW = 18.dp
     /** a page dash's height */
     val pagerH = 4.dp
+    /** a border or divider line */
+    val hairline = 1.dp
 }
 
 /** The icons of the wall and ⚙: thin lines on a 24×24 grid, tinted by Icon() like any other. */

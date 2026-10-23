@@ -1,5 +1,6 @@
 package io.github.mithrandler.labhud.ui.settings
 
+import io.github.mithrandler.labhud.ui.LabScale
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
@@ -87,15 +88,15 @@ fun ChannelsPanel(
     var forgetting by remember { mutableStateOf<String?>(null) }
     Panel("Channels", ch.order.filter { it == "app" || ch.channels[it]?.set == true }.joinToString(" · ").ifEmpty { "None set" }) {
         Text("Each with its own test. Passwords, addresses and tokens go to secrets.env and are not shown again.",
-            fontSize = 12.sp, color = Lab.muted, modifier = Modifier.padding(bottom = 6.dp))
-        if (!ch.managed) Text("Email and Gotify need the config file taken over (on the wall: ⚙ > System > Take over).", fontSize = 13.sp, color = Lab.warn)
+            fontSize = LabScale.textSm, color = Lab.muted, modifier = Modifier.padding(bottom = LabScale.space2))
+        if (!ch.managed) Text("Email and Gotify need the config file taken over (on the wall: ⚙ > System > Take over).", fontSize = LabScale.textSm, color = Lab.warn)
         EDITABLE_CHANNELS.forEachIndexed { i, name ->
             val c = ch.channels[name] ?: Channel()
             if (i > 0) HorizontalDivider(color = Lab.line)
-            Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.fillMaxWidth().padding(vertical = LabScale.space1), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text(CHANNEL_NAMES[name] ?: name, fontWeight = FontWeight.Medium, fontSize = 14.sp)
-                    Text(channelLine(name, c), fontSize = 12.sp, color = if (c.lastError != null || (!c.set && c.problem != null)) Lab.warn else Lab.muted)
+                    Text(CHANNEL_NAMES[name] ?: name, fontWeight = FontWeight.Medium, fontSize = LabScale.textMd)
+                    Text(channelLine(name, c), fontSize = LabScale.textSm, color = if (c.lastError != null || (!c.set && c.problem != null)) Lab.warn else Lab.muted)
                 }
                 TextButton(onClick = { editing = name }) { Text(if (c.set) "Edit" else "Set") }
                 if (c.set) TextButton(onClick = { forgetting = name }) { Text("Forget", color = Lab.red) }
@@ -133,13 +134,13 @@ private fun ChannelDialog(
         onDismissRequest = onDismiss,
         title = { Text(CHANNEL_NAMES[name] ?: name) },
         text = {
-            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(LabScale.space2)) {
                 fields.forEach { f ->
                     val saved = f.secret && secretSaved(name, f.key, c)
                     OutlinedTextField(values[f.key] ?: "", { values[f.key] = it.take(2000) }, singleLine = true, modifier = Modifier.fillMaxWidth(),
                         label = { Text(if (saved) "${f.label} (empty: keep)" else f.label) },
                         visualTransformation = if (f.secret) PasswordVisualTransformation() else VisualTransformation.None)
-                    if (name == "email" && f.key == "port") Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    if (name == "email" && f.key == "port") Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(LabScale.space2)) {
                         EMAIL_SECURITY.forEach { s ->
                             FilterChip(selected = values["security"] == s, onClick = { values["security"] = s }, label = { Text(s) },
                                 colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Lab.accent.copy(alpha = 0.2f), selectedLabelColor = Lab.title))
@@ -172,13 +173,13 @@ fun MatrixPanel(ch: Channels, onChange: (Map<String, List<String>>) -> Unit) {
     val shown = ch.order.filter { it == "app" || it == "ntfy" || ch.channels[it]?.set == true }
     Panel("Which news goes where", if (ch.explicit) "As ticked here" else "Not chosen yet") {
         Text(if (ch.explicit) "As ticked here." else "Not chosen yet: the bad news goes everywhere that is set; updates and sign-ins nowhere until ticked.",
-            fontSize = 12.sp, color = Lab.muted, modifier = Modifier.padding(bottom = 6.dp))
+            fontSize = LabScale.textSm, color = Lab.muted, modifier = Modifier.padding(bottom = LabScale.space2))
         ch.events.forEachIndexed { i, ev ->
             val id = ev.getOrNull(0) ?: return@forEachIndexed
             val now = ch.matrix[id] ?: emptyList()
             if (i > 0) HorizontalDivider(color = Lab.line)
-            Text(ev.getOrNull(1) ?: id, fontSize = 13.sp, fontWeight = FontWeight.Medium, modifier = Modifier.padding(top = 6.dp))
-            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(bottom = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(ev.getOrNull(1) ?: id, fontSize = LabScale.textSm, fontWeight = FontWeight.Medium, modifier = Modifier.padding(top = LabScale.space2))
+            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(bottom = LabScale.space1), horizontalArrangement = Arrangement.spacedBy(LabScale.space2)) {
                 shown.forEach { c ->
                     FilterChip(selected = c in now, onClick = { onChange(toggled(ch.matrix, id, c)) }, label = { Text(CHANNEL_NAMES[c] ?: c) },
                         colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Lab.accent.copy(alpha = 0.2f), selectedLabelColor = Lab.title))

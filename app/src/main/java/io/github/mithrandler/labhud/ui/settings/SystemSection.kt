@@ -1,5 +1,6 @@
 package io.github.mithrandler.labhud.ui.settings
 
+import io.github.mithrandler.labhud.ui.LabScale
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
@@ -99,31 +100,31 @@ fun SystemSection(repo: LabRepository, nav: SettingsNav) {
             Panel("") {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     BrandMark(40.dp)
-                    Spacer(Modifier.width(14.dp))
+                    Spacer(Modifier.width(LabScale.space3))
                     Column {
-                        Text(info?.title ?: server?.name ?: "LabHUD", fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+                        Text(info?.title ?: server?.name ?: "LabHUD", fontWeight = FontWeight.SemiBold, fontSize = LabScale.textMd)
                         Text("LabHUD " + (info?.version?.ifEmpty { null } ?: "?") + (if (info?.demo == true) " · demo" else ""),
-                            fontSize = 12.sp, color = Lab.muted)
-                        about?.serverUpdate()?.let { Text("Update available $it", fontSize = 12.sp, color = Lab.accent) }
-                        Text("This app ${BuildConfig.VERSION_NAME}", fontSize = 12.sp, color = Lab.muted)
+                            fontSize = LabScale.textSm, color = Lab.muted)
+                        about?.serverUpdate()?.let { Text("Update available $it", fontSize = LabScale.textSm, color = Lab.accent) }
+                        Text("This app ${BuildConfig.VERSION_NAME}", fontSize = LabScale.textSm, color = Lab.muted)
                         about?.appUpdate()?.let { v ->
                             val url = about?.appDownload().orEmpty()
-                            Text("Update available $v" + if (url.isNotEmpty()) " (Download)" else "", fontSize = 12.sp, color = Lab.accent,
+                            Text("Update available $v" + if (url.isNotEmpty()) " (Download)" else "", fontSize = LabScale.textSm, color = Lab.accent,
                                 modifier = if (url.isEmpty()) Modifier else Modifier.clickable { runCatching { uri.openUri(url) } })
                         }
                     }
                 }
-                Text("github.com/Mithrandler/labhud · github.com/Mithrandler/labhud-android", fontSize = 12.sp, color = Lab.muted,
-                    modifier = Modifier.padding(top = 10.dp))
+                Text("github.com/Mithrandler/labhud · github.com/Mithrandler/labhud-android", fontSize = LabScale.textSm, color = Lab.muted,
+                    modifier = Modifier.padding(top = LabScale.space3))
             }
         }
         heading("config.toml")
-        if (!rights.admin) item { Text("The admin's: sign in to edit it.", fontSize = 13.sp, color = Lab.muted) }
+        if (!rights.admin) item { Text("The admin's: sign in to edit it.", fontSize = LabScale.textSm, color = Lab.muted) }
         if (rights.admin) {
             item { ConfigPanel(repo, gate) }
             heading("Backup and restore")
             if (backups == null) item { Unlock { gate.press { load() } } }
-            if (message.isNotEmpty()) item { Text(message, color = if (message.startsWith("✓")) Lab.muted else Lab.warn, fontSize = 13.sp) }
+            if (message.isNotEmpty()) item { Text(message, color = if (message.startsWith("✓")) Lab.muted else Lab.warn, fontSize = LabScale.textSm) }
             backups?.let { b ->
                 item {
                     BackupPanel(b,

@@ -145,7 +145,7 @@ private fun StackSheet(host: String, stack: ZoneStack, isNew: Boolean, ask: Zone
     }
 
     Column(Modifier.fillMaxWidth().padding(horizontal = LabScale.space4).padding(bottom = 20.dp).heightIn(max = (LocalConfiguration.current.screenHeightDp * 0.9f).dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(LabScale.space2)) {
-        Text(stack.name, fontSize = 20.sp, fontWeight = FontWeight.SemiBold, color = Lab.text, modifier = Modifier.padding(end = 48.dp))
+        Text(stack.name, fontSize = LabScale.textWallNum, fontWeight = FontWeight.SemiBold, color = Lab.text, modifier = Modifier.padding(end = 48.dp))
         Text(if (!kept) "new stack: nothing is written until Save" else stack.line(), fontSize = LabScale.textSm, color = Lab.muted)
         Row(horizontalArrangement = Arrangement.spacedBy(LabScale.space2)) {
             OutlinedButton(enabled = kept && !busy && !dirty, onClick = { run("Redeploy", { zoneStackAct(host, stack.name, "redeploy") }) }) { Text("Redeploy") }

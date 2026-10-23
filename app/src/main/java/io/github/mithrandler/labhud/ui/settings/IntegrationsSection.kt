@@ -1,5 +1,6 @@
 package io.github.mithrandler.labhud.ui.settings
 
+import io.github.mithrandler.labhud.ui.LabScale
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -77,12 +78,12 @@ fun IntegrationsSection(repo: LabRepository, nav: SettingsNav) {
 
     SettingsPage(section("integrations")!!, nav) {
         if (sources == null) item { Unlock { gate.press { load() } } }
-        if (message.isNotEmpty()) item { Text(message, color = Lab.warn, fontSize = 13.sp) }
+        if (message.isNotEmpty()) item { Text(message, color = Lab.warn, fontSize = LabScale.textSm) }
         sources?.let { list ->
             heading("Network scan")
             item {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("Looks for known services on a private subnet of yours, slowly (two hosts at a time), only when asked.", fontSize = 12.sp, color = Lab.muted)
+                Column(verticalArrangement = Arrangement.spacedBy(LabScale.space2)) {
+                    Text("Looks for known services on a private subnet of yours, slowly (two hosts at a time), only when asked.", fontSize = LabScale.textSm, color = Lab.muted)
                     OutlinedTextField(cidr, { cidr = it.take(43) }, singleLine = true, label = { Text("Subnet (e.g. 192.168.1.0/24)") }, modifier = Modifier.fillMaxWidth())
                     OutlinedButton(enabled = scan?.running != true && cidr.isNotBlank(), onClick = {
                         gate.press { scope.launch {
@@ -90,14 +91,14 @@ fun IntegrationsSection(repo: LabRepository, nav: SettingsNav) {
                             if (s?.ok == true) { scan = s; message = "" } else message = "Scan: " + (s?.error?.ifBlank { null } ?: "refused")
                         } }
                     }) { Text(if (scan?.running == true) "Scanning…" else "Scan now") }
-                    scan?.let { s -> scanText(s).takeIf { it.isNotEmpty() }?.let { Text(it, fontSize = 13.sp, color = Lab.sub) } }
-                    if (scan?.error?.isNotBlank() == true) Text(scan!!.error, fontSize = 12.sp, color = Lab.warn)
+                    scan?.let { s -> scanText(s).takeIf { it.isNotEmpty() }?.let { Text(it, fontSize = LabScale.textSm, color = Lab.sub) } }
+                    if (scan?.error?.isNotBlank() == true) Text(scan!!.error, fontSize = LabScale.textSm, color = Lab.warn)
                 }
             }
             scan?.found?.forEachIndexed { i, f ->
                 item(key = "found$i") { Row2(f.source, f.url, if (f.configured) "set" else "new") { } }
             }
-            if (scan?.found?.any { !it.configured } == true) item { Text("A new one: set it up above, or add it as a card in Dashboard.", fontSize = 12.sp, color = Lab.muted) }
+            if (scan?.found?.any { !it.configured } == true) item { Text("A new one: set it up above, or add it as a card in Dashboard.", fontSize = LabScale.textSm, color = Lab.muted) }
             heading("Sources")
             list.forEach { src ->
                 item(key = "src-" + src.name) {
@@ -122,10 +123,10 @@ private fun SourceSheet(src: SourceItem, repo: LabRepository, gate: io.github.mi
     var said by remember(src.name) { mutableStateOf("") }
     var busy by remember(src.name) { mutableStateOf(false) }
     var forgetting by remember(src.name) { mutableStateOf(false) }
-    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 20.dp)
-        .heightIn(max = (LocalConfiguration.current.screenHeightDp * 0.9f).dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(src.title, fontSize = 20.sp, fontWeight = FontWeight.SemiBold, color = Lab.text, modifier = Modifier.padding(end = 48.dp))
-        Text(src.about, fontSize = 13.sp, color = Lab.sub)
+    Column(Modifier.fillMaxWidth().padding(horizontal = LabScale.space4).padding(bottom = 20.dp)
+        .heightIn(max = (LocalConfiguration.current.screenHeightDp * 0.9f).dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(LabScale.space2)) {
+        Text(src.title, fontSize = LabScale.textWallNum, fontWeight = FontWeight.SemiBold, color = Lab.text, modifier = Modifier.padding(end = 48.dp))
+        Text(src.about, fontSize = LabScale.textSm, color = Lab.sub)
         src.fields.forEach { f ->
             OutlinedTextField(
                 values.value[f.name].orEmpty(), { values.value = values.value + (f.name to it) }, singleLine = true,
@@ -137,7 +138,7 @@ private fun SourceSheet(src: SourceItem, repo: LabRepository, gate: io.github.mi
             )
         }
         Said(said)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(LabScale.space2)) {
             OutlinedButton(enabled = !busy, onClick = {
                 gate.press { busy = true; said = "Testing…"; scope.launch {
                     val r = runCatching { repo.api()?.sourceTry(src.name, values.value) }.getOrNull()

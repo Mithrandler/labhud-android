@@ -1,5 +1,6 @@
 package io.github.mithrandler.labhud.ui.settings
 
+import io.github.mithrandler.labhud.ui.LabScale
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -60,7 +61,7 @@ internal fun ConfigPanel(repo: LabRepository, gate: Gate) {
     Panel("") {
         val st = status
         if (st == null) {
-            Text("Unlock to see the config file.", fontSize = 13.sp, color = Lab.sub)
+            Text("Unlock to see the config file.", fontSize = LabScale.textSm, color = Lab.sub)
             OutlinedButton(onClick = { gate.press { load() } }) { Text("Unlock") }
             return@Panel
         }
@@ -69,16 +70,16 @@ internal fun ConfigPanel(repo: LabRepository, gate: Gate) {
                 st.managed -> "LabHUD keeps this file itself (taken over)."
                 st.canTakeOver -> "This file is mounted from outside: LabHUD does not keep it, and an edit here may not stay."
                 else -> st.problem ?: "This file cannot be taken over."
-            }, fontSize = 13.sp, color = if (st.managed) Lab.muted else Lab.warn,
+            }, fontSize = LabScale.textSm, color = if (st.managed) Lab.muted else Lab.warn,
         )
         if (!st.managed && st.canTakeOver) OutlinedButton(enabled = !busy, onClick = { taking = true }) { Text("Take over") }
         loaded?.let { t ->
             OutlinedTextField(
                 edited, { edited = it }, minLines = 8, maxLines = 20, label = { Text(t.path.substringAfterLast('/').ifEmpty { "config.toml" }) },
-                textStyle = TextStyle(fontFamily = FontFamily.Monospace, fontSize = 12.sp), modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
+                textStyle = TextStyle(fontFamily = FontFamily.Monospace, fontSize = LabScale.textSm), modifier = Modifier.fillMaxWidth().padding(top = LabScale.space2),
             )
-            if (said.isNotEmpty()) Text(said, fontSize = 12.sp, color = if (said.startsWith("✓")) Lab.muted else Lab.warn, modifier = Modifier.padding(top = 4.dp))
-            Row(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (said.isNotEmpty()) Text(said, fontSize = LabScale.textSm, color = if (said.startsWith("✓")) Lab.muted else Lab.warn, modifier = Modifier.padding(top = LabScale.space1))
+            Row(Modifier.padding(top = LabScale.space2), horizontalArrangement = Arrangement.spacedBy(LabScale.space2)) {
                 OutlinedButton(enabled = !busy, onClick = {
                     gate.press { busy = true; scope.launch {
                         val r = runCatching { repo.api()?.configSave(edited, check = true) }.getOrNull()
@@ -95,7 +96,7 @@ internal fun ConfigPanel(repo: LabRepository, gate: Gate) {
                 }) { Text("Save") }
                 if (dirty) OutlinedButton(onClick = { edited = t.text; said = "" }) { Text("Discard") }
             }
-            if (!t.managed && !t.writable) Text("Read only: take it over first.", fontSize = 12.sp, color = Lab.muted)
+            if (!t.managed && !t.writable) Text("Read only: take it over first.", fontSize = LabScale.textSm, color = Lab.muted)
         }
     }
     if (taking) TypedConfirm("Take over the config file?", "take over", "Take over", onOk = {

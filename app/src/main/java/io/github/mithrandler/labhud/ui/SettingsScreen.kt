@@ -71,7 +71,7 @@ fun SettingsScreen(repo: LabRepository, bar: BarNav, onOpen: (String) -> Unit, s
         LazyColumn(
             Modifier.padding(pad).fillMaxSize(),
             contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(LabScale.space3),
         ) {
             item {
                 OutlinedTextField(query, { query = it.take(40) }, singleLine = true, modifier = Modifier.fillMaxWidth(),
@@ -82,19 +82,19 @@ fun SettingsScreen(repo: LabRepository, bar: BarNav, onOpen: (String) -> Unit, s
             }
             val starred = shown.filter { it.id in favs }
             if (query.isBlank() && starred.isNotEmpty()) {
-                item(key = "g-fav") { Text("FAVORITES", style = Heading, modifier = Modifier.padding(top = 10.dp)) }
+                item(key = "g-fav") { Text("FAVORITES", style = Heading, modifier = Modifier.padding(top = LabScale.space3)) }
                 item(key = "s-fav") { SectionGroup(starred, favs, onOpen, star) }
             }
             GROUPS.forEach { (group, title) ->
                 val rows = shown.filter { it.group == group }
                 if (rows.isEmpty()) return@forEach
-                item(key = "g-$group") { Text(title, style = Heading, modifier = Modifier.padding(top = 10.dp)) }
+                item(key = "g-$group") { Text(title, style = Heading, modifier = Modifier.padding(top = LabScale.space3)) }
                 item(key = "s-$group") { SectionGroup(rows, favs, onOpen, star) }
             }
-            if (shown.isEmpty()) item { Text("Nothing called \"$query\".", color = Lab.muted, fontSize = 14.sp) }
+            if (shown.isEmpty()) item { Text("Nothing called \"$query\".", color = Lab.muted, fontSize = LabScale.textMd) }
             item {
-                Text("LabHUD ${BuildConfig.VERSION_NAME} · github.com/Mithrandler/labhud-android", fontSize = 12.sp, color = Lab.muted,
-                    modifier = Modifier.padding(top = 16.dp))
+                Text("LabHUD ${BuildConfig.VERSION_NAME} · github.com/Mithrandler/labhud-android", fontSize = LabScale.textSm, color = Lab.muted,
+                    modifier = Modifier.padding(top = LabScale.space4))
             }
         }
     }
@@ -105,23 +105,23 @@ fun SettingsScreen(repo: LabRepository, bar: BarNav, onOpen: (String) -> Unit, s
 /** One group's sections in one card, divided by thin lines, like a phone's own settings. */
 @Composable
 private fun SectionGroup(rows: List<Section>, favs: Set<String>, onOpen: (String) -> Unit, onStar: (String) -> Unit) {
-    Surface(shape = CardShape, color = Lab.card, border = BorderStroke(1.dp, Lab.line)) {
+    Surface(shape = CardShape, color = Lab.card, border = BorderStroke(LabScale.hairline, Lab.line)) {
         Column {
             rows.forEachIndexed { i, s ->
                 if (i > 0) HorizontalDivider(color = Lab.line, modifier = Modifier.padding(start = 52.dp))
                 Row(
-                    Modifier.fillMaxWidth().clickable { onOpen(s.id) }.padding(horizontal = 14.dp, vertical = 12.dp),
+                    Modifier.fillMaxWidth().clickable { onOpen(s.id) }.padding(horizontal = LabScale.space3, vertical = LabScale.space3),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Icon(s.icon(), null, tint = Lab.title, modifier = Modifier.size(24.dp))
-                    Spacer(Modifier.width(14.dp))
+                    Icon(s.icon(), null, tint = Lab.title, modifier = Modifier.size(LabScale.iconTile))
+                    Spacer(Modifier.width(LabScale.space3))
                     Column(Modifier.weight(1f)) {
-                        Text(s.title, fontWeight = FontWeight.Medium, fontSize = 15.sp, color = Lab.text)
-                        Text(s.hint, fontSize = 12.sp, color = Lab.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(s.title, fontWeight = FontWeight.Medium, fontSize = LabScale.textMd, color = Lab.text)
+                        Text(s.hint, fontSize = LabScale.textSm, color = Lab.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
-                    Text(if (s.id in favs) "★" else "☆", fontSize = 20.sp, color = if (s.id in favs) Lab.title else Lab.muted,
-                        modifier = Modifier.clickable { onStar(s.id) }.padding(horizontal = 8.dp, vertical = 4.dp))
-                    Icon(LabIcons.chevronRight, null, tint = Lab.muted, modifier = Modifier.size(20.dp))
+                    Text(if (s.id in favs) "★" else "☆", fontSize = LabScale.textWallNum, color = if (s.id in favs) Lab.title else Lab.muted,
+                        modifier = Modifier.clickable { onStar(s.id) }.padding(horizontal = LabScale.space2, vertical = LabScale.space1))
+                    Icon(LabIcons.chevronRight, null, tint = Lab.muted, modifier = Modifier.size(LabScale.iconCard))
                 }
             }
         }

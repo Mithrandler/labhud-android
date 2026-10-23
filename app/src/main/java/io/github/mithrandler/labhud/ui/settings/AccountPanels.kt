@@ -1,5 +1,6 @@
 package io.github.mithrandler.labhud.ui.settings
 
+import io.github.mithrandler.labhud.ui.LabScale
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -79,22 +80,22 @@ fun SessionsPanel(repo: LabRepository, gate: Gate) {
     val shown = data
     CollapsiblePanel("Sessions", shown?.let { "${it.sessions.size} browser(s), ${it.phones.count { p -> p.admin }} phone(s)" } ?: "Where the admin is signed in",
         onOpen = { load() }) {
-        if (shown == null && message.isEmpty()) Text("Loading…", fontSize = 13.sp, color = Lab.muted)
-        if (message.isNotEmpty()) Text(message, color = Lab.warn, fontSize = 13.sp)
+        if (shown == null && message.isEmpty()) Text("Loading…", fontSize = LabScale.textSm, color = Lab.muted)
+        if (message.isNotEmpty()) Text(message, color = Lab.warn, fontSize = LabScale.textSm)
         shown?.let { a ->
             val now = System.currentTimeMillis() / 1000
-            if (a.sessions.isEmpty()) Text("No browser is signed in.", fontSize = 13.sp, color = Lab.muted)
+            if (a.sessions.isEmpty()) Text("No browser is signed in.", fontSize = LabScale.textSm, color = Lab.muted)
             a.sessions.forEach { s ->
                 Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text(sessionLine(s, now), fontSize = 13.sp, color = Lab.sub, modifier = Modifier.weight(1f))
+                    Text(sessionLine(s, now), fontSize = LabScale.textSm, color = Lab.sub, modifier = Modifier.weight(1f))
                     TextButton(onClick = { gate.press { scope.launch { done(runCatching { repo.api()?.revokeSession(s.id) }.getOrNull()) } } }) {
                         Text("Sign out", color = Lab.red)
                     }
                 }
             }
-            if (a.phones.isNotEmpty()) Text("Phones that are the admin: " + a.phones.joinToString(", ") { it.name }, fontSize = 12.sp, color = Lab.muted,
-                modifier = Modifier.padding(top = 4.dp))
-            OutlinedButton(onClick = { confirmAll = true }, enabled = a.sessions.isNotEmpty(), modifier = Modifier.padding(top = 8.dp)) {
+            if (a.phones.isNotEmpty()) Text("Phones that are the admin: " + a.phones.joinToString(", ") { it.name }, fontSize = LabScale.textSm, color = Lab.muted,
+                modifier = Modifier.padding(top = LabScale.space1))
+            OutlinedButton(onClick = { confirmAll = true }, enabled = a.sessions.isNotEmpty(), modifier = Modifier.padding(top = LabScale.space2)) {
                 Text("Sign out every browser")
             }
         }
@@ -129,25 +130,25 @@ fun PairedPhonesPanel(repo: LabRepository, gate: Gate) {
         }
     }
     CollapsiblePanel("Paired phones", phones?.let { "${it.size} paired" } ?: "Phones that may use this LabHUD", onOpen = { load() }) {
-        if (phones == null && message.isEmpty()) Text("Loading…", fontSize = 13.sp, color = Lab.muted)
-        if (message.isNotEmpty()) Text(message, color = Lab.warn, fontSize = 13.sp)
+        if (phones == null && message.isEmpty()) Text("Loading…", fontSize = LabScale.textSm, color = Lab.muted)
+        if (message.isNotEmpty()) Text(message, color = Lab.warn, fontSize = LabScale.textSm)
         phones?.let { list ->
-            if (list.isEmpty()) Text("No phone paired.", color = Lab.muted, fontSize = 14.sp)
+            if (list.isEmpty()) Text("No phone paired.", color = Lab.muted, fontSize = LabScale.textMd)
             list.forEach { p ->
-                Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(Modifier.fillMaxWidth().padding(vertical = LabScale.space1), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
-                        Text(p.name, fontWeight = FontWeight.Medium, fontSize = 14.sp)
+                        Text(p.name, fontWeight = FontWeight.Medium, fontSize = LabScale.textMd)
                         Text(listOfNotNull(
                             if (p.admin) "admin" else "looks only",
                             if (p.push) "instant notifications" else null,
                             p.seen.takeIf { it > 0 }?.let { "seen " + stamp(it) },
-                        ).joinToString(" · "), fontSize = 12.sp, color = Lab.muted)
+                        ).joinToString(" · "), fontSize = LabScale.textSm, color = Lab.muted)
                     }
                     TextButton(onClick = { removing = p }) { Text("Remove", color = Lab.red) }
                 }
             }
-            Text("A new phone pairs by scanning the code in ⚙ > Phones > Pair a phone, on the wall.", fontSize = 12.sp, color = Lab.muted,
-                modifier = Modifier.padding(top = 4.dp))
+            Text("A new phone pairs by scanning the code in ⚙ > Phones > Pair a phone, on the wall.", fontSize = LabScale.textSm, color = Lab.muted,
+                modifier = Modifier.padding(top = LabScale.space1))
         }
     }
     removing?.let { p ->

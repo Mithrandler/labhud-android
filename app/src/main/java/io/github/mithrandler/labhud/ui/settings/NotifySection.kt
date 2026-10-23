@@ -1,5 +1,6 @@
 package io.github.mithrandler.labhud.ui.settings
 
+import io.github.mithrandler.labhud.ui.LabScale
 import android.Manifest
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
@@ -89,12 +90,12 @@ fun NotifySection(repo: LabRepository, nav: SettingsNav) {
         if (rights.admin) {
             heading("From LabHUD, for every phone")
             if (alerts == null) item { Unlock { gate.press { load() } } }
-            if (message.isNotEmpty()) item { Text(message, color = Lab.warn, fontSize = 13.sp) }
+            if (message.isNotEmpty()) item { Text(message, color = Lab.warn, fontSize = LabScale.textSm) }
             alerts?.let { setup ->
                 item {
                     Panel("") {
-                        Text("Where LabHUD sends its news.", fontSize = 13.sp, color = Lab.sub)
-                        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+                        Text("Where LabHUD sends its news.", fontSize = LabScale.textSm, color = Lab.sub)
+                        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().padding(vertical = LabScale.space2)) {
                             VIAS.forEachIndexed { i, (via, label) ->
                                 SegmentedButton(selected = setup.notify.via == via, shape = SegmentedButtonDefaults.itemShape(i, VIAS.size), onClick = {
                                     gate.press {
@@ -112,7 +113,7 @@ fun NotifySection(repo: LabRepository, nav: SettingsNav) {
                             if (setup.ntfy.set) "ntfy: ${setup.ntfy.host ?: "set"} · ${setup.ntfy.sent} sent" +
                                 (setup.ntfy.lastError?.let { " · last error: $it" } ?: "")
                             else "ntfy: no topic set (on the wall: ⚙ > Notifications, or `labhud notify set <url>`).",
-                            fontSize = 12.sp, color = if (setup.ntfy.lastError != null) Lab.warn else Lab.muted,
+                            fontSize = LabScale.textSm, color = if (setup.ntfy.lastError != null) Lab.warn else Lab.muted,
                         )
                         if (setup.ntfy.set) TextButton(onClick = {
                             gate.press {
@@ -180,26 +181,26 @@ private fun NotifyChoice(repo: LabRepository, mode: NotifyMode, via: String?) {
         Triple(NotifyMode.Ntfy, "ntfy only", "The ntfy app shows LabHUD's own messages, if a topic is set on the wall."),
         Triple(NotifyMode.Off, "Off", "Nothing on this phone."),
     )
-    Surface(shape = CardShape, color = Lab.card, border = BorderStroke(1.dp, Lab.line)) {
-        Column(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+    Surface(shape = CardShape, color = Lab.card, border = BorderStroke(LabScale.hairline, Lab.line)) {
+        Column(Modifier.fillMaxWidth().padding(vertical = LabScale.space2)) {
             options.forEach { (m, title, hint) ->
                 Row(
                     Modifier.fillMaxWidth().selectable(selected = m == mode, role = Role.RadioButton) { if (m != mode) pick(m) }
-                        .padding(horizontal = 6.dp, vertical = 2.dp),
+                        .padding(horizontal = LabScale.space2, vertical = 2.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    RadioButton(selected = m == mode, onClick = null, modifier = Modifier.padding(8.dp))
+                    RadioButton(selected = m == mode, onClick = null, modifier = Modifier.padding(LabScale.space2))
                     Column(Modifier.weight(1f)) {
-                        Text(title, fontSize = 15.sp)
-                        Text(hint, fontSize = 12.sp, color = Lab.muted)
+                        Text(title, fontSize = LabScale.textMd)
+                        Text(hint, fontSize = LabScale.textSm, color = Lab.muted)
                     }
                 }
             }
-            if (note.isNotEmpty()) Text(note, fontSize = 12.sp, color = Lab.warn, modifier = Modifier.padding(horizontal = 14.dp, vertical = 4.dp))
+            if (note.isNotEmpty()) Text(note, fontSize = LabScale.textSm, color = Lab.warn, modifier = Modifier.padding(horizontal = LabScale.space3, vertical = LabScale.space1))
             if (mode == NotifyMode.Instant && (via ?: asked) == "ntfy") {
                 Text("LabHUD sends its news only to ntfy now, so this app is not woken" +
                     (if (rights.admin) ": choose App or Both below." else ". The admin can change it here."),
-                    fontSize = 12.sp, color = Lab.warn, modifier = Modifier.padding(horizontal = 14.dp, vertical = 4.dp))
+                    fontSize = LabScale.textSm, color = Lab.warn, modifier = Modifier.padding(horizontal = LabScale.space3, vertical = LabScale.space1))
             }
         }
     }

@@ -88,7 +88,7 @@ fun HostHistoryScreen(repo: LabRepository, id: String, onBack: () -> Unit, onCar
         LazyColumn(
             Modifier.padding(pad).fillMaxSize(),
             contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(LabScale.space3),
         ) {
             item {
                 SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
@@ -109,8 +109,8 @@ fun HostHistoryScreen(repo: LabRepository, id: String, onBack: () -> Unit, onCar
                             Text(m.short(), fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
                             Text(m.value, color = sevColor(m.sev), fontWeight = FontWeight.SemiBold)
                         }
-                        if (h == null) Text("Loading…", fontSize = 12.sp, color = Lab.muted, modifier = Modifier.padding(top = 8.dp))
-                        else ScrubChart(series.takeLast(keep), h.step, m, Modifier.padding(top = 8.dp))
+                        if (h == null) Text("Loading…", fontSize = LabScale.textSm, color = Lab.muted, modifier = Modifier.padding(top = LabScale.space2))
+                        else ScrubChart(series.takeLast(keep), h.step, m, Modifier.padding(top = LabScale.space2))
                     }
                 }
             }
@@ -130,7 +130,7 @@ fun ScrubChart(raw: List<Double?>, step: Int, m: Metric, modifier: Modifier = Mo
     // the finger's place (0..1) is read where it is used: the label above, and the draw phase of the canvas
     val touch = remember { mutableStateOf<Float?>(null) }
     if (values.size < 2) {
-        Text("No history yet", fontSize = 12.sp, color = Lab.muted, modifier = modifier)
+        Text("No history yet", fontSize = LabScale.textSm, color = Lab.muted, modifier = modifier)
         return
     }
     val lo = if (m.isShare()) 0.0 else values.min() - 2
@@ -178,7 +178,7 @@ fun ScrubChart(raw: List<Double?>, step: Int, m: Metric, modifier: Modifier = Mo
                 }
                 // where it turns serious, when the metric is a share: 90% dashed
                 if (m.isShare()) drawLine(Lab.red.copy(alpha = 0.5f), Offset(0f, y(90.0)), Offset(size.width, y(90.0)),
-                    strokeWidth = 1.dp.toPx(), pathEffect = dash)
+                    strokeWidth = LabScale.hairline.toPx(), pathEffect = dash)
                 for ((line, fill) in drawn) {
                     drawPath(fill, shade)
                     drawPath(line, color, style = stroke)
@@ -186,14 +186,14 @@ fun ScrubChart(raw: List<Double?>, step: Int, m: Metric, modifier: Modifier = Mo
                 touch.value?.let { f ->
                     val at = indexOf(f)
                     val x = at * stepX
-                    drawLine(Lab.sub, Offset(x, 0f), Offset(x, size.height), strokeWidth = 1.dp.toPx())
+                    drawLine(Lab.sub, Offset(x, 0f), Offset(x, size.height), strokeWidth = LabScale.hairline.toPx())
                     points[at]?.let { drawCircle(color, 4.dp.toPx(), Offset(x, y(it))) }
                 }
             }
         })
-        Row(Modifier.fillMaxWidth().padding(top = 6.dp)) {
+        Row(Modifier.fillMaxWidth().padding(top = LabScale.space2)) {
             listOf("min" to values.min(), "avg" to values.average(), "max" to values.max()).forEach { (k, v) ->
-                Text("$k ${m.show(v)}", fontSize = 12.sp, color = Lab.muted, modifier = Modifier.weight(1f))
+                Text("$k ${m.show(v)}", fontSize = LabScale.textSm, color = Lab.muted, modifier = Modifier.weight(1f))
             }
         }
     }
@@ -203,7 +203,7 @@ fun ScrubChart(raw: List<Double?>, step: Int, m: Metric, modifier: Modifier = Mo
 @Composable
 private fun TouchLabel(touch: State<Float?>, text: (Float) -> String) {
     val f = touch.value
-    Text(if (f != null) text(f) else " ", fontSize = 12.sp, color = Lab.sub)
+    Text(if (f != null) text(f) else " ", fontSize = LabScale.textSm, color = Lab.sub)
 }
 
 private val WEEKDAY_TIME = SimpleDateFormat("EEE HH:mm", Locale.ENGLISH)

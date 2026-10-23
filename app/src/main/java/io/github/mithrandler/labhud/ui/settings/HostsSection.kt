@@ -1,5 +1,6 @@
 package io.github.mithrandler.labhud.ui.settings
 
+import io.github.mithrandler.labhud.ui.LabScale
 import androidx.compose.foundation.background
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
@@ -70,22 +71,22 @@ fun HostsSection(repo: LabRepository, nav: SettingsNav) {
 
     SettingsPage(section("hosts")!!, nav) {
         if (agents == null) item { Unlock { gate.press { load() } } }
-        if (message.isNotEmpty()) item { Text(message, color = Lab.warn, fontSize = 13.sp) }
+        if (message.isNotEmpty()) item { Text(message, color = Lab.warn, fontSize = LabScale.textSm) }
         agents?.let { list ->
             item {
                 Panel("Agents", "${list.size} agents · ${list.count { it.online }} online") {
-                    if (list.isEmpty()) Text("No agent yet: Add agent makes the line that installs one.", color = Lab.muted, fontSize = 14.sp)
+                    if (list.isEmpty()) Text("No agent yet: Add agent makes the line that installs one.", color = Lab.muted, fontSize = LabScale.textMd)
                     list.forEach { a ->
-                        Row(Modifier.fillMaxWidth().clickable { nav.agent(a.id) }.padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Row(Modifier.fillMaxWidth().clickable { nav.agent(a.id) }.padding(vertical = LabScale.space2), verticalAlignment = Alignment.CenterVertically) {
                             Box(Modifier.size(8.dp).clip(CircleShape).background(if (a.online) Lab.green else Lab.red))
-                            Spacer(Modifier.width(10.dp))
+                            Spacer(Modifier.width(LabScale.space3))
                             Column(Modifier.weight(1f)) {
-                                Text(a.name, fontWeight = FontWeight.Medium, fontSize = 14.sp)
+                                Text(a.name, fontWeight = FontWeight.Medium, fontSize = LabScale.textMd)
                                 Text(listOf(a.address, a.version, a.caps.joinToString(", ")).filter { it.isNotEmpty() }.joinToString(" · "),
-                                    fontSize = 12.sp, color = Lab.muted)
+                                    fontSize = LabScale.textSm, color = Lab.muted)
                             }
-                            Text(if (a.online) "online" else "offline", fontSize = 12.sp, color = if (a.online) Lab.muted else Lab.red)
-                            Spacer(Modifier.width(6.dp))
+                            Text(if (a.online) "online" else "offline", fontSize = LabScale.textSm, color = if (a.online) Lab.muted else Lab.red)
+                            Spacer(Modifier.width(LabScale.space2))
                             Icon(LabIcons.chevronRight, null, tint = Lab.muted)
                         }
                     }

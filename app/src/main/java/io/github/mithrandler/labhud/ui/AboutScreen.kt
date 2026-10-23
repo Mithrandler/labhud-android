@@ -78,13 +78,13 @@ fun AboutScreen(repo: LabRepository, onBack: () -> Unit) {
             )
         },
     ) { pad ->
-        Column(Modifier.padding(pad).fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Column(Modifier.padding(pad).fillMaxSize().verticalScroll(rememberScrollState()).padding(LabScale.space4), verticalArrangement = Arrangement.spacedBy(LabScale.space3)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 BrandMark(40.dp)
-                Spacer(Modifier.width(14.dp))
+                Spacer(Modifier.width(LabScale.space3))
                 Column {
-                    Text(info?.title ?: server?.name ?: "LabHUD", fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
-                    Text("Dashboard for a homelab", fontSize = 12.sp, color = Lab.muted)
+                    Text(info?.title ?: server?.name ?: "LabHUD", fontWeight = FontWeight.SemiBold, fontSize = LabScale.textLg)
+                    Text("Dashboard for a homelab", fontSize = LabScale.textSm, color = Lab.muted)
                 }
             }
             Panel("Versions") {
@@ -94,18 +94,18 @@ fun AboutScreen(repo: LabRepository, onBack: () -> Unit) {
             about?.appUpdate()?.let { v ->
                 val url = about?.appDownload().orEmpty()
                 if (url.isNotEmpty()) OutlinedButton(onClick = { runCatching { uri.openUri(url) } }) {
-                    Icon(LabIcons.open, null); Spacer(Modifier.width(8.dp)); Text("Download $v")
+                    Icon(LabIcons.open, null); Spacer(Modifier.width(LabScale.space2)); Text("Download $v")
                 }
             }
             OutlinedButton(enabled = !busy, onClick = { scope.launch { tick++ } }) {
-                Icon(LabIcons.update, null); Spacer(Modifier.width(8.dp)); Text(if (busy) "Checking…" else "Check for updates")
+                Icon(LabIcons.update, null); Spacer(Modifier.width(LabScale.space2)); Text(if (busy) "Checking…" else "Check for updates")
             }
-            Text(if (busy) "" else updateWords(about, failed), fontSize = 13.sp, color = if (about?.appUpdate() != null || about?.serverUpdate() != null) Lab.accent else Lab.sub)
+            Text(if (busy) "" else updateWords(about, failed), fontSize = LabScale.textSm, color = if (about?.appUpdate() != null || about?.serverUpdate() != null) Lab.accent else Lab.sub)
             about?.links?.let { l ->
                 Panel("Source") {
                     listOf(l.source, l.app, l.agent).filter { it.isNotEmpty() }.forEach { u ->
-                        Text(u.removePrefix("https://"), fontSize = 13.sp, color = Lab.accent,
-                            modifier = Modifier.fillMaxWidth().clickable { runCatching { uri.openUri(u) } }.padding(vertical = 4.dp))
+                        Text(u.removePrefix("https://"), fontSize = LabScale.textSm, color = Lab.accent,
+                            modifier = Modifier.fillMaxWidth().clickable { runCatching { uri.openUri(u) } }.padding(vertical = LabScale.space1))
                     }
                 }
             }
@@ -115,11 +115,11 @@ fun AboutScreen(repo: LabRepository, onBack: () -> Unit) {
 
 @Composable
 private fun VersionRow(label: String, version: String, newer: String?) {
-    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(label, fontSize = 13.sp, color = Lab.muted, modifier = Modifier.weight(1f))
+    Row(Modifier.fillMaxWidth().padding(vertical = LabScale.space1), verticalAlignment = Alignment.CenterVertically) {
+        Text(label, fontSize = LabScale.textSm, color = Lab.muted, modifier = Modifier.weight(1f))
         Column(horizontalAlignment = Alignment.End) {
-            Text(version, fontSize = 14.sp, color = Lab.text)
-            if (newer != null) Text("newer: $newer", fontSize = 12.sp, color = Lab.accent)
+            Text(version, fontSize = LabScale.textMd, color = Lab.text)
+            if (newer != null) Text("newer: $newer", fontSize = LabScale.textSm, color = Lab.accent)
         }
     }
 }

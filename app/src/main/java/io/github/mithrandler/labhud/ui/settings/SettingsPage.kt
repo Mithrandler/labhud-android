@@ -1,5 +1,6 @@
 package io.github.mithrandler.labhud.ui.settings
 
+import io.github.mithrandler.labhud.ui.LabScale
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.runtime.getValue
 import androidx.compose.foundation.Image
@@ -58,7 +59,7 @@ fun SettingsPage(section: Section, nav: SettingsNav, content: LazyListScope.() -
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(section.icon(), null, tint = Lab.title, modifier = Modifier.size(22.dp))
-                        Spacer(Modifier.width(10.dp))
+                        Spacer(Modifier.width(LabScale.space3))
                         Text(section.title)
                     }
                 },
@@ -68,14 +69,14 @@ fun SettingsPage(section: Section, nav: SettingsNav, content: LazyListScope.() -
         LazyColumn(
             Modifier.padding(pad).fillMaxSize(),
             contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(LabScale.space3),
             content = content,
         )
     }
 }
 
 /** A small heading inside a section, like the wall's card titles. */
-fun LazyListScope.heading(text: String) = item { Text(text.uppercase(), style = Heading, modifier = Modifier.padding(top = 8.dp)) }
+fun LazyListScope.heading(text: String) = item { Text(text.uppercase(), style = Heading, modifier = Modifier.padding(top = LabScale.space2)) }
 
 /**
  * What only the wall's own screen can do (the config editor, drag and drop, the network scan):
@@ -83,15 +84,15 @@ fun LazyListScope.heading(text: String) = item { Text(text.uppercase(), style = 
  */
 @Composable
 fun WallOnly(where: String, what: List<String>) {
-    Surface(shape = CardShape, color = Lab.card, border = BorderStroke(1.dp, Lab.line)) {
-        Column(Modifier.fillMaxWidth().padding(14.dp)) {
+    Surface(shape = CardShape, color = Lab.card, border = BorderStroke(LabScale.hairline, Lab.line)) {
+        Column(Modifier.fillMaxWidth().padding(LabScale.space3)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(LabIcons.wall, null, tint = Lab.accent, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(8.dp))
+                Spacer(Modifier.width(LabScale.space2))
                 Text("Done on the LabHUD screen", fontWeight = FontWeight.Medium)
             }
-            Text("On the wall or in a browser: $where.", fontSize = 12.sp, color = Lab.muted, modifier = Modifier.padding(top = 2.dp, bottom = 6.dp))
-            what.forEach { Text("·  $it", fontSize = 13.sp, color = Lab.sub, modifier = Modifier.padding(vertical = 1.dp)) }
+            Text("On the wall or in a browser: $where.", fontSize = LabScale.textSm, color = Lab.muted, modifier = Modifier.padding(top = 2.dp, bottom = LabScale.space2))
+            what.forEach { Text("·  $it", fontSize = LabScale.textSm, color = Lab.sub, modifier = Modifier.padding(vertical = LabScale.hairline)) }
         }
     }
 }

@@ -1,5 +1,6 @@
 package io.github.mithrandler.labhud.ui.settings
 
+import io.github.mithrandler.labhud.ui.LabScale
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
@@ -40,21 +41,21 @@ fun RegistriesPanel(r: Registries, onSave: (String, String, String) -> Unit, onR
     var removing by remember { mutableStateOf<Registry?>(null) }
     Panel("Registries", if (r.registries.isEmpty()) "None: public images only" else r.registries.joinToString(", ") { it.host }) {
         Text("Sign-ins for private images: the agents pull and check updates with them. The token is kept in secrets.env.",
-            fontSize = 12.sp, color = Lab.muted, modifier = Modifier.padding(bottom = 6.dp))
-        if (!r.managed) Text("Needs the config file taken over (on the wall: ⚙ > System > Take over).", fontSize = 13.sp, color = Lab.warn)
-        if (r.registries.isEmpty()) Text("None: public images only.", color = Lab.muted, fontSize = 14.sp)
+            fontSize = LabScale.textSm, color = Lab.muted, modifier = Modifier.padding(bottom = LabScale.space2))
+        if (!r.managed) Text("Needs the config file taken over (on the wall: ⚙ > System > Take over).", fontSize = LabScale.textSm, color = Lab.warn)
+        if (r.registries.isEmpty()) Text("None: public images only.", color = Lab.muted, fontSize = LabScale.textMd)
         r.registries.forEachIndexed { i, reg ->
             if (i > 0) HorizontalDivider(color = Lab.line)
-            Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.fillMaxWidth().padding(vertical = LabScale.space1), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text(reg.host, fontWeight = FontWeight.Medium, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text(registryLine(reg), fontSize = 12.sp, color = if (reg.token) Lab.muted else Lab.warn)
+                    Text(reg.host, fontWeight = FontWeight.Medium, fontSize = LabScale.textMd, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(registryLine(reg), fontSize = LabScale.textSm, color = if (reg.token) Lab.muted else Lab.warn)
                 }
                 TextButton(onClick = { editing = reg }) { Text("Edit") }
                 TextButton(onClick = { removing = reg }) { Text("Remove", color = Lab.red) }
             }
         }
-        if (r.managed) Button(onClick = { editing = Registry() }, modifier = Modifier.padding(top = 8.dp)) { Text("Add a registry") }
+        if (r.managed) Button(onClick = { editing = Registry() }, modifier = Modifier.padding(top = LabScale.space2)) { Text("Add a registry") }
     }
     editing?.let { reg ->
         RegistryDialog(reg, onDismiss = { editing = null }) { host, user, token -> editing = null; onSave(host, user, token) }
@@ -87,7 +88,7 @@ private fun RegistryDialog(reg: Registry, onDismiss: () -> Unit, onSave: (String
         onDismissRequest = onDismiss,
         title = { Text(if (adding) "A registry" else reg.host) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(LabScale.space2)) {
                 if (adding) OutlinedTextField(host, { host = it.trim().take(253) }, singleLine = true, label = { Text("Host (e.g. ghcr.io)") }, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(user, { user = it.take(128) }, singleLine = true, label = { Text("User") }, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(token, { token = it.trim().take(4000) }, singleLine = true, modifier = Modifier.fillMaxWidth(),
@@ -107,15 +108,15 @@ private fun RegistryDialog(reg: Registry, onDismiss: () -> Unit, onSave: (String
 @Composable
 fun ScansPanel(r: Registries, onHold: (Boolean) -> Unit) {
     Panel("Vulnerabilities (CVE)", if (r.scanners.isEmpty()) "No agent can scan" else "Can scan: " + r.scanners.joinToString(", ") { it.agent }) {
-        Text(scannersLine(r), fontSize = 12.sp, color = Lab.muted, modifier = Modifier.padding(bottom = 6.dp))
-        Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f).padding(end = 12.dp)) {
-                Text("Hold back risky updates", fontWeight = FontWeight.Medium, fontSize = 14.sp)
-                Text("An update on its own waits when the new image has more critical CVEs than the one running.", fontSize = 12.sp, color = Lab.muted)
+        Text(scannersLine(r), fontSize = LabScale.textSm, color = Lab.muted, modifier = Modifier.padding(bottom = LabScale.space2))
+        Row(Modifier.fillMaxWidth().padding(vertical = LabScale.space1), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f).padding(end = LabScale.space3)) {
+                Text("Hold back risky updates", fontWeight = FontWeight.Medium, fontSize = LabScale.textMd)
+                Text("An update on its own waits when the new image has more critical CVEs than the one running.", fontSize = LabScale.textSm, color = Lab.muted)
             }
             Switch(checked = r.holdCritical, onCheckedChange = onHold)
         }
-        if (r.scans.isEmpty()) Text("No scan yet.", color = Lab.muted, fontSize = 14.sp, modifier = Modifier.padding(top = 4.dp))
+        if (r.scans.isEmpty()) Text("No scan yet.", color = Lab.muted, fontSize = LabScale.textMd, modifier = Modifier.padding(top = LabScale.space1))
         r.scans.forEach { s -> HorizontalDivider(color = Lab.line); ScanLine(s) }
     }
 }
@@ -127,13 +128,13 @@ fun scannersLine(r: Registries): String =
 
 @Composable
 private fun ScanLine(s: ScanRow) {
-    Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(Modifier.fillMaxWidth().padding(vertical = LabScale.space2), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
-            Text(s.name, fontWeight = FontWeight.Medium, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(s.name, fontWeight = FontWeight.Medium, fontSize = LabScale.textSm, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(listOf(s.agent, s.image, s.tool, if (s.t > 0) stamp(s.t) else "").filter { it.isNotEmpty() }.joinToString(" · "),
-                fontSize = 12.sp, color = Lab.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                fontSize = LabScale.textSm, color = Lab.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
-        Text(cveCount(s), fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
+        Text(cveCount(s), fontSize = LabScale.textSm, fontWeight = FontWeight.SemiBold,
             color = when { s.critical > 0 -> Lab.red; s.high > 0 -> Lab.warn; else -> Lab.green })
     }
 }

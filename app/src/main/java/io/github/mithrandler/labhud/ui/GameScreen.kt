@@ -82,7 +82,7 @@ fun GameScreen(repo: LabRepository, id: String, onBack: () -> Unit, onSignIn: ()
         }
         LazyColumn(Modifier.padding(pad).fillMaxSize(), contentPadding = PaddingValues(LabScale.space4), verticalArrangement = Arrangement.spacedBy(LabScale.space3)) {
             item {
-                Surface(shape = CardShape, color = Lab.card, border = BorderStroke(1.dp, Lab.line)) {
+                Surface(shape = CardShape, color = Lab.card, border = BorderStroke(LabScale.hairline, Lab.line)) {
                     Column(Modifier.fillMaxWidth().padding(LabScale.space4)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Box(Modifier.size(LabScale.dotTile).clip(CircleShape).background(if (g.running) Lab.green else Lab.border))

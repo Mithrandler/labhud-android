@@ -228,7 +228,7 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
                     if (rows.isNotEmpty()) item { Panel("") { rows.forEach { ListRow(it, server) } } }
                 }
                 if ((c.actions.isNotEmpty() || c.maintenanceButton) && !rights.admin) item {
-                    Surface(onClick = onSignIn, shape = CardShape, color = Lab.block, border = BorderStroke(1.dp, Lab.line)) {
+                    Surface(onClick = onSignIn, shape = CardShape, color = Lab.block, border = BorderStroke(LabScale.hairline, Lab.line)) {
                         Text("This phone only looks. Sign in as the admin for the buttons.", fontSize = LabScale.textSm, color = Lab.sub,
                             modifier = Modifier.fillMaxWidth().padding(LabScale.space3))
                     }
@@ -526,7 +526,7 @@ private class CTab(val name: String, val narrow: Boolean = false, val body: Lazy
 @Composable
 private fun ContainerCell(b: io.github.mithrandler.labhud.data.Container, server: io.github.mithrandler.labhud.data.Server?, modifier: Modifier, onClick: () -> Unit) {
     Surface(onClick = onClick, modifier = modifier, shape = CardShape, color = Lab.card,
-        border = if (b.up) BorderStroke(1.dp, Lab.line) else BorderStroke(1.dp, Lab.red.copy(alpha = 0.7f))) {
+        border = if (b.up) BorderStroke(LabScale.hairline, Lab.line) else BorderStroke(LabScale.hairline, Lab.red.copy(alpha = 0.7f))) {
         Column(Modifier.heightIn(min = 84.dp).padding(horizontal = LabScale.space3, vertical = LabScale.space2)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 androidx.compose.foundation.layout.Box(Modifier.size(8.dp).clip(androidx.compose.foundation.shape.CircleShape).background(if (b.up) Lab.green else Lab.red))
@@ -545,7 +545,7 @@ private fun ContainerCell(b: io.github.mithrandler.labhud.data.Container, server
 /** A section's row (name, value) as a small card: a storage and how full it is. */
 @Composable
 private fun RowCell(r: io.github.mithrandler.labhud.data.Row, modifier: Modifier) {
-    Surface(modifier = modifier, shape = CardShape, color = Lab.card, border = BorderStroke(1.dp, Lab.line)) {
+    Surface(modifier = modifier, shape = CardShape, color = Lab.card, border = BorderStroke(LabScale.hairline, Lab.line)) {
         Column(Modifier.padding(horizontal = LabScale.space3, vertical = LabScale.space2)) {
             FitText(r.name, LabScale.textSm, FontWeight.SemiBold)
             Text(r.value, fontSize = LabScale.textXs, color = if (r.bad) Lab.red else Lab.muted, modifier = Modifier.padding(top = LabScale.space1))
@@ -604,7 +604,7 @@ private fun ContainerRow(b: io.github.mithrandler.labhud.data.Container, admin: 
 
 @Composable
 private fun StatusHeader(c: Card, server: io.github.mithrandler.labhud.data.Server?) {
-    Surface(shape = CardShape, color = Lab.card, border = BorderStroke(1.dp, if (c.bad == true) Lab.red.copy(alpha = 0.7f) else Lab.line)) {
+    Surface(shape = CardShape, color = Lab.card, border = BorderStroke(LabScale.hairline, if (c.bad == true) Lab.red.copy(alpha = 0.7f) else Lab.line)) {
         Column(Modifier.fillMaxWidth().padding(LabScale.space4)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 CardIcon(c, server, 28.dp)
@@ -637,7 +637,7 @@ private fun StatusHeader(c: Card, server: io.github.mithrandler.labhud.data.Serv
 @Composable
 fun Panel(title: String, summary: String? = null, content: @Composable () -> Unit) {
     var open by rememberSaveable(title) { mutableStateOf(summary == null) }
-    Surface(shape = CardShape, color = Lab.card, border = BorderStroke(1.dp, Lab.line)) {
+    Surface(shape = CardShape, color = Lab.card, border = BorderStroke(LabScale.hairline, Lab.line)) {
         Column(Modifier.fillMaxWidth()) {
             if (summary != null) Row(
                 Modifier.fillMaxWidth().clickable { open = !open }.padding(horizontal = LabScale.space3, vertical = LabScale.space3),
@@ -647,7 +647,7 @@ fun Panel(title: String, summary: String? = null, content: @Composable () -> Uni
                     Text(title, fontWeight = FontWeight.Medium, fontSize = LabScale.textMd, color = Lab.text)
                     if (summary.isNotEmpty()) Text(summary, fontSize = LabScale.textSm, color = Lab.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
-                Icon(if (open) LabIcons.chevronDown else LabIcons.chevronRight, null, tint = Lab.muted, modifier = Modifier.size(20.dp))
+                Icon(if (open) LabIcons.chevronDown else LabIcons.chevronRight, null, tint = Lab.muted, modifier = Modifier.size(LabScale.iconCard))
             }
             if (open) Column(Modifier.fillMaxWidth().padding(start = 14.dp, end = 14.dp, bottom = 14.dp, top = if (summary == null) 14.dp else 0.dp)) {
                 if (summary == null && title.isNotEmpty()) Text(title.uppercase(), style = Heading, modifier = Modifier.padding(bottom = LabScale.space2))

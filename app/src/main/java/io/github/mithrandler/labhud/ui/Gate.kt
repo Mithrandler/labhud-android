@@ -116,20 +116,20 @@ fun GateDialogs(gate: Gate, onSignIn: () -> Unit) {
         title = { Text("The wall's PIN") },
         text = {
             Column {
-                Text("LabHUD has a PIN: the buttons stay open for 2 minutes after it.", fontSize = 14.sp, color = Lab.sub)
+                Text("LabHUD has a PIN: the buttons stay open for 2 minutes after it.", fontSize = LabScale.textMd, color = Lab.sub)
                 OutlinedTextField(
                     pin, { pin = it.filter(Char::isDigit).take(8) },
                     singleLine = true, label = { Text("PIN") },
                     visualTransformation = PasswordVisualTransformation(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword, imeAction = androidx.compose.ui.text.input.ImeAction.Done),
                     keyboardActions = androidx.compose.foundation.text.KeyboardActions(onDone = { submit() }),
-                    modifier = Modifier.padding(top = 12.dp),
+                    modifier = Modifier.padding(top = LabScale.space3),
                 )
-                if (canFinger) Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 6.dp)) {
+                if (canFinger) Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = LabScale.space2)) {
                     Checkbox(keepIt, { keepIt = it })
-                    Text("Use my fingerprint next time", fontSize = 14.sp)
+                    Text("Use my fingerprint next time", fontSize = LabScale.textMd)
                 }
-                if (error.isNotEmpty()) Text(error, color = Lab.warn, fontSize = 13.sp, modifier = Modifier.padding(top = 6.dp))
+                if (error.isNotEmpty()) Text(error, color = Lab.warn, fontSize = LabScale.textSm, modifier = Modifier.padding(top = LabScale.space2))
             }
         },
         confirmButton = { TextButton(onClick = ::submit, enabled = !busy && pin.length >= 4) { Text(if (busy) "…" else "Unlock") } },

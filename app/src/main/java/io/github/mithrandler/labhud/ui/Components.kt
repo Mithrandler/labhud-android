@@ -145,11 +145,11 @@ fun HudCard(
         onClick = onClick, modifier = modifier.fillMaxWidth(), shape = CardShape, color = Lab.card,
         // HUD: a thin edge on black, as the wall; Material: raised as an ElevatedCard, the edge only when in trouble
         border = when {
-            c.bad == true -> BorderStroke(1.dp, Lab.red.copy(alpha = 0.7f))
-            Lab.hud -> BorderStroke(1.dp, Lab.line)
+            c.bad == true -> BorderStroke(LabScale.hairline, Lab.red.copy(alpha = 0.7f))
+            Lab.hud -> BorderStroke(LabScale.hairline, Lab.line)
             else -> null
         },
-        shadowElevation = if (Lab.hud) 0.dp else 1.dp,
+        shadowElevation = if (Lab.hud) 0.dp else LabScale.hairline,
     ) {
         Box {
             if (sev.isNotEmpty()) Box(Modifier.width(3.dp).fillMaxHeight().background(barColor(sev)).align(Alignment.CenterStart))
@@ -264,13 +264,13 @@ fun Chip(m: Metric) {
 /** A percentage as a bar: its label and value on one line, the bar (orange and red past its marks) under them. */
 @Composable
 fun MeterRow(m: Metric, modifier: Modifier = Modifier, thin: Boolean = false) {
-    Column(modifier.fillMaxWidth().padding(vertical = if (thin) 1.dp else 3.dp)) {
+    Column(modifier.fillMaxWidth().padding(vertical = if (thin) LabScale.hairline else 3.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(m.short(), fontSize = LabScale.textXs, color = Lab.muted, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
             Text(m.value, fontSize = LabScale.textSm, fontWeight = FontWeight.Medium, color = sevColor(m.sev), maxLines = 1,
                 modifier = Modifier.padding(start = LabScale.space2))
         }
-        Meter(m.pct ?: 0.0, m.sev, Modifier.fillMaxWidth().padding(top = if (thin) 1.dp else 3.dp), height = if (thin) 4.dp else LabScale.bar)
+        Meter(m.pct ?: 0.0, m.sev, Modifier.fillMaxWidth().padding(top = if (thin) LabScale.hairline else 3.dp), height = if (thin) 4.dp else LabScale.bar)
     }
 }
 
@@ -313,7 +313,7 @@ fun UptimeBar(values: List<Double?>, modifier: Modifier, slices: Int = 48) {
         parts.forEachIndexed { i, v ->
             val x = (offset + i) * (w + gap)
             if (v == null) {
-                val h = (size.height / 3).coerceAtLeast(1.dp.toPx())
+                val h = (size.height / 3).coerceAtLeast(LabScale.hairline.toPx())
                 drawRoundRect(Lab.border, Offset(x, (size.height - h) / 2), Size(w, h), r)
             } else drawRoundRect(uptimeColor(v), Offset(x, 0f), Size(w, size.height), r)
         }
@@ -365,7 +365,7 @@ fun SectionTitle(title: String, bad: Boolean = false, modifier: Modifier = Modif
         Spacer(Modifier.width(LabScale.space2))
         Text(title.uppercase(), style = Heading, maxLines = 1, overflow = TextOverflow.Ellipsis)
         Spacer(Modifier.width(LabScale.space2))
-        Box(Modifier.weight(1f).height(1.dp).background(Lab.line))
+        Box(Modifier.weight(1f).height(LabScale.hairline).background(Lab.line))
     }
 }
 
@@ -416,11 +416,11 @@ fun MiniCard(c: Card, server: Server?, modifier: Modifier = Modifier, chip: Stri
         onClick = onClick, modifier = modifier.fillMaxWidth().height(LocalTileH.current), shape = CardShape,
         color = tint?.copy(alpha = 0.12f)?.compositeOver(Lab.card) ?: Lab.card,
         border = when {
-            tint != null -> BorderStroke(1.dp, tint.copy(alpha = 0.7f))
-            Lab.hud -> BorderStroke(1.dp, Lab.line)
+            tint != null -> BorderStroke(LabScale.hairline, tint.copy(alpha = 0.7f))
+            Lab.hud -> BorderStroke(LabScale.hairline, Lab.line)
             else -> null
         },
-        shadowElevation = if (Lab.hud) 0.dp else 1.dp,
+        shadowElevation = if (Lab.hud) 0.dp else LabScale.hairline,
     ) {
         // the same three places as every wall tile (HostTile, GroupSummaryTile): name on top, the one number, one line at the bottom
         Column(Modifier.padding(horizontal = LabScale.space3, vertical = LabScale.space2), verticalArrangement = Arrangement.SpaceBetween) {
@@ -458,7 +458,7 @@ fun MiniCard(c: Card, server: Server?, modifier: Modifier = Modifier, chip: Stri
 /** The "+3" that ends the "Needs attention" row when more cards are in trouble than the row holds. */
 @Composable
 fun MoreTile(n: Int) {
-    Surface(shape = CardShape, color = Lab.card, border = BorderStroke(1.dp, Lab.line), modifier = Modifier.fillMaxWidth().height(LocalTileH.current)) {
+    Surface(shape = CardShape, color = Lab.card, border = BorderStroke(LabScale.hairline, Lab.line), modifier = Modifier.fillMaxWidth().height(LocalTileH.current)) {
         Box(contentAlignment = Alignment.Center) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text("+$n", fontSize = LabScale.textTile, fontWeight = FontWeight.SemiBold, color = Lab.red)

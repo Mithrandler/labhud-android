@@ -1,5 +1,6 @@
 package io.github.mithrandler.labhud.ui.settings
 
+import io.github.mithrandler.labhud.ui.LabScale
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
@@ -77,7 +78,7 @@ fun SecuritySection(repo: LabRepository, nav: SettingsNav) {
                 onSso = if (sso && !rights.admin) ({ scope.launch { Sso.start(context, repo)?.let { message = it } } }) else null,
                 onLock = if (rights.admin && rights.pin) ({ repo.lockNow(); message = "Locked: the next button asks for the PIN." }) else null)
         }
-        if (message.isNotEmpty()) item { Text(message, color = Lab.warn, fontSize = 13.sp) }
+        if (message.isNotEmpty()) item { Text(message, color = Lab.warn, fontSize = LabScale.textSm) }
         if (rights.admin) {
             item { SessionsPanel(repo, gate) }
             item { PairedPhonesPanel(repo, gate) }
@@ -88,7 +89,7 @@ fun SecuritySection(repo: LabRepository, nav: SettingsNav) {
                     if (rights.pin) "Buttons and settings ask for it (or your fingerprint, once kept), and it lasts ${state?.pinMinutes ?: 2} min without a press. " +
                         "Wall mode on this phone uses the same unlock."
                     else "Anyone at the screen can use its buttons.",
-                    fontSize = 12.sp, color = Lab.muted,
+                    fontSize = LabScale.textSm, color = Lab.muted,
                 )
                 if (rights.admin) PinButtons(repo, gate, rights.pin) { message = it; load() }
             }
@@ -130,9 +131,9 @@ private fun SsoPanel(st: SecurityState) {
             if (o != null) "Through ${o.issuer.substringAfter("://").substringBefore("/")}: " +
                 (o.allow + o.allowGroups.map { "group $it" }).joinToString(", ") + " sign in as the admin. The password and code still work."
             else "Sign in with Authentik (or another OpenID Connect provider) instead of the password and code. Set it up on the wall.",
-            fontSize = 12.sp, color = Lab.muted,
+            fontSize = LabScale.textSm, color = Lab.muted,
         )
-        if (o != null && !st.secretSet) Text("No client secret is kept: a confidential provider will refuse.", fontSize = 12.sp, color = Lab.warn)
+        if (o != null && !st.secretSet) Text("No client secret is kept: a confidential provider will refuse.", fontSize = LabScale.textSm, color = Lab.warn)
     }
 }
 
@@ -146,18 +147,18 @@ private fun TimeoutPanel(st: SecurityState, onSave: (Int, Int) -> Unit) {
     Panel("") {
         Text("A browser stays signed in", fontWeight = FontWeight.Medium)
         Chips(HOURS, hours) { hours = it }
-        Text("A screen stays open without the PIN", fontWeight = FontWeight.Medium, modifier = Modifier.padding(top = 8.dp))
+        Text("A screen stays open without the PIN", fontWeight = FontWeight.Medium, modifier = Modifier.padding(top = LabScale.space2))
         Chips(MINUTES, minutes) { minutes = it }
-        Text("Both count from the last use.", fontSize = 12.sp, color = Lab.muted)
-        if (!st.kept) Text("Take over the config on the wall first (⚙ > System), so LabHUD can write it.", fontSize = 12.sp, color = Lab.warn)
+        Text("Both count from the last use.", fontSize = LabScale.textSm, color = Lab.muted)
+        if (!st.kept) Text("Take over the config on the wall first (⚙ > System), so LabHUD can write it.", fontSize = LabScale.textSm, color = Lab.warn)
         Button(enabled = st.kept && (hours != st.sessionHours || minutes != st.pinMinutes), onClick = { onSave(hours, minutes) },
-            modifier = Modifier.padding(top = 8.dp)) { Text("Save") }
+            modifier = Modifier.padding(top = LabScale.space2)) { Text("Save") }
     }
 }
 
 @Composable
 private fun Chips(options: List<Pair<Int, String>>, current: Int, pick: (Int) -> Unit) {
-    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(vertical = LabScale.space1), horizontalArrangement = Arrangement.spacedBy(LabScale.space2)) {
         options.forEach { (v, label) ->
             FilterChip(selected = v == current, onClick = { pick(v) }, label = { Text(label) },
                 colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Lab.accent.copy(alpha = 0.2f), selectedLabelColor = Lab.title))
@@ -169,9 +170,9 @@ private fun Chips(options: List<Pair<Int, String>>, current: Int, pick: (Int) ->
 private fun NetworksPanel(st: SecurityState) {
     Panel("") {
         Text("This phone comes from ${st.yourIp}" + if (st.viaProxy) " (through a trusted proxy)" else "", fontWeight = FontWeight.Medium)
-        Text("Admin networks: " + st.adminNetworks.ifEmpty { listOf("anywhere") }.joinToString(", "), fontSize = 13.sp, color = Lab.sub)
-        Text("Trusted proxies: " + st.trustedProxies.ifEmpty { listOf("none") }.joinToString(", "), fontSize = 13.sp, color = Lab.sub)
-        Text("Outside the admin networks nobody signs in, and a phone signed in only looks.", fontSize = 12.sp, color = Lab.muted)
+        Text("Admin networks: " + st.adminNetworks.ifEmpty { listOf("anywhere") }.joinToString(", "), fontSize = LabScale.textSm, color = Lab.sub)
+        Text("Trusted proxies: " + st.trustedProxies.ifEmpty { listOf("none") }.joinToString(", "), fontSize = LabScale.textSm, color = Lab.sub)
+        Text("Outside the admin networks nobody signs in, and a phone signed in only looks.", fontSize = LabScale.textSm, color = Lab.muted)
     }
 }
 
@@ -184,9 +185,9 @@ internal fun AccountPanel(admin: Boolean, pin: Boolean, user: String = "", onSig
         Text(
             if (admin) "The buttons work here" + (if (pin) ", after the wall's PIN (or your fingerprint)." else ".")
             else "Sign in as LabHUD's admin (user, password and the authenticator code) for the buttons and the rest of the settings.",
-            fontSize = 12.sp, color = Lab.muted,
+            fontSize = LabScale.textSm, color = Lab.muted,
         )
-        Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(Modifier.padding(top = LabScale.space2), horizontalArrangement = Arrangement.spacedBy(LabScale.space2)) {
             if (admin) TextButton(onClick = onSignOut) { Text("Sign out", color = Lab.red) }
             else Button(onClick = onSignIn) { Text("Sign in") }
             if (admin && onLock != null) OutlinedButton(onClick = onLock) { Text("Lock now") }
@@ -208,13 +209,13 @@ internal fun SignInDialog(repo: LabRepository, onDone: () -> Unit) {
         onDismissRequest = onDone,
         title = { Text("Sign in as the admin") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(LabScale.space2)) {
                 OutlinedTextField(user, { user = it.take(64) }, singleLine = true, label = { Text("User") })
                 OutlinedTextField(password, { password = it.take(256) }, singleLine = true, label = { Text("Password") },
                     visualTransformation = PasswordVisualTransformation())
                 OutlinedTextField(code, { code = it.filter(Char::isDigit).take(8) }, singleLine = true, label = { Text("Authenticator code") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword))
-                if (error.isNotEmpty()) Text(error, color = Lab.warn, fontSize = 13.sp)
+                if (error.isNotEmpty()) Text(error, color = Lab.warn, fontSize = LabScale.textSm)
             }
         },
         confirmButton = {

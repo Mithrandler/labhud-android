@@ -44,7 +44,7 @@ fun CompactTabs(tabs: List<Triple<String, String, ImageVector>>, current: String
     }
     if (vertical) Column(
         Modifier.fillMaxHeight().background(Lab.card).windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Start + WindowInsetsSides.Vertical)).width(56.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterVertically), horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(LabScale.space2, Alignment.CenterVertically), horizontalAlignment = Alignment.CenterHorizontally,
     ) { tabs.forEach { (r, l, i) -> item(r, l, i, Modifier.size(width = 56.dp, height = 44.dp)) } }
     else Row(
         Modifier.fillMaxWidth().background(Lab.card).windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal)).height(44.dp),

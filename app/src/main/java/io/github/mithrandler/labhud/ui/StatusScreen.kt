@@ -152,16 +152,16 @@ fun StatusScreen(
             }
             if (pages.size > 1) LazyRow(
                 state = chips,
-                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                modifier = Modifier.fillMaxWidth().padding(vertical = LabScale.space1),
                 contentPadding = PaddingValues(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(LabScale.space2),
             ) {
                 itemsIndexed(pages, key = { _, p -> p.id }) { i, p ->
                     val bad = p.groups.any { g -> g.cards.any { byId[it]?.bad == true } }
                     FilterChip(
                         selected = i == pager.currentPage, onClick = { scope.launch { pager.animateScrollToPage(i) } },
                         label = { Text(p.title.lowercase().replaceFirstChar(Char::uppercase)) },
-                        leadingIcon = if (p.icon.isNotEmpty()) ({ NamedIcon(p.icon, LabIcons.status, server, 16.dp) }) else null,
+                        leadingIcon = if (p.icon.isNotEmpty()) ({ NamedIcon(p.icon, LabIcons.status, server, LabScale.iconCard) }) else null,
                         trailingIcon = if (bad) ({ Box(Modifier.size(6.dp).clip(CircleShape).background(Lab.red)) }) else null,
                         colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Lab.accent.copy(alpha = 0.2f), selectedLabelColor = Lab.title),
                     )
@@ -234,17 +234,17 @@ internal fun swipeStep(total: Float, width: Float): Int = when {
 
 @Composable
 private fun GameTile(g: GameServer, server: Server?, onClick: () -> Unit) {
-    Surface(onClick = onClick, shape = CardShape, color = Lab.card, border = BorderStroke(1.dp, Lab.line), modifier = Modifier.fillMaxWidth().height(LocalTileH.current)) {
-        Column(Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
+    Surface(onClick = onClick, shape = CardShape, color = Lab.card, border = BorderStroke(LabScale.hairline, Lab.line), modifier = Modifier.fillMaxWidth().height(LocalTileH.current)) {
+        Column(Modifier.padding(horizontal = LabScale.space3, vertical = LabScale.space3)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.size(9.dp).clip(CircleShape).background(if (g.running) Lab.green else Lab.border))
-                Spacer(Modifier.width(8.dp))
-                NamedIcon(g.icon, LabIcons.games, server, 18.dp)
-                Spacer(Modifier.width(6.dp))
-                Text(g.name.ifEmpty { g.title }, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Spacer(Modifier.width(LabScale.space2))
+                NamedIcon(g.icon, LabIcons.games, server, LabScale.iconCard)
+                Spacer(Modifier.width(LabScale.space2))
+                Text(g.name.ifEmpty { g.title }, fontWeight = FontWeight.SemiBold, fontSize = LabScale.textMd, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
-            Text(g.title, fontSize = 12.sp, color = Lab.muted, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 6.dp))
-            Text(g.line, fontSize = 13.sp, color = if (g.running) Lab.text else Lab.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(g.title, fontSize = LabScale.textSm, color = Lab.muted, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = LabScale.space2))
+            Text(g.line, fontSize = LabScale.textSm, color = if (g.running) Lab.text else Lab.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
 }
@@ -254,7 +254,7 @@ private fun GameTile(g: GameServer, server: Server?, onClick: () -> Unit) {
 @Composable
 fun BellSheet(st: LabState, onDismiss: () -> Unit, onCard: (String) -> Unit) {
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Lab.card) {
-        BellContent(st, onCard, Modifier.padding(start = 16.dp, end = 16.dp, bottom = 32.dp))
+        BellContent(st, onCard, Modifier.padding(start = LabScale.space4, end = LabScale.space4, bottom = 32.dp))
     }
 }
 
@@ -264,30 +264,30 @@ fun BellContent(st: LabState, onCard: (String) -> Unit, modifier: Modifier = Mod
     val time = SHORT_TIME
     run {
         Column(modifier.fillMaxWidth()) {
-            Text("ALERTS", style = Heading, modifier = Modifier.padding(bottom = 6.dp))
-            if (st.alerts.isEmpty()) Text("No alert now.", color = Lab.muted, fontSize = 14.sp)
+            Text("ALERTS", style = Heading, modifier = Modifier.padding(bottom = LabScale.space2))
+            if (st.alerts.isEmpty()) Text("No alert now.", color = Lab.muted, fontSize = LabScale.textMd)
             st.alerts.forEach { a ->
                 Row(
                     // a card the server hides is not in the state: its alert is still shown, but there is nothing to open
-                    Modifier.fillMaxWidth().clickable(enabled = a.card != null && a.card in st.byId) { a.card?.let(onCard) }.padding(vertical = 8.dp),
+                    Modifier.fillMaxWidth().clickable(enabled = a.card != null && a.card in st.byId) { a.card?.let(onCard) }.padding(vertical = LabScale.space2),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Icon(LabIcons.warning, null, tint = Lab.warn, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(10.dp))
-                    Text(a.text, fontSize = 14.sp, modifier = Modifier.weight(1f))
-                    a.since?.let { Text(time.format(Date(it * 1000)), fontSize = 12.sp, color = Lab.muted) }
+                    Spacer(Modifier.width(LabScale.space3))
+                    Text(a.text, fontSize = LabScale.textMd, modifier = Modifier.weight(1f))
+                    a.since?.let { Text(time.format(Date(it * 1000)), fontSize = LabScale.textSm, color = Lab.muted) }
                 }
             }
             val problems = st.problems.mapNotNull { st.byId[it] }
-            Text("PROBLEMS", style = Heading, color = if (problems.isEmpty()) Lab.title else Lab.red, modifier = Modifier.padding(top = 16.dp, bottom = 6.dp))
-            if (problems.isEmpty()) Text("Everything is fine.", color = Lab.muted, fontSize = 14.sp)
+            Text("PROBLEMS", style = Heading, color = if (problems.isEmpty()) Lab.title else Lab.red, modifier = Modifier.padding(top = LabScale.space4, bottom = LabScale.space2))
+            if (problems.isEmpty()) Text("Everything is fine.", color = Lab.muted, fontSize = LabScale.textMd)
             problems.forEach { c ->
-                Row(Modifier.fillMaxWidth().clickable { onCard(c.id) }.padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(Modifier.fillMaxWidth().clickable { onCard(c.id) }.padding(vertical = LabScale.space2), verticalAlignment = Alignment.CenterVertically) {
                     StatusDot(c)
-                    Spacer(Modifier.width(10.dp))
-                    Text(c.name, fontSize = 14.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
-                    Text(statusWord(c).ifEmpty { c.note.ifEmpty { "problem" } }, fontSize = 12.sp, color = Lab.red, maxLines = 1,
-                        overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = 8.dp))
+                    Spacer(Modifier.width(LabScale.space3))
+                    Text(c.name, fontSize = LabScale.textMd, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
+                    Text(statusWord(c).ifEmpty { c.note.ifEmpty { "problem" } }, fontSize = LabScale.textSm, color = Lab.red, maxLines = 1,
+                        overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = LabScale.space2))
                 }
             }
         }
@@ -308,11 +308,11 @@ fun LiveMark(st: LabState, conn: Conn) {
     val time = SHORT_TIME.format(Date(st.now * 1000))
     val text = when (conn) { Conn.Live -> "Live $time"; is Conn.Offline -> "Offline · $time"; else -> time }
     val wide = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp >= 600
-    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 4.dp).semantics { contentDescription = text }) {
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = LabScale.space1).semantics { contentDescription = text }) {
         Box(Modifier.size(8.dp).clip(CircleShape).background(color))
         if (wide) {
-            Spacer(Modifier.width(6.dp))
-            Text(text, fontSize = 12.sp, color = if (conn is Conn.Offline) Lab.warn else Lab.sub)
+            Spacer(Modifier.width(LabScale.space2))
+            Text(text, fontSize = LabScale.textSm, color = if (conn is Conn.Offline) Lab.warn else Lab.sub)
         }
     }
 }
@@ -329,14 +329,14 @@ fun ConnBanner(conn: Conn, liveAtFlow: kotlinx.coroutines.flow.StateFlow<Long>, 
     var now by remember { mutableStateOf(android.os.SystemClock.elapsedRealtime()) }
     PollWhileStarted(conn, intervalMs = 1_000) { now = android.os.SystemClock.elapsedRealtime() }
     val color = if (conn.fatal) Lab.red else Lab.warn
-    Surface(shape = CardShape, color = color.copy(alpha = 0.12f), border = BorderStroke(1.dp, color.copy(alpha = 0.6f)),
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
-        Row(Modifier.fillMaxWidth().padding(start = 12.dp, end = 4.dp, top = 8.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(if (conn.fatal) LabIcons.warning else LabIcons.offline, null, tint = color, modifier = Modifier.size(20.dp))
-            Spacer(Modifier.width(10.dp))
+    Surface(shape = CardShape, color = color.copy(alpha = 0.12f), border = BorderStroke(LabScale.hairline, color.copy(alpha = 0.6f)),
+        modifier = Modifier.padding(horizontal = LabScale.space4, vertical = LabScale.space1)) {
+        Row(Modifier.fillMaxWidth().padding(start = LabScale.space3, end = LabScale.space1, top = LabScale.space2, bottom = LabScale.space2), verticalAlignment = Alignment.CenterVertically) {
+            Icon(if (conn.fatal) LabIcons.warning else LabIcons.offline, null, tint = color, modifier = Modifier.size(LabScale.iconCard))
+            Spacer(Modifier.width(LabScale.space3))
             Column(Modifier.weight(1f)) {
-                Text(if (conn.fatal) "Not connected" else "Offline", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = color)
-                Text(conn.message, fontSize = 13.sp, color = Lab.sub)
+                Text(if (conn.fatal) "Not connected" else "Offline", fontSize = LabScale.textMd, fontWeight = FontWeight.SemiBold, color = color)
+                Text(conn.message, fontSize = LabScale.textSm, color = Lab.sub)
                 val parts = listOfNotNull(
                     liveAt.takeIf { it > 0 }?.let { "Last data " + SHORT_TIME.format(Date(it)) },
                     when {
@@ -346,7 +346,7 @@ fun ConnBanner(conn: Conn, liveAtFlow: kotlinx.coroutines.flow.StateFlow<Long>, 
                         else -> null
                     },
                 )
-                if (parts.isNotEmpty()) Text(parts.joinToString(" · "), fontSize = 12.sp, color = Lab.muted, modifier = Modifier.padding(top = 2.dp))
+                if (parts.isNotEmpty()) Text(parts.joinToString(" · "), fontSize = LabScale.textSm, color = Lab.muted, modifier = Modifier.padding(top = 2.dp))
             }
             if (!conn.fatal) TextButton(onClick = onRetry, enabled = !conn.trying) { Text("Retry now") }
         }
@@ -357,10 +357,10 @@ fun ConnBanner(conn: Conn, liveAtFlow: kotlinx.coroutines.flow.StateFlow<Long>, 
 fun ServerPicker(server: Server?, servers: List<Server>, onPick: (Server) -> Unit, onManage: () -> Unit) {
     var open by remember { mutableStateOf(false) }
     Box {
-        Row(Modifier.clip(androidx.compose.foundation.shape.RoundedCornerShape(8.dp)).clickable { open = true }.padding(vertical = 8.dp),
+        Row(Modifier.clip(androidx.compose.foundation.shape.RoundedCornerShape(8.dp)).clickable { open = true }.padding(vertical = LabScale.space2),
             verticalAlignment = Alignment.CenterVertically) {
             // the app's own name, not the server's: the one a server's config cannot change
-            Text("LabHUD", color = Lab.title, fontSize = 20.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, softWrap = false)
+            Text("LabHUD", color = Lab.title, fontSize = LabScale.textWallNum, fontWeight = FontWeight.SemiBold, maxLines = 1, softWrap = false)
             if (servers.size > 1) Icon(LabIcons.chevronDown, null, tint = Lab.title)
         }
         DropdownMenu(expanded = open && servers.size > 1, onDismissRequest = { open = false }) {
@@ -381,7 +381,7 @@ fun InternetMark(n: io.github.mithrandler.labhud.data.Internet) {
         "↓${rateText(n.dn)} ↑${rateText(n.up)}",
         color = if (flowing) Lab.green else Lab.muted,
         fontWeight = FontWeight.Bold,
-        fontSize = 12.sp,
+        fontSize = LabScale.textSm,
         maxLines = 1,
         softWrap = false,
         modifier = Modifier.padding(end = 2.dp).semantics { contentDescription = "Internet: download ${rateText(n.dn)}, upload ${rateText(n.up)}" },

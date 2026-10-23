@@ -181,7 +181,7 @@ private fun HostList(hosts: List<ZoneHost>?, message: String, onOpen: (String) -
                 Text(h.name, fontSize = LabScale.textMd, color = Lab.text, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(h.line(), fontSize = LabScale.textSm, color = Lab.muted)
                 if (h.online) Text("  ${h.cpu.toInt()}%  ${h.mem.toInt()}%", fontSize = LabScale.textSm, color = Lab.muted)
-                Icon(LabIcons.chevronRight, null, tint = Lab.muted, modifier = Modifier.size(20.dp))
+                Icon(LabIcons.chevronRight, null, tint = Lab.muted, modifier = Modifier.size(LabScale.iconCard))
             }
             androidx.compose.material3.HorizontalDivider(color = Lab.line)
         }
@@ -220,7 +220,7 @@ private fun HostScreen(h: ZoneHost, ask: suspend (suspend LabApi.() -> ZoneAnswe
 
 @Composable
 internal fun Cell(label: String, big: String, sub: String = "", modifier: Modifier = Modifier) {
-    Surface(shape = CardShape, color = Lab.card, border = BorderStroke(1.dp, Lab.line), modifier = modifier) {
+    Surface(shape = CardShape, color = Lab.card, border = BorderStroke(LabScale.hairline, Lab.line), modifier = modifier) {
         Column(Modifier.padding(LabScale.space3)) {
             Text(label, fontSize = LabScale.textSm, color = Lab.muted)
             Text(big, fontSize = 22.sp, fontWeight = FontWeight.SemiBold, color = Lab.text)
@@ -305,7 +305,7 @@ private fun ContainerSheet(host: String, c: ZoneContainer, ask: suspend (suspend
         }
     }
     Column(Modifier.fillMaxWidth().padding(horizontal = LabScale.space4).padding(bottom = LabScale.space4)) {
-        Text(c.name, fontSize = 20.sp, fontWeight = FontWeight.SemiBold, color = Lab.text)
+        Text(c.name, fontSize = LabScale.textWallNum, fontWeight = FontWeight.SemiBold, color = Lab.text)
         Text("${c.image} · ${c.status()}", fontSize = LabScale.textSm, color = Lab.muted)
         Row(Modifier.horizontalScroll(rememberScrollState()).padding(vertical = LabScale.space3), horizontalArrangement = Arrangement.spacedBy(LabScale.space2)) {
             for (verb in listOf("start", "stop", "restart", "update")) {
@@ -397,7 +397,7 @@ private suspend fun followStream(repo: LabRepository, id: String, cur: StreamCur
 
 @Composable
 internal fun Mono(text: String, modifier: Modifier = Modifier) {
-    Surface(color = Color.Black, shape = CardShape, border = BorderStroke(1.dp, Lab.line), modifier = modifier) {
+    Surface(color = Color.Black, shape = CardShape, border = BorderStroke(LabScale.hairline, Lab.line), modifier = modifier) {
         Text(text, fontSize = LabScale.textXs, fontFamily = FontFamily.Monospace, color = Lab.text, modifier = Modifier.padding(LabScale.space2))
     }
 }

@@ -1,5 +1,6 @@
 package io.github.mithrandler.labhud.ui.settings
 
+import io.github.mithrandler.labhud.ui.LabScale
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -36,7 +37,7 @@ import kotlinx.coroutines.launch
 @Composable
 internal fun PinButtons(repo: LabRepository, gate: Gate, pinSet: Boolean, onDone: (String) -> Unit) {
     var mode by remember { mutableStateOf<String?>(null) }     // set, change or remove
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    Row(horizontalArrangement = Arrangement.spacedBy(LabScale.space2)) {
         if (!pinSet) OutlinedButton(onClick = { gate.press { mode = "set" } }) { Text("Set a PIN") }
         else {
             OutlinedButton(onClick = { gate.press { mode = "change" } }) { Text("Change") }
@@ -67,12 +68,12 @@ private fun PinDialog(repo: LabRepository, mode: String, onClose: () -> Unit, on
         onDismissRequest = { if (!busy) onClose() },
         title = { Text(when (mode) { "set" -> "Set the wall's PIN"; "change" -> "Change the wall's PIN"; else -> "Remove the wall's PIN" }) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                if (mode == "remove") Text("Anyone at the screen can use its buttons after this.", fontSize = 13.sp, color = Lab.sub)
+            Column(verticalArrangement = Arrangement.spacedBy(LabScale.space2)) {
+                if (mode == "remove") Text("Anyone at the screen can use its buttons after this.", fontSize = LabScale.textSm, color = Lab.sub)
                 if (needsOld) field(old, "Current PIN") { old = it }
                 if (needsNew) { field(new, "New PIN (4 digits)") { new = it }; field(again, "New PIN again") { again = it } }
-                if (needsNew && again.length == 4 && new != again) Text("The two do not match.", fontSize = 12.sp, color = Lab.warn)
-                if (error.isNotEmpty()) Text(error, fontSize = 12.sp, color = Lab.warn, modifier = Modifier.padding(top = 4.dp))
+                if (needsNew && again.length == 4 && new != again) Text("The two do not match.", fontSize = LabScale.textSm, color = Lab.warn)
+                if (error.isNotEmpty()) Text(error, fontSize = LabScale.textSm, color = Lab.warn, modifier = Modifier.padding(top = LabScale.space1))
             }
         },
         confirmButton = {

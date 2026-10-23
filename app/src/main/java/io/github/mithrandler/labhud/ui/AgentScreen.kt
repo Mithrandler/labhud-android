@@ -111,32 +111,32 @@ fun AgentScreen(repo: LabRepository, id: String, onBack: () -> Unit, onSignIn: (
             )
         },
     ) { pad ->
-        LazyColumn(Modifier.padding(pad).fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            if (message.isNotEmpty()) item { Text(message, color = Lab.warn, fontSize = 13.sp) }
+        LazyColumn(Modifier.padding(pad).fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(LabScale.space3)) {
+            if (message.isNotEmpty()) item { Text(message, color = Lab.warn, fontSize = LabScale.textSm) }
             if (a == null) {
                 item { Text(if (all == null) "Unlock to see the agent." else "This agent is gone.", color = Lab.muted) }
                 return@LazyColumn
             }
             item {
                 Text(listOf(if (a.online) "online" else "offline", a.address, a.version).filter { it.isNotEmpty() }.joinToString(" · "),
-                    color = if (a.online) Lab.sub else Lab.red, fontSize = 13.sp)
+                    color = if (a.online) Lab.sub else Lab.red, fontSize = LabScale.textSm)
             }
             if (a.update.isNotEmpty()) item {
                 Panel("") {
-                    Text("v${a.update} is out (this one is v${a.version}).", fontSize = 14.sp)
+                    Text("v${a.update} is out (this one is v${a.version}).", fontSize = LabScale.textMd)
                     Text("It downloads the release from GitHub, checks it, and starts again in a few seconds.",
-                        fontSize = 12.sp, color = Lab.muted)
-                    Button(onClick = { confirmUpdate = true }, enabled = !busy && a.online, modifier = Modifier.padding(top = 8.dp)) {
+                        fontSize = LabScale.textSm, color = Lab.muted)
+                    Button(onClick = { confirmUpdate = true }, enabled = !busy && a.online, modifier = Modifier.padding(top = LabScale.space2)) {
                         Icon(LabIcons.update, null, Modifier.size(18.dp)); Text("  Update to v${a.update}")
                     }
                 }
             } else if (all!!.release.isNotEmpty() && a.version.isNotEmpty() && a.version != all!!.release) item {
                 Text(if (a.install == "container") "In a container the image is the agent: your image updater updates it."
                     else "v${all!!.release} is out. This agent is too old to update itself: run its install line again.",
-                    fontSize = 12.sp, color = Lab.muted)
+                    fontSize = LabScale.textSm, color = Lab.muted)
             }
             item {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(LabScale.space2)) {
                     OutlinedButton(onClick = { renaming = true }, enabled = !busy) { Text("Rename") }
                     OutlinedButton(onClick = { removing = true }, enabled = !busy) { Text("Remove…", color = Lab.red) }
                 }
@@ -155,14 +155,14 @@ fun AgentScreen(repo: LabRepository, id: String, onBack: () -> Unit, onSignIn: (
                         ) {
                             Column(Modifier.weight(1f)) {
                                 Text(cap, fontWeight = FontWeight.SemiBold)
-                                Text(CAP_WORDS[cap] ?: "", fontSize = 12.sp, color = Lab.muted)
+                                Text(CAP_WORDS[cap] ?: "", fontSize = LabScale.textSm, color = Lab.muted)
                             }
                             Switch(checked = on, onCheckedChange = null, enabled = !busy)
                         }
                         if (on && cap in all!!.verbs) {
                             val ticked = a.targets[cap].orEmpty()
                             val choices = (a.choices[cap].orEmpty() + ticked).distinct()
-                            if (choices.isEmpty() && cap != "wol") Text("Nothing found to tick.", fontSize = 12.sp, color = Lab.muted, modifier = Modifier.padding(top = 6.dp))
+                            if (choices.isEmpty() && cap != "wol") Text("Nothing found to tick.", fontSize = LabScale.textSm, color = Lab.muted, modifier = Modifier.padding(top = LabScale.space2))
                             choices.forEach { t ->
                                 val label = a.labels[cap]?.get(t)
                                 Row(
@@ -172,8 +172,8 @@ fun AgentScreen(repo: LabRepository, id: String, onBack: () -> Unit, onSignIn: (
                                     verticalAlignment = Alignment.CenterVertically,
                                 ) {
                                     Checkbox(checked = t in ticked, onCheckedChange = null, enabled = !busy)
-                                    Text(if (label.isNullOrEmpty()) t else "$label  ·  $t", fontSize = 14.sp, maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = 8.dp))
+                                    Text(if (label.isNullOrEmpty()) t else "$label  ·  $t", fontSize = LabScale.textMd, maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = LabScale.space2))
                                 }
                             }
                             // a machine that is off is not in the ARP table: its MAC is typed in, as in ⚙
@@ -257,8 +257,8 @@ fun AgentScreen(repo: LabRepository, id: String, onBack: () -> Unit, onSignIn: (
             onDismissRequest = { removing = false },
             title = { Text("Remove ${a.name}?") },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Its key is deleted and it is disconnected at once. Its cards go grey until an agent is paired again.", fontSize = 13.sp)
+                Column(verticalArrangement = Arrangement.spacedBy(LabScale.space2)) {
+                    Text("Its key is deleted and it is disconnected at once. Its cards go grey until an agent is paired again.", fontSize = LabScale.textSm)
                     OutlinedTextField(typed, { typed = it }, singleLine = true, label = { Text("Type ${a.name} to confirm") })
                 }
             },
@@ -282,11 +282,11 @@ fun AgentScreen(repo: LabRepository, id: String, onBack: () -> Unit, onSignIn: (
             onDismissRequest = {},
             title = { Text("Webhook for $t") },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("It is shown this once: LabHUD keeps only its hash.", fontSize = 13.sp)
+                Column(verticalArrangement = Arrangement.spacedBy(LabScale.space2)) {
+                    Text("It is shown this once: LabHUD keeps only its hash.", fontSize = LabScale.textSm)
                     androidx.compose.foundation.text.selection.SelectionContainer {
-                        Text(url, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace, fontSize = 12.sp,
-                            modifier = Modifier.fillMaxWidth().background(Lab.block).padding(8.dp))
+                        Text(url, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace, fontSize = LabScale.textSm,
+                            modifier = Modifier.fillMaxWidth().background(Lab.block).padding(LabScale.space2))
                     }
                 }
             },
@@ -307,8 +307,8 @@ fun AgentScreen(repo: LabRepository, id: String, onBack: () -> Unit, onSignIn: (
 private fun DockerExtras(a: AgentRow, containers: List<String>, busy: Boolean, onAuto: (List<String>) -> Unit, onPrune: () -> Unit,
                          onHook: (String) -> Unit, onUnhook: (String) -> Unit) {
     if (containers.isNotEmpty()) {
-        Text("Update on their own", fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 12.dp))
-        Text("When their image has a newer one, in the window set in ⚙ on the wall.", fontSize = 12.sp, color = Lab.muted)
+        Text("Update on their own", fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = LabScale.space3))
+        Text("When their image has a newer one, in the window set in ⚙ on the wall.", fontSize = LabScale.textSm, color = Lab.muted)
         containers.forEach { t ->
             Row(
                 Modifier.fillMaxWidth().toggleable(value = t in a.auto, enabled = !busy, role = Role.Checkbox) { want ->
@@ -317,23 +317,23 @@ private fun DockerExtras(a: AgentRow, containers: List<String>, busy: Boolean, o
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Checkbox(checked = t in a.auto, onCheckedChange = null, enabled = !busy)
-                Text(t, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = 8.dp))
+                Text(t, fontSize = LabScale.textMd, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = LabScale.space2))
             }
         }
     }
     if (containers.isNotEmpty()) {
-        Text("Webhooks", fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 12.dp))
-        Text("An address that updates the container when it is called (a registry's push hook). Shown once; a new one replaces the old.", fontSize = 12.sp, color = Lab.muted)
+        Text("Webhooks", fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = LabScale.space3))
+        Text("An address that updates the container when it is called (a registry's push hook). Shown once; a new one replaces the old.", fontSize = LabScale.textSm, color = Lab.muted)
         containers.forEach { t ->
             val has = t in a.hooks
             Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(t, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                Text(t, fontSize = LabScale.textMd, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
                 if (has) TextButton(onClick = { onUnhook(t) }, enabled = !busy) { Text("Remove", color = Lab.red) }
                 TextButton(onClick = { onHook(t) }, enabled = !busy) { Text(if (has) "New" else "Create") }
             }
         }
     }
-    if (a.prune) OutlinedButton(onClick = onPrune, enabled = !busy && a.online, modifier = Modifier.padding(top = 10.dp)) {
+    if (a.prune) OutlinedButton(onClick = onPrune, enabled = !busy && a.online, modifier = Modifier.padding(top = LabScale.space3)) {
         Text("Clean unused images")
     }
 }
@@ -346,7 +346,7 @@ internal fun normalMac(text: String): String? =
 private fun MacField(enabled: Boolean, onAdd: (String) -> Unit) {
     var text by remember { mutableStateOf("") }
     val mac = normalMac(text)
-    Row(Modifier.fillMaxWidth().padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(Modifier.fillMaxWidth().padding(top = LabScale.space2), verticalAlignment = Alignment.CenterVertically) {
         OutlinedTextField(
             text, { text = it }, Modifier.weight(1f), singleLine = true, enabled = enabled,
             placeholder = { Text("Add a MAC (aa:bb:cc:dd:ee:ff)") },

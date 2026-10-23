@@ -1,5 +1,6 @@
 package io.github.mithrandler.labhud.ui.settings
 
+import io.github.mithrandler.labhud.ui.LabScale
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -41,19 +42,19 @@ fun CollapsiblePanel(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     var open by rememberSaveable(key) { mutableStateOf(startOpen) }
-    Surface(shape = CardShape, color = Lab.card, border = BorderStroke(1.dp, Lab.line)) {
+    Surface(shape = CardShape, color = Lab.card, border = BorderStroke(LabScale.hairline, Lab.line)) {
         Column(Modifier.fillMaxWidth()) {
             Row(
-                Modifier.fillMaxWidth().clickable { open = !open; if (open) onOpen() }.padding(horizontal = 14.dp, vertical = 12.dp),
+                Modifier.fillMaxWidth().clickable { open = !open; if (open) onOpen() }.padding(horizontal = LabScale.space3, vertical = LabScale.space3),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(Modifier.weight(1f)) {
-                    Text(title, fontWeight = FontWeight.Medium, fontSize = 15.sp, color = Lab.text)
-                    if (summary.isNotEmpty()) Text(summary, fontSize = 12.sp, color = Lab.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(title, fontWeight = FontWeight.Medium, fontSize = LabScale.textMd, color = Lab.text)
+                    if (summary.isNotEmpty()) Text(summary, fontSize = LabScale.textSm, color = Lab.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
-                Icon(if (open) LabIcons.chevronDown else LabIcons.chevronRight, null, tint = Lab.muted, modifier = Modifier.size(20.dp))
+                Icon(if (open) LabIcons.chevronDown else LabIcons.chevronRight, null, tint = Lab.muted, modifier = Modifier.size(LabScale.iconCard))
             }
-            if (open) Column(Modifier.fillMaxWidth().padding(start = 14.dp, end = 14.dp, bottom = 12.dp), content = content)
+            if (open) Column(Modifier.fillMaxWidth().padding(start = LabScale.space3, end = LabScale.space3, bottom = LabScale.space3), content = content)
         }
     }
 }

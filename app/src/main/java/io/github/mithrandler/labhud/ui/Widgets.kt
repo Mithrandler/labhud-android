@@ -46,10 +46,10 @@ fun ClockWidget(timezone: String) {
     val locale = LocalConfiguration.current.locales[0]
     val zone = zoneOf(timezone)
     val at = Instant.ofEpochMilli(now).atZone(zone)
-    Column(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+    Column(Modifier.fillMaxWidth().padding(top = LabScale.space1), horizontalAlignment = Alignment.CenterHorizontally) {
         Text(at.format(DateTimeFormatter.ofPattern("HH:mm")), fontSize = 34.sp, fontWeight = FontWeight.Light, color = Lab.text)
-        Text(at.format(DateTimeFormatter.ofPattern("EEEE d MMMM", locale)), fontSize = 12.sp, color = Lab.muted)
-        if (timezone.isNotEmpty()) Text(zone.id, fontSize = 11.sp, color = Lab.muted)
+        Text(at.format(DateTimeFormatter.ofPattern("EEEE d MMMM", locale)), fontSize = LabScale.textSm, color = Lab.muted)
+        if (timezone.isNotEmpty()) Text(zone.id, fontSize = LabScale.textXs, color = Lab.muted)
     }
 }
 
@@ -66,8 +66,8 @@ fun CalendarWidget() {
     val locale = LocalConfiguration.current.locales[0]
     val today = LocalDate.now()
     val weeks = remember(today) { monthWeeks(today.withDayOfMonth(1)) }
-    Column(Modifier.fillMaxWidth().padding(top = 4.dp)) {
-        Text(today.month.getDisplayName(TextStyle.FULL, locale) + " " + today.year, fontSize = 12.sp, color = Lab.accent, fontWeight = FontWeight.SemiBold)
+    Column(Modifier.fillMaxWidth().padding(top = LabScale.space1)) {
+        Text(today.month.getDisplayName(TextStyle.FULL, locale) + " " + today.year, fontSize = LabScale.textSm, color = Lab.accent, fontWeight = FontWeight.SemiBold)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             DayOfWeek.entries.forEach { Text(it.getDisplayName(TextStyle.NARROW, locale), Modifier.weight(1f), fontSize = LabScale.textXs, color = Lab.muted, textAlign = TextAlign.Center) }
         }
@@ -75,7 +75,7 @@ fun CalendarWidget() {
             Row(Modifier.fillMaxWidth()) {
                 week.forEach { d ->
                     val isToday = d == today.dayOfMonth
-                    Text(d?.toString() ?: "", Modifier.weight(1f), fontSize = 11.sp, textAlign = TextAlign.Center,
+                    Text(d?.toString() ?: "", Modifier.weight(1f), fontSize = LabScale.textXs, textAlign = TextAlign.Center,
                         color = if (isToday) Lab.accent else Lab.sub, fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal)
                 }
             }
@@ -94,12 +94,12 @@ fun frameAllowed(url: String): Boolean = runCatching {
 @Composable
 fun FrameWidget(url: String, height: Int) {
     if (!frameAllowed(url)) {
-        Text("Not a web address.", fontSize = 12.sp, color = Lab.muted)
+        Text("Not a web address.", fontSize = LabScale.textSm, color = Lab.muted)
         return
     }
     val host = java.net.URI(url).host
     AndroidView(
-        modifier = Modifier.fillMaxWidth().height((if (height in 120..800) height else 240).dp).padding(top = 6.dp),
+        modifier = Modifier.fillMaxWidth().height((if (height in 120..800) height else 240).dp).padding(top = LabScale.space2),
         factory = { context ->
             WebView(context).apply {
                 settings.javaScriptEnabled = true

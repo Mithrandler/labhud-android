@@ -65,11 +65,11 @@ private fun TileSurface(tint: Color?, modifier: Modifier, onClick: () -> Unit, c
         onClick = onClick, modifier = modifier.fillMaxWidth().height(LocalTileH.current), shape = CardShape,
         color = tint?.copy(alpha = 0.12f)?.compositeOver(Lab.card) ?: Lab.card,
         border = when {
-            tint != null -> BorderStroke(1.dp, tint.copy(alpha = 0.7f))
-            Lab.hud -> BorderStroke(1.dp, Lab.line)
+            tint != null -> BorderStroke(LabScale.hairline, tint.copy(alpha = 0.7f))
+            Lab.hud -> BorderStroke(LabScale.hairline, Lab.line)
             else -> null
         },
-        shadowElevation = if (Lab.hud) 0.dp else 1.dp,
+        shadowElevation = if (Lab.hud) 0.dp else LabScale.hairline,
     ) { content() }
 }
 

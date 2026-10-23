@@ -122,7 +122,7 @@ private fun GuestSheet(host: String, g: ZoneGuest, ask: ZoneAsk, gate: Gate, onC
     }
 
     Column(Modifier.fillMaxWidth().padding(horizontal = LabScale.space4).padding(bottom = 20.dp).heightIn(max = (LocalConfiguration.current.screenHeightDp * 0.9f).dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(LabScale.space2)) {
-        Text(g.name, fontSize = 20.sp, fontWeight = FontWeight.SemiBold, color = Lab.text, modifier = Modifier.padding(end = 48.dp))
+        Text(g.name, fontSize = LabScale.textWallNum, fontWeight = FontWeight.SemiBold, color = Lab.text, modifier = Modifier.padding(end = 48.dp))
         Text("${g.id} · ${g.kind()} · " + if (g.running) "running" else "stopped", fontSize = LabScale.textSm, color = Lab.muted)
         Row(horizontalArrangement = Arrangement.spacedBy(LabScale.space2)) {
             OutlinedButton(enabled = "start" in g.can && !g.running && !busy, onClick = { run("Start", { zoneGuestAct(host, g.id, "start") }) }) { Text("Start") }

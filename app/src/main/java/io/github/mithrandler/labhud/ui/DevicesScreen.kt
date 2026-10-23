@@ -121,8 +121,8 @@ fun DevicesScreen(repo: LabRepository, bar: BarNav) {
         Column(Modifier.padding(pad).fillMaxSize()) {
             ConnBanner(conn, repo.liveAt, onRetry = { repo.retry() })
             Row(
-                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = LabScale.space4, vertical = LabScale.space1),
+                horizontalArrangement = Arrangement.spacedBy(LabScale.space2),
             ) {
                 Filter.entries.forEach { f ->
                     FilterChip(
@@ -136,14 +136,14 @@ fun DevicesScreen(repo: LabRepository, bar: BarNav) {
                     )
                 }
             }
-            if (state == null) Text("Connecting…", color = Lab.muted, modifier = Modifier.padding(16.dp))
-            else if (filtered.isEmpty()) Text("Nothing here.", color = Lab.muted, modifier = Modifier.padding(16.dp))
+            if (state == null) Text("Connecting…", color = Lab.muted, modifier = Modifier.padding(LabScale.space4))
+            else if (filtered.isEmpty()) Text("Nothing here.", color = Lab.muted, modifier = Modifier.padding(LabScale.space4))
             else {
                 // one section at a time (chips when there are several), its machines a few to a page
                 val picked = grouped.firstOrNull { it.first == sectionPick } ?: grouped.first()
                 if (grouped.size > 1) Row(
-                    Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = LabScale.space4, vertical = LabScale.space1),
+                    horizontalArrangement = Arrangement.spacedBy(LabScale.space2),
                 ) {
                     grouped.forEach { (type, title, group) ->
                         FilterChip(
@@ -155,7 +155,7 @@ fun DevicesScreen(repo: LabRepository, bar: BarNav) {
                     }
                 }
                 val cols = gridColumns()
-                Column(Modifier.fillMaxSize().verticalScroll(androidx.compose.foundation.rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp)) {
+                Column(Modifier.fillMaxSize().verticalScroll(androidx.compose.foundation.rememberScrollState()).padding(horizontal = LabScale.space4, vertical = LabScale.space2)) {
                     key(picked.first) {
                         PagedGrid(picked.third, cols, rows = 4) { c -> DeviceCell(c, server, Modifier.weight(1f)) { onCard(c.id) } }
                     }
@@ -171,14 +171,14 @@ private fun DeviceCell(c: Card, server: Server?, modifier: Modifier, onClick: ()
     val sev = c.severity()
     Surface(
         onClick = onClick, modifier = modifier, shape = CardShape, color = Lab.card,
-        border = BorderStroke(1.dp, if (c.bad == true) Lab.red.copy(alpha = 0.7f) else if (sev.isNotEmpty()) barColor(sev) else Lab.line),
+        border = BorderStroke(LabScale.hairline, if (c.bad == true) Lab.red.copy(alpha = 0.7f) else if (sev.isNotEmpty()) barColor(sev) else Lab.line),
     ) {
-        Column(Modifier.heightIn(min = 76.dp).padding(horizontal = 10.dp, vertical = 8.dp)) {
+        Column(Modifier.heightIn(min = 76.dp).padding(horizontal = LabScale.space3, vertical = LabScale.space2)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 CardIcon(c, server)
-                Spacer(Modifier.width(8.dp))
-                FitText(c.name, 13.sp, FontWeight.SemiBold, Modifier.weight(1f))
-                Spacer(Modifier.width(6.dp))
+                Spacer(Modifier.width(LabScale.space2))
+                FitText(c.name, LabScale.textSm, FontWeight.SemiBold, Modifier.weight(1f))
+                Spacer(Modifier.width(LabScale.space2))
                 StatusDot(c, 9)
             }
             val bars = c.metrics.filter { it.pct != null }.ifEmpty { c.guest?.meters().orEmpty() }.take(3)
@@ -186,8 +186,8 @@ private fun DeviceCell(c: Card, server: Server?, modifier: Modifier, onClick: ()
             val line = if (c.status == "up") (bars.map { it.short() + " " + Math.round(it.pct ?: 0.0) + "%" } + listOfNotNull(up)).joinToString(" · ") else ""
             val word = statusWord(c)
             val sub = line.ifEmpty { word.ifEmpty { c.subtitle.ifEmpty { c.summary } } }
-            if (sub.isNotEmpty()) Text(sub, fontSize = 11.sp, color = if (c.status == "down") Lab.red else Lab.muted, maxLines = 2, overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(top = 4.dp).alpha(if (c.frozen) 0.45f else 1f))
+            if (sub.isNotEmpty()) Text(sub, fontSize = LabScale.textXs, color = if (c.status == "down") Lab.red else Lab.muted, maxLines = 2, overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(top = LabScale.space1).alpha(if (c.frozen) 0.45f else 1f))
         }
     }
 }

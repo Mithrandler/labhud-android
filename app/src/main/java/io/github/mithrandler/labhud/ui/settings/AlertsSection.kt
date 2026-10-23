@@ -1,5 +1,6 @@
 package io.github.mithrandler.labhud.ui.settings
 
+import io.github.mithrandler.labhud.ui.LabScale
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -84,13 +85,13 @@ fun AlertsSection(repo: LabRepository, nav: SettingsNav) {
 
     SettingsPage(section("alerts")!!, nav) {
         if (setup == null) item { Unlock { gate.press { load() } } }
-        if (message.isNotEmpty()) item { Text(message, color = Lab.warn, fontSize = 13.sp) }
+        if (message.isNotEmpty()) item { Text(message, color = Lab.warn, fontSize = LabScale.textSm) }
         setup?.let { s ->
-            if (!s.managed) item { Text("On the wall, ⚙ > System > Take over first: then LabHUD keeps the rules and this page changes them.", fontSize = 12.sp, color = Lab.warn) }
+            if (!s.managed) item { Text("On the wall, ⚙ > System > Take over first: then LabHUD keeps the rules and this page changes them.", fontSize = LabScale.textSm, color = Lab.warn) }
             if (dirty) item {
                 Panel("") {
-                    Text("Changes not saved yet.", fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                    Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Changes not saved yet.", fontSize = LabScale.textMd, fontWeight = FontWeight.Medium)
+                    Row(Modifier.padding(top = LabScale.space2), horizontalArrangement = Arrangement.spacedBy(LabScale.space2)) {
                         Button(onClick = { save() }, enabled = !busy && s.managed) { Text("Save") }
                         OutlinedButton(onClick = { adopt(s) }) { Text("Discard") }
                     }
@@ -98,14 +99,14 @@ fun AlertsSection(repo: LabRepository, nav: SettingsNav) {
             }
             item {
                 Text("A host's numbers come from its agent. \"All hosts\" is every card with an agent of its own; a host's own rule wins over it for the same thing.",
-                    fontSize = 12.sp, color = Lab.muted)
+                    fontSize = LabScale.textSm, color = Lab.muted)
             }
             rules.forEachIndexed { i, r ->
                 item(key = "rule$i") {
                     RuleCard(r, s, onChange = { n -> rules = rules.toMutableList().also { it[i] = n } }, onRemove = { rules = rules.toMutableList().also { it.removeAt(i) } })
                 }
             }
-            if (rules.isEmpty()) item { Text("No rules: only the history and the marks on the cards.", fontSize = 13.sp, color = Lab.muted) }
+            if (rules.isEmpty()) item { Text("No rules: only the history and the marks on the cards.", fontSize = LabScale.textSm, color = Lab.muted) }
             item { OutlinedButton(onClick = { rules = rules + AlertRule() }) { Text("+ Rule") } }
             heading("Quiet hours")
             item { QuietCard(quiet) { quiet = it } }
@@ -142,14 +143,14 @@ private fun RuleCard(r: AlertRule, s: AlertSetup, onChange: (AlertRule) -> Unit,
     val hosts = listOf("*" to "All hosts") + s.hosts.map { it.id to it.name.ifBlank { it.id } }
     val noMark = r.what in s.noMark
     Panel("") {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(LabScale.space2)) {
             Pick(hosts.firstOrNull { it.first == r.on }?.second ?: r.on, hosts) { onChange(r.copy(on = it)) }
             Pick(s.what[r.what] ?: r.what, s.what.entries.map { it.key to it.value }) { onChange(r.watching(it, s.noMark)) }
-            if (r.what in s.urgent) Text("urgent", fontSize = 11.sp, color = Lab.warn)
+            if (r.what in s.urgent) Text("urgent", fontSize = LabScale.textXs, color = Lab.warn)
             Box(Modifier.weight(1f)) {}
             TextButton(onClick = onRemove) { Text("✕", color = Lab.red) }
         }
-        Row(Modifier.padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(Modifier.padding(top = LabScale.space1), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(LabScale.space2)) {
             if (!noMark) {
                 Num(r.above ?: 90, 1, alertMarkMax(r.what), "above ${if (r.what == "temp") "°C" else "%"}") { onChange(r.copy(above = it)) }
             }
@@ -164,13 +165,13 @@ private fun QuietCard(quiet: Pair<Int, Int>, onChange: (Pair<Int, Int>) -> Unit)
     Panel("") {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Switch(on, { onChange(if (it) 23 to 7 else 0 to 0) })
-            Text("  " + if (on) quietText(quiet.first, quiet.second) else "Off", fontSize = 14.sp)
+            Text("  " + if (on) quietText(quiet.first, quiet.second) else "Off", fontSize = LabScale.textMd)
         }
-        if (on) Row(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+        if (on) Row(Modifier.padding(top = LabScale.space2), horizontalArrangement = Arrangement.spacedBy(LabScale.space2), verticalAlignment = Alignment.CenterVertically) {
             Num(quiet.first, 0, 23, "from (h)") { onChange(it to quiet.second) }
             Num(quiet.second, 0, 23, "to (h)") { onChange(quiet.first to it) }
         }
-        Text("Only the urgent alerts are sent in these hours, by LabHUD's clock; the rest wait for the morning.", fontSize = 12.sp, color = Lab.muted,
-            modifier = Modifier.fillMaxWidth().padding(top = 6.dp))
+        Text("Only the urgent alerts are sent in these hours, by LabHUD's clock; the rest wait for the morning.", fontSize = LabScale.textSm, color = Lab.muted,
+            modifier = Modifier.fillMaxWidth().padding(top = LabScale.space2))
     }
 }

@@ -150,7 +150,7 @@ fun AddServerScreen(repo: LabRepository, initialLink: String?, onBack: (() -> Un
                 title = {
                     androidx.compose.foundation.layout.Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                         io.github.mithrandler.labhud.ui.settings.BrandMark(24.dp)
-                        androidx.compose.foundation.layout.Spacer(Modifier.padding(start = 12.dp))
+                        androidx.compose.foundation.layout.Spacer(Modifier.padding(start = LabScale.space3))
                         Text(if (onBack == null) "Welcome to LabHUD" else "Add a server")
                     }
                 },
@@ -158,44 +158,44 @@ fun AddServerScreen(repo: LabRepository, initialLink: String?, onBack: (() -> Un
         },
     ) { pad ->
         Column(
-            Modifier.padding(pad).fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+            Modifier.padding(pad).fillMaxSize().verticalScroll(rememberScrollState()).padding(LabScale.space4),
+            verticalArrangement = Arrangement.spacedBy(LabScale.space3),
         ) {
             Text("On your LabHUD display, open ⚙ > Phones > Pair a phone, or run init.py pair on the server, then scan the code.",
-                color = Lab.sub, fontSize = 14.sp)
+                color = Lab.sub, fontSize = LabScale.textMd)
             Box(
-                Modifier.fillMaxWidth().aspectRatio(1f).clip(CardShape).border(BorderStroke(1.dp, Lab.border), CardShape),
+                Modifier.fillMaxWidth().aspectRatio(1f).clip(CardShape).border(BorderStroke(LabScale.hairline, Lab.border), CardShape),
                 contentAlignment = Alignment.Center,
             ) {
                 when {
                     busy -> CircularProgressIndicator()
                     camera && cameraError.isEmpty() -> QrScanner(onCode = { if (!busy) tryPair(it) }, onError = { cameraError = it })
-                    else -> Column(Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    else -> Column(Modifier.padding(LabScale.space4), horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(cameraError.ifEmpty { "The camera reads the QR code." }, color = Lab.muted)
                         when {
-                            cameraError.isNotEmpty() -> OutlinedButton(onClick = { cameraError = "" }, modifier = Modifier.padding(top = 10.dp)) { Text("Try again") }
-                            refused -> Button(onClick = { context.openAppSettings() }, modifier = Modifier.padding(top = 10.dp)) { Text("Open settings") }
-                            else -> Button(onClick = { ask.launch(Manifest.permission.CAMERA) }, modifier = Modifier.padding(top = 10.dp)) { Text("Allow the camera") }
+                            cameraError.isNotEmpty() -> OutlinedButton(onClick = { cameraError = "" }, modifier = Modifier.padding(top = LabScale.space3)) { Text("Try again") }
+                            refused -> Button(onClick = { context.openAppSettings() }, modifier = Modifier.padding(top = LabScale.space3)) { Text("Open settings") }
+                            else -> Button(onClick = { ask.launch(Manifest.permission.CAMERA) }, modifier = Modifier.padding(top = LabScale.space3)) { Text("Allow the camera") }
                         }
                     }
                 }
             }
             if (error.isNotEmpty()) {
-                Surface(shape = CardShape, color = Lab.red.copy(alpha = 0.12f), border = BorderStroke(1.dp, Lab.red.copy(alpha = 0.5f))) {
-                    Text(error, modifier = Modifier.padding(12.dp), fontSize = 14.sp)
+                Surface(shape = CardShape, color = Lab.red.copy(alpha = 0.12f), border = BorderStroke(LabScale.hairline, Lab.red.copy(alpha = 0.5f))) {
+                    Text(error, modifier = Modifier.padding(LabScale.space3), fontSize = LabScale.textMd)
                 }
             }
-            Text("Or paste the link printed under the code:", color = Lab.muted, fontSize = 13.sp)
+            Text("Or paste the link printed under the code:", color = Lab.muted, fontSize = LabScale.textSm)
             OutlinedTextField(pasted, { pasted = it.trim() }, modifier = Modifier.fillMaxWidth(), singleLine = true,
                 placeholder = { Text("labhud://pair?…") })
             OutlinedButton(onClick = { tryPair(pasted) }, enabled = pasted.isNotBlank() && !busy) { Text("Pair") }
-            HorizontalDivider(color = Lab.line, modifier = Modifier.padding(vertical = 4.dp))
+            HorizontalDivider(color = Lab.line, modifier = Modifier.padding(vertical = LabScale.space1))
             if (!signIn) {
                 TextButton(onClick = { signIn = true }) { Text("No code at hand? Sign in as the admin") }
             } else {
                 Text("SIGN IN AS THE ADMIN", style = Heading)
                 Text("The account made with init.py admin: its password and the code from your authenticator app.",
-                    color = Lab.muted, fontSize = 13.sp)
+                    color = Lab.muted, fontSize = LabScale.textSm)
                 OutlinedTextField(address, { address = it.trim() }, modifier = Modifier.fillMaxWidth(), singleLine = true,
                     label = { Text("Address") }, placeholder = { Text("192.168.1.20:8095") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Next))
@@ -213,7 +213,7 @@ fun AddServerScreen(repo: LabRepository, initialLink: String?, onBack: (() -> Un
                 ) { Text("Sign in and pair") }
             }
             Text("The phone talks to LabHUD directly: at home on Wi-Fi, or from outside through your VPN (WireGuard, Tailscale).",
-                color = Lab.muted, fontSize = 12.sp)
+                color = Lab.muted, fontSize = LabScale.textSm)
         }
     }
 }

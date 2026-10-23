@@ -157,7 +157,7 @@ fun PaletteSheet(
         HitKind.Section -> onSection(h.target)
     }
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Lab.card) {
-        Column(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 32.dp)) {
+        Column(Modifier.fillMaxWidth().padding(start = LabScale.space4, end = LabScale.space4, bottom = 32.dp)) {
             OutlinedTextField(q, { q = it }, Modifier.fillMaxWidth(), singleLine = true,
                 placeholder = { Text(if (admin) "Search, > for commands" else "Search the cards and pages") },
                 leadingIcon = { Icon(LabIcons.search, null) },
@@ -166,17 +166,17 @@ fun PaletteSheet(
                 keyboardActions = KeyboardActions(onGo = { hits.firstOrNull()?.let(::run) }))
             hits.forEach { h ->
                 val byId = st.byId[h.target]
-                Row(Modifier.fillMaxWidth().clickable { run(h) }.padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(Modifier.fillMaxWidth().clickable { run(h) }.padding(vertical = LabScale.space3), verticalAlignment = Alignment.CenterVertically) {
                     if (h.kind == HitKind.Card && byId?.status != null) StatusDot(byId)
-                    else NamedIcon(h.icon, kindIcon(h.kind), server, 18.dp)
-                    Spacer(Modifier.width(10.dp))
-                    Text(h.label, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                    else NamedIcon(h.icon, kindIcon(h.kind), server, LabScale.iconCard)
+                    Spacer(Modifier.width(LabScale.space3))
+                    Text(h.label, fontSize = LabScale.textMd, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f))
-                    Text(h.hint, fontSize = 12.sp, maxLines = 1, color = if (h.hint == "asks first") Lab.warn else Lab.muted,
-                        modifier = Modifier.padding(start = 8.dp))
+                    Text(h.hint, fontSize = LabScale.textSm, maxLines = 1, color = if (h.hint == "asks first") Lab.warn else Lab.muted,
+                        modifier = Modifier.padding(start = LabScale.space2))
                 }
             }
-            if (q.isNotBlank() && hits.isEmpty()) Text("Nothing matches.", color = Lab.muted, fontSize = 14.sp, modifier = Modifier.padding(top = 10.dp))
+            if (q.isNotBlank() && hits.isEmpty()) Text("Nothing matches.", color = Lab.muted, fontSize = LabScale.textMd, modifier = Modifier.padding(top = LabScale.space3))
         }
     }
 }

@@ -191,7 +191,7 @@ private fun ImageSheet(i: ZoneImage, host: String, ask: ZoneAsk, gate: Gate, don
     val scope = rememberCoroutineScope()
     var removing by remember { mutableStateOf<String?>(null) }
     Column(Modifier.fillMaxWidth().padding(horizontal = LabScale.space4).padding(bottom = 20.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(LabScale.space2)) {
-        Text(i.title(), fontSize = 20.sp, fontWeight = FontWeight.SemiBold, color = Lab.text)
+        Text(i.title(), fontSize = LabScale.textWallNum, fontWeight = FontWeight.SemiBold, color = Lab.text)
         Text("${bytesText(i.size.toDouble())} · ${i.id} · ${usedText(i.used, i.usedBy)}", fontSize = LabScale.textSm, color = Lab.muted)
         Text("Vulnerabilities", fontSize = LabScale.textSm, color = Lab.muted, modifier = Modifier.padding(top = LabScale.space3))
         Text(cveText(i.scan), fontSize = LabScale.textMd, color = cveColor(i.scan))
@@ -253,7 +253,7 @@ private fun VolumeSheet(v: ZoneVolume, host: String, ask: ZoneAsk, gate: Gate, o
     var removing by remember { mutableStateOf(false) }
     var said by remember { mutableStateOf("") }
     Column(Modifier.fillMaxWidth().padding(horizontal = LabScale.space4).padding(bottom = 20.dp), verticalArrangement = Arrangement.spacedBy(LabScale.space2)) {
-        Text(v.name, fontSize = 20.sp, fontWeight = FontWeight.SemiBold, color = Lab.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(v.name, fontSize = LabScale.textWallNum, fontWeight = FontWeight.SemiBold, color = Lab.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
         Text("${volumeSize(v.size)} · ${v.driver} · ${usedText(v.used, v.usedBy)}", fontSize = LabScale.textSm, color = Lab.muted)
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = LabScale.space2)) {
             Column(Modifier.weight(1f)) {
@@ -360,7 +360,7 @@ private fun NetworkSheet(n: ZoneNetwork, host: String, ask: ZoneAsk, gate: Gate,
     var removing by remember { mutableStateOf(false) }
     LaunchedEffect(n.name) { now = ask { zoneNetwork(host, n.name) } }
     Column(Modifier.fillMaxWidth().padding(horizontal = LabScale.space4).padding(bottom = 20.dp), verticalArrangement = Arrangement.spacedBy(LabScale.space2)) {
-        Text(n.name, fontSize = 20.sp, fontWeight = FontWeight.SemiBold, color = Lab.text)
+        Text(n.name, fontSize = LabScale.textWallNum, fontWeight = FontWeight.SemiBold, color = Lab.text)
         Text("${n.driver} · ${n.scope} · ${usedText(n.used, n.usedBy)}", fontSize = LabScale.textSm, color = Lab.muted)
         val a = now
         when {
