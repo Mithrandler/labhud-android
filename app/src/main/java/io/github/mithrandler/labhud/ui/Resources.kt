@@ -72,10 +72,16 @@ fun uptimeColor(v: Double?): Color = when {
     else -> Lab.red
 }
 
-/** The bars of a guest card: CPU, RAM, disk in percent, orange from 80 and red from 92 (the server's default marks). */
+/**
+ * The bars of a guest card: CPU, RAM, disk in percent. CPU and disk are orange from 80 and red from 92 (the server's default
+ * marks); RAM is coloured only by [memSev], as on the wall (the % includes the page cache, so 95% is normal), and not at all
+ * from a server that does not send it.
+ */
 fun Guest.meters(): List<Metric> = listOf("CPU" to cpu, "RAM" to mem, "Disk" to disk).mapNotNull { (label, v) ->
-    v?.let { Metric(key = "guest.$label", label = label, value = "${Math.round(it)}%", pct = it, format = "percent",
-        sev = if (it >= 92) "crit" else if (it >= 80) "warn" else "") }
+    v?.let {
+        val sev = if (label == "RAM") memSev.orEmpty() else if (it >= 92) "crit" else if (it >= 80) "warn" else ""
+        Metric(key = "guest.$label", label = label, value = "${Math.round(it)}%", pct = it, format = "percent", sev = sev)
+    }
 }
 
 /** "7d", "5h", "12m": how long a guest has run, as short as the wall's. */

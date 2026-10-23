@@ -10,6 +10,7 @@ import io.github.mithrandler.labhud.ui.pageCount
 import io.github.mithrandler.labhud.ui.hostsWithGuests
 import io.github.mithrandler.labhud.ui.meters
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 /** A VM sits under the host it runs on; the guest's bars and the node the server sends. */
@@ -36,7 +37,25 @@ class NodeLinkTest {
         val m = Guest(cpu = 12.4, mem = 85.0, disk = null).meters()
         assertEquals(listOf("CPU", "RAM"), m.map { it.label })
         assertEquals(listOf("12%", "85%"), m.map { it.value })
-        assertEquals("warn", m[1].sev)
+        assertEquals("", m[1].sev)   // 85% RAM is not a warning: Proxmox counts the page cache
+    }
+
+    @Test fun guestRamIsColouredOnlyByThePressureTheServerReports() {
+        assertEquals("crit", Guest(mem = 40.0, memSev = "crit").meters()[0].sev)
+        assertEquals("", Guest(mem = 99.0, memSev = "").meters()[0].sev)
+        assertEquals("", Guest(mem = 99.0).meters()[0].sev)   // an older server sends none
+    }
+
+    @Test fun cpuAndDiskKeepTheirMarks() {
+        val m = Guest(cpu = 81.0, mem = 10.0, disk = 93.0).meters()
+        assertEquals(listOf("warn", "", "crit"), m.map { it.sev })
+    }
+
+    @Test fun guestAndGpuSeveritiesDecode() {
+        val c = LabJson.decodeFromString<Card>("""{"id":"h","guest":{"mem":50,"mem_sev":"crit"},"gpus":[{"util":95,"util_sev":"crit","mem":10,"mem_sev":"","temp":60,"temp_sev":"warn"},{"util":1}]}""")
+        assertEquals("crit", c.guest?.memSev)
+        assertEquals(Triple("crit", "", "warn"), c.gpus[0].let { Triple(it.utilSev, it.memSev, it.tempSev) })
+        assertNull(c.gpus[1].utilSev)
     }
 }
 

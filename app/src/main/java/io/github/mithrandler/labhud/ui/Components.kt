@@ -468,8 +468,11 @@ fun GpuRing(g: io.github.mithrandler.labhud.data.Gpu, name: String, modifier: Mo
     val util = g.util.coerceIn(0.0, 100.0)
     val mem = g.mem?.coerceIn(0.0, 100.0)
     val track = Lab.block
-    val loadColor = if (util >= 92) Lab.red else if (util >= 80) Lab.warn else Lab.accent
-    val memColor = if ((mem ?: 0.0) >= 92) Lab.red else if ((mem ?: 0.0) >= 80) Lab.warn else Lab.accent.copy(alpha = 0.55f)
+    // the server's colour for each number (its [display] marks, with hysteresis); an older server sends none: 80 and 92
+    fun sev(s: String?, v: Double) = s ?: if (v >= 92) "crit" else if (v >= 80) "warn" else ""
+    val loadSev = sev(g.utilSev, util)
+    val loadColor = when (loadSev) { "crit" -> Lab.red; "warn" -> Lab.warn; else -> Lab.accent }
+    val memColor = when (sev(g.memSev, mem ?: 0.0)) { "crit" -> Lab.red; "warn" -> Lab.warn; else -> Lab.accent.copy(alpha = 0.55f) }
     Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         Box(Modifier.size(64.dp), contentAlignment = Alignment.Center) {
             Canvas(Modifier.fillMaxSize()) {
@@ -487,7 +490,7 @@ fun GpuRing(g: io.github.mithrandler.labhud.data.Gpu, name: String, modifier: Mo
                 }
             }
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("${Math.round(util)}%", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = if (util >= 80) loadColor else Lab.text)
+                Text("${Math.round(util)}%", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = if (loadSev.isNotEmpty()) loadColor else Lab.text)
                 g.temp?.let { Text("${Math.round(it)}°", fontSize = 10.sp, color = Lab.muted, maxLines = 1) }
             }
         }

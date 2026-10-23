@@ -219,12 +219,20 @@ data class FleetUpdate(
 
 /** One graphics card: load and video memory in percent, the temperature in celsius; null when not reported. */
 @Serializable
-data class Gpu(val util: Double = 0.0, val mem: Double? = null, val temp: Double? = null)
+data class Gpu(
+    val util: Double = 0.0, val mem: Double? = null, val temp: Double? = null,
+    /** warn / crit / "" as the server marks each number (its [display] marks, with hysteresis); null from a server older than labhud 0.1.16. */
+    @SerialName("util_sev") val utilSev: String? = null,
+    @SerialName("mem_sev") val memSev: String? = null,
+    @SerialName("temp_sev") val tempSev: String? = null,
+)
 
 /** A running Proxmox guest's numbers: percent (null when not known), uptime in seconds. */
 @Serializable
 data class Guest(val cpu: Double? = null, val mem: Double? = null, val disk: Double? = null, val uptime: Long? = null,
-                 val node: String = "", val vmid: String = "")
+                 val node: String = "", val vmid: String = "",
+                 /** "crit" only on real memory pressure (Proxmox counts the page cache, so a high % alone is normal); null from a server older than labhud 0.1.16. */
+                 @SerialName("mem_sev") val memSev: String? = null)
 
 /** A single metric on a card. */
 @Serializable

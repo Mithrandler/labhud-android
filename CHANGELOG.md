@@ -7,6 +7,8 @@ All notable changes to LabHUD for Android. The format follows
 ## [Unreleased]
 
 ### Fixed
+- **Healthy VMs no longer turn orange or red on RAM**: Proxmox counts the page cache, so 95% is normal. A guest's RAM is coloured only when the server reports real memory pressure (as on the wall); with a server older than labhud 0.1.16 it stays plain.
+- **A GPU's colours** follow the server's `[display]` marks and their hysteresis, not 80 and 92 written in the app (an older server keeps those two).
 - **Battery and data in the background**: the polls of the screens (a card and its history every 30 s, the game server, the history, the Servers lists and Stats, the uptime and sparklines on Status, the clocks) now run only while the app is on screen. Before, they kept asking the server for as long as the process lived, even after Home.
 
 ### Changed
