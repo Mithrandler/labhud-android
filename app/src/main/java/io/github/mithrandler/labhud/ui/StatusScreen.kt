@@ -111,24 +111,8 @@ fun StatusScreen(
     val prefs by repo.store.settings.collectAsStateWithLifecycle(initialValue = AppSettings())
     val favs by (server?.id?.let { repo.store.favoriteCards(it) } ?: kotlinx.coroutines.flow.flowOf(emptySet())).collectAsStateWithLifecycle(initialValue = emptySet())
     val view = effectiveView(prefs.phoneView, state?.view)
-    var uptime by remember { mutableStateOf<Uptime?>(null) }
-    var sparks by remember { mutableStateOf<Map<String, List<Double?>>>(emptyMap()) }
-
-    WhileStarted(server?.id, info?.uptime) {
-        if (info?.uptime != true) return@WhileStarted
-        while (true) {
-            repo.api()?.let { api -> runCatching { api.uptime(false) }.onSuccess { uptime = it } }
-            delay(5 * 60_000)
-        }
-    }
-    // the cards' sparklines: the last half hour of every number with a trend, in one request a minute
-    WhileStarted(server?.id, info?.trends?.isNotEmpty()) {
-        if (info?.trends.isNullOrEmpty()) { sparks = emptyMap(); return@WhileStarted }
-        while (true) {
-            repo.api()?.let { api -> runCatching { api.sparks() }.onSuccess { sparks = it.series } }
-            delay(60_000)
-        }
-    }
+    val uptime by repo.uptime.collectAsStateWithLifecycle()
+    val sparks by repo.sparks.collectAsStateWithLifecycle()
 
     val st = state
     Scaffold(

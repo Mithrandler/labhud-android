@@ -350,12 +350,18 @@ private fun LogView(host: String, name: String, repo: LabRepository, ask: suspen
     var status by remember(name) { mutableStateOf("opening…") }
     val scroll = rememberScrollState()
     var id by remember(name) { mutableStateOf<String?>(null) }
-    LaunchedEffect(name) {
-        val open = ask { zoneOpen(host, "logs", name) }
-        if (!open.ok) { status = "✕ " + open.refusal(); return@LaunchedEffect }
-        id = open.id
+    val cur = remember(name) { StreamCursor() }
+    var over by remember(name) { mutableStateOf(false) }
+    // read only while the app is in front; back in front it goes on from where it stopped
+    WhileStarted(name) {
+        if (over) return@WhileStarted
+        if (id == null) {
+            val open = ask { zoneOpen(host, "logs", name) }
+            if (!open.ok) { status = "✕ " + open.refusal(); over = true; return@WhileStarted }
+            id = open.id
+        }
         status = "live"
-        followStream(repo, open.id, onText = { text = tailLines(text + it, LOG_LINES); scroll.scrollTo(scroll.maxValue) }) { status = "ended: $it"; id = null }
+        followStream(repo, id!!, cur, onText = { text = tailLines(text + it, LOG_LINES); scroll.scrollTo(scroll.maxValue) }) { status = "ended: $it"; id = null; over = true }
     }
     DisposableEffect(name) { onDispose { id?.let { i -> repo.zoneCloseLater(i) } } }
     Text(status, fontSize = 12.sp, color = Lab.muted)
@@ -368,20 +374,22 @@ private fun LabRepository.zoneCloseLater(id: String) {
     kotlinx.coroutines.GlobalScope.launch { api()?.zoneClose(id) }
 }
 
-private suspend fun followStream(repo: LabRepository, id: String, onText: suspend (String) -> Unit, onEnd: (String) -> Unit) {
-    var after = 0
+/** Where a followed stream has got to: a read that stops (app in the background) goes on from here, text is not repeated. */
+private class StreamCursor { var after = 0; val dec = Utf8Stream() }
+
+private suspend fun followStream(repo: LabRepository, id: String, cur: StreamCursor, onText: suspend (String) -> Unit, onEnd: (String) -> Unit) {
     var fails = 0
-    val dec = Utf8Stream()
+    val dec = cur.dec
     while (true) {
         val api = repo.api() ?: return onEnd("no server")
-        val r = runCatching { api.zoneRead(id, after) }.getOrElse { if (it is CancellationException) throw it; null }
+        val r = runCatching { api.zoneRead(id, cur.after) }.getOrElse { if (it is CancellationException) throw it; null }
         if (r == null || !r.ok) {
             if (++fails > 3) return onEnd(r?.refusal() ?: "lost")
             delay(1000)
             continue
         }
         fails = 0
-        after = r.next
+        cur.after = r.next
         if (r.data.isNotEmpty()) onText(dec.feed(android.util.Base64.decode(r.data, android.util.Base64.DEFAULT)))
         r.end?.let { return onEnd(it) }
     }
@@ -449,12 +457,17 @@ private fun ShellView(host: String, name: String, repo: LabRepository, ask: susp
     var id by remember(name) { mutableStateOf<String?>(null) }
     val scroll = rememberScrollState()
     val scope = rememberCoroutineScope()
-    LaunchedEffect(name) {
-        val open = ask { zoneOpen(host, "shell", name, 80, 24) }
-        if (!open.ok) { status = "✕ " + open.refusal(); return@LaunchedEffect }
-        id = open.id
+    val cur = remember(name) { StreamCursor() }
+    var over by remember(name) { mutableStateOf(false) }
+    WhileStarted(name) {
+        if (over) return@WhileStarted
+        if (id == null) {
+            val open = ask { zoneOpen(host, "shell", name, 80, 24) }
+            if (!open.ok) { status = "✕ " + open.refusal(); over = true; return@WhileStarted }
+            id = open.id
+        }
         status = "open · closes after 3 minutes without a key"
-        followStream(repo, open.id, onText = { text = tailLines(text + plainTerminal(it), LOG_LINES); scroll.scrollTo(scroll.maxValue) }) { status = "ended: $it"; id = null }
+        followStream(repo, id!!, cur, onText = { text = tailLines(text + plainTerminal(it), LOG_LINES); scroll.scrollTo(scroll.maxValue) }) { status = "ended: $it"; id = null; over = true }
     }
     DisposableEffect(name) { onDispose { id?.let { i -> repo.zoneCloseLater(i) } } }
     fun send(raw: String) {

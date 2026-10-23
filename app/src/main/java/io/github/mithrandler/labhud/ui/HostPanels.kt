@@ -18,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -266,22 +267,28 @@ fun LiveLogDialog(agent: String, container: String, repo: LabRepository, gate: G
     var status by remember { mutableStateOf("opening…") }
     val scroll = rememberScrollState()
     var streamId by remember { mutableStateOf<String?>(null) }
-    LaunchedEffect(agent, container) {
-        gate.press {}   // the PIN, if one is set; the stream call below is refused without it
-        val api = repo.api() ?: return@LaunchedEffect
-        val open = runCatching { api.openLiveLog(agent, container) }.getOrNull()
-        if (open?.ok != true) { status = "✕ " + (open?.error?.ifBlank { null } ?: "refused"); return@LaunchedEffect }
-        streamId = open.id
+    // read only while the app is in front; back in front it goes on from where it stopped
+    var after by remember { mutableIntStateOf(0) }
+    var pending by remember { mutableStateOf(ByteArray(0)) }
+    var over by remember { mutableStateOf(false) }
+    WhileStarted(agent, container) {
+        if (over) return@WhileStarted
+        val api = repo.api() ?: return@WhileStarted
+        val sid = streamId ?: run {
+            gate.press {}   // the PIN, if one is set; the stream call below is refused without it
+            val open = runCatching { api.openLiveLog(agent, container) }.getOrNull()
+            if (open?.ok != true) { status = "✕ " + (open?.error?.ifBlank { null } ?: "refused"); over = true; return@WhileStarted }
+            streamId = open.id
+            open.id
+        }
         status = "live"
-        var after = 0
         var fails = 0
         val dec = Charsets.UTF_8.newDecoder()
-        var pending = ByteArray(0)
         try {
             while (true) {
-                val r = runCatching { api.readStream(open.id, after) }.getOrElse { if (it is CancellationException) throw it; null }
+                val r = runCatching { api.readStream(sid, after) }.getOrElse { if (it is CancellationException) throw it; null }
                 if (r == null || !r.ok) {
-                    if (++fails > 3) { status = "✕ " + (r?.error?.ifBlank { null } ?: "lost"); return@LaunchedEffect }
+                    if (++fails > 3) { status = "✕ " + (r?.error?.ifBlank { null } ?: "lost"); over = true; return@WhileStarted }
                     delay(1000)
                     continue
                 }
@@ -298,7 +305,7 @@ fun LiveLogDialog(agent: String, container: String, repo: LabRepository, gate: G
                     pending = bytes.copyOfRange(usable, bytes.size)
                     scroll.scrollTo(scroll.maxValue)
                 }
-                r.end?.let { status = "ended: $it"; streamId = null; return@LaunchedEffect }
+                r.end?.let { status = "ended: $it"; streamId = null; over = true; return@WhileStarted }
             }
         } finally {
             dec.reset()

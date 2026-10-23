@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -54,6 +55,13 @@ class LabRepository(private val context: Context, val store: ServerStore) {
     private val _info = MutableStateFlow<Info?>(null)
     /** What the current server said about itself when the stream (re)started. */
     val info: StateFlow<Info?> = _info.asStateFlow()
+    private val _sparks = MutableStateFlow<Map<String, List<Double?>>>(emptyMap())
+    /** The last half hour of every number with a trend; refreshed while [run] is on. */
+    val sparks: StateFlow<Map<String, List<Double?>>> = _sparks.asStateFlow()
+    private val _uptime = MutableStateFlow<Uptime?>(null)
+    /** The last 24 hours of uptime for every card; refreshed while [run] is on. */
+    val uptime: StateFlow<Uptime?> = _uptime.asStateFlow()
+    private var sideJob: Job? = null
     private val _rights = MutableStateFlow(Rights())
     /** From /api/v1/info when the stream starts, and from every sign-in or sign-out. */
     val rights: StateFlow<Rights> = _rights.asStateFlow()
@@ -72,6 +80,8 @@ class LabRepository(private val context: Context, val store: ServerStore) {
             store.current.distinctUntilChanged().collect { s ->
                 if (_server.value?.id != s?.id) {
                     _rights.value = Rights()
+                    _sparks.value = emptyMap()
+                    _uptime.value = null
                     dropTicket()
                 }
                 _server.value = s
@@ -93,6 +103,12 @@ class LabRepository(private val context: Context, val store: ServerStore) {
     fun run() {
         wanted = true
         if (job?.isActive == true) return
+        sideJob?.cancel()
+        sideJob = scope.launch {
+            // the cards' sparklines (one request a minute) and uptime (every 5 minutes), as the server offers them
+            launch { _info.collectLatest { i -> pollSide(i?.trends?.isNotEmpty() == true, 60_000) { api()?.sparks()?.series?.let { _sparks.value = it } }.also { if (i?.trends.isNullOrEmpty()) _sparks.value = emptyMap() } } }
+            launch { _info.collectLatest { i -> pollSide(i?.uptime == true, 5 * 60_000) { api()?.uptime(false)?.let { _uptime.value = it } } } }
+        }
         job = scope.launch {
             val s = store.currentNow() ?: run { _conn.value = Conn.Idle; return@launch }
             val api = api(s) ?: run { _conn.value = Conn.Offline("This phone has no token for ${s.name}: pair it again.", true); return@launch }
@@ -130,8 +146,19 @@ class LabRepository(private val context: Context, val store: ServerStore) {
         }
     }
 
+    /** Runs [block] now and then every [every] ms while [on]; a failed round waits for the next one. */
+    private suspend fun pollSide(on: Boolean, every: Long, block: suspend () -> Unit) {
+        if (!on) return
+        while (true) {
+            runCatching { block() }.onFailure { if (it is kotlinx.coroutines.CancellationException) throw it }
+            delay(every)
+        }
+    }
+
     fun stop() {
         wanted = false
+        sideJob?.cancel()
+        sideJob = null
         flush()
         job?.cancel()
         job = null

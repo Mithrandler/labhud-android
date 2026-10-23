@@ -108,7 +108,7 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
     val favs by (server?.id?.let { repo.store.favoriteCards(it) } ?: kotlinx.coroutines.flow.flowOf(emptySet())).collectAsStateWithLifecycle(initialValue = emptySet())
     val info by repo.info.collectAsStateWithLifecycle()
     var week by remember { mutableStateOf(false) }
-    var uptimeDay by remember { mutableStateOf<io.github.mithrandler.labhud.data.Uptime?>(null) }
+    val uptimeDay by repo.uptime.collectAsStateWithLifecycle()
     var uptimeWeek by remember { mutableStateOf<io.github.mithrandler.labhud.data.Uptime?>(null) }
     var ask by remember { mutableStateOf<Action?>(null) }
     var askMaint by remember { mutableStateOf(false) }
@@ -128,8 +128,8 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
     }
     // its uptime, with how much of the range labhud knows at all (coverage)
     LaunchedEffect(id, week, info?.uptime) {
-        if (info?.uptime != true) return@LaunchedEffect
-        repo.api()?.let { api -> runCatching { api.uptime(week) }.onSuccess { if (week) uptimeWeek = it else uptimeDay = it } }
+        if (info?.uptime != true || !week || uptimeWeek != null) return@LaunchedEffect
+        repo.api()?.let { api -> runCatching { api.uptime(true) }.onSuccess { uptimeWeek = it } }
     }
     LaunchedEffect(range, keys) {
         if (range in 1..2 && long == null) repo.api()?.let { api -> runCatching { api.history(true, keys) }.onSuccess { long = it } }
