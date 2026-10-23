@@ -71,12 +71,12 @@ internal fun GuestsTab(h: ZoneHost, ask: ZoneAsk, gate: Gate) {
         val r = ask { zoneGuests(h.name) }
         if (r.ok) { rows = r.guests; enabled = r.enabled; message = "" } else message = r.refusal()
     }
-    Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
-        Row(Modifier.padding(top = 8.dp)) { OutlinedButton(onClick = { tick++ }) { Text("Refresh") } }
+    Column(Modifier.fillMaxSize().padding(horizontal = LabScale.space4)) {
+        Row(Modifier.padding(top = LabScale.space2)) { OutlinedButton(onClick = { tick++ }) { Text("Refresh") } }
         Said(message)
-        if (!enabled) Text("Proxmox is not ticked for this host: tick it in Settings > Hosts and agents.", color = Lab.muted, fontSize = 13.sp, modifier = Modifier.padding(top = 8.dp))
-        else if (rows == null) Text("Loading…", color = Lab.muted, modifier = Modifier.padding(top = 12.dp))
-        else if (rows.orEmpty().isEmpty()) Text("No guest on this node yet.", color = Lab.muted, modifier = Modifier.padding(top = 12.dp))
+        if (!enabled) Text("Proxmox is not ticked for this host: tick it in Settings > Hosts and agents.", color = Lab.muted, fontSize = LabScale.textSm, modifier = Modifier.padding(top = LabScale.space2))
+        else if (rows == null) Text("Loading…", color = Lab.muted, modifier = Modifier.padding(top = LabScale.space3))
+        else if (rows.orEmpty().isEmpty()) Text("No guest on this node yet.", color = Lab.muted, modifier = Modifier.padding(top = LabScale.space3))
         Column(Modifier.verticalScroll(rememberScrollState())) {
             rows.orEmpty().ordered().forEach { g ->
                 Row2("${g.id} · ${g.name}", g.line(), if (g.running) "running" else if (g.template) "template" else "stopped", tone = if (g.ticked) 0 else 1) {
@@ -93,8 +93,8 @@ private fun SnapshotDialog(guest: String, onDismiss: () -> Unit, onOk: (String) 
     var name by remember { mutableStateOf("") }
     AlertDialog(
         onDismissRequest = onDismiss, title = { Text("A snapshot of $guest") },
-        text = { Column { Text("Letters, digits, - and _; starts with a letter (40 at most).", fontSize = 13.sp, color = Lab.sub)
-            OutlinedTextField(name, { name = it.take(40) }, singleLine = true, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) } },
+        text = { Column { Text("Letters, digits, - and _; starts with a letter (40 at most).", fontSize = LabScale.textSm, color = Lab.sub)
+            OutlinedTextField(name, { name = it.take(40) }, singleLine = true, modifier = Modifier.fillMaxWidth().padding(top = LabScale.space2)) } },
         confirmButton = { TextButton(enabled = snapNameOk(name), onClick = { onOk(name) }) { Text("Take") } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     )
@@ -121,32 +121,32 @@ private fun GuestSheet(host: String, g: ZoneGuest, ask: ZoneAsk, gate: Gate, onC
         }
     }
 
-    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 20.dp).heightIn(max = (LocalConfiguration.current.screenHeightDp * 0.9f).dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = LabScale.space4).padding(bottom = 20.dp).heightIn(max = (LocalConfiguration.current.screenHeightDp * 0.9f).dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(LabScale.space2)) {
         Text(g.name, fontSize = 20.sp, fontWeight = FontWeight.SemiBold, color = Lab.text, modifier = Modifier.padding(end = 48.dp))
-        Text("${g.id} · ${g.kind()} · " + if (g.running) "running" else "stopped", fontSize = 13.sp, color = Lab.muted)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("${g.id} · ${g.kind()} · " + if (g.running) "running" else "stopped", fontSize = LabScale.textSm, color = Lab.muted)
+        Row(horizontalArrangement = Arrangement.spacedBy(LabScale.space2)) {
             OutlinedButton(enabled = "start" in g.can && !g.running && !busy, onClick = { run("Start", { zoneGuestAct(host, g.id, "start") }) }) { Text("Start") }
             OutlinedButton(enabled = "shutdown" in g.can && g.running && !busy, onClick = { shutting = true }) { Text("Shut down", color = Lab.red) }
             OutlinedButton(enabled = "reboot" in g.can && g.running && !busy, onClick = { run("Reboot", { zoneGuestAct(host, g.id, "reboot") }) }) { Text("Reboot") }
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(LabScale.space2)) {
             GUEST_TABS.forEach { (id, label) -> FilterChip(selected = tab == id, onClick = { tab = id }, label = { Text(label) }) }
         }
         when (tab) {
             "config" -> Listing(g.id, ask, { zoneGuestConfig(host, g.id) }, { it.config }, "No configuration came back.") { x ->
                 Row(Modifier.fillMaxWidth().padding(vertical = 3.dp)) {
-                    Text(x.key, fontSize = 12.sp, color = Lab.muted, modifier = Modifier.weight(0.4f))
-                    Text(x.value, fontSize = 13.sp, color = Lab.text, modifier = Modifier.weight(0.6f))
+                    Text(x.key, fontSize = LabScale.textSm, color = Lab.muted, modifier = Modifier.weight(0.4f))
+                    Text(x.value, fontSize = LabScale.textSm, color = Lab.text, modifier = Modifier.weight(0.6f))
                 }
             }
             "snapshots" -> {
                 OutlinedButton(enabled = !busy, onClick = { making = true }) { Text("Take a snapshot") }
                 Listing(g.id + again, ask, { zoneGuestSnapshots(host, g.id) }, { it.snapshots }, "No snapshot yet. Taking one needs VM.Snapshot on the agent's Proxmox token.") { x ->
                     var asking by remember { mutableStateOf("") }
-                    Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-                        Text(x.name + if (x.description.isNotBlank()) " · ${x.description}" else "", fontSize = 14.sp, color = Lab.text)
+                    Column(Modifier.fillMaxWidth().padding(vertical = LabScale.space1)) {
+                        Text(x.name + if (x.description.isNotBlank()) " · ${x.description}" else "", fontSize = LabScale.textMd, color = Lab.text)
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(versionText(x.time), fontSize = 12.sp, color = Lab.muted, modifier = Modifier.weight(1f))
+                            Text(versionText(x.time), fontSize = LabScale.textSm, color = Lab.muted, modifier = Modifier.weight(1f))
                             TextButton(enabled = !busy, onClick = { asking = "rollback" }) { Text("Roll back", color = Lab.red) }
                             TextButton(enabled = !busy, onClick = { asking = "delete" }) { Text("Delete", color = Lab.red) }
                         }
@@ -162,19 +162,19 @@ private fun GuestSheet(host: String, g: ZoneGuest, ask: ZoneAsk, gate: Gate, onC
                 }
             }
             "backups" -> Listing(g.id, ask, { zoneGuestBackups(host, g.id) }, { it.backups }, "No backup found. Listing them needs Datastore.Audit on the agent's Proxmox token.") { x ->
-                Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-                    Text(x.title() + if (x.protected) " · protected" else "", fontSize = 14.sp, color = Lab.text)
-                    Text("${x.storage} · ${bytesText(x.size.toDouble())} · ${versionText(x.time)}" + if (x.notes.isNotBlank()) " · ${x.notes}" else "", fontSize = 12.sp, color = Lab.muted)
+                Column(Modifier.fillMaxWidth().padding(vertical = LabScale.space1)) {
+                    Text(x.title() + if (x.protected) " · protected" else "", fontSize = LabScale.textMd, color = Lab.text)
+                    Text("${x.storage} · ${bytesText(x.size.toDouble())} · ${versionText(x.time)}" + if (x.notes.isNotBlank()) " · ${x.notes}" else "", fontSize = LabScale.textSm, color = Lab.muted)
                 }
             }
             else -> Listing(g.id, ask, { zoneGuestTasks(host, g.id) }, { it.tasks }, "No task for this guest yet.") { x ->
-                Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-                    Text("${x.type} · ${x.status}", fontSize = 14.sp, color = if (x.status == "OK") Lab.text else Lab.red)
-                    Text("${x.user} · ${versionText(x.start)}", fontSize = 12.sp, color = Lab.muted)
+                Column(Modifier.fillMaxWidth().padding(vertical = LabScale.space1)) {
+                    Text("${x.type} · ${x.status}", fontSize = LabScale.textMd, color = if (x.status == "OK") Lab.text else Lab.red)
+                    Text("${x.user} · ${versionText(x.start)}", fontSize = LabScale.textSm, color = Lab.muted)
                 }
             }
         }
-        if (said.isNotEmpty()) Text(said, color = if (bad) Lab.red else Lab.sub, fontSize = 13.sp)
+        if (said.isNotEmpty()) Text(said, color = if (bad) Lab.red else Lab.sub, fontSize = LabScale.textSm)
     }
     if (shutting) TypedConfirm("Shut down ${g.name}?", g.name, "Shut down", onOk = { run("Shut down", { zoneGuestAct(host, g.id, "shutdown") }) }, onDismiss = { shutting = false })
     if (making) SnapshotDialog(g.name, onDismiss = { making = false }) { name -> making = false; run("Snapshot", { zoneSnapCreate(host, g.id, name) }) { again++ } }
@@ -189,8 +189,8 @@ private fun <T> Listing(key: Any, ask: ZoneAsk, call: suspend LabApi.() -> ZoneA
         val r = ask(call)
         if (r.ok) { rows = pick(r); message = "" } else message = r.refusal()
     }
-    if (message.isNotEmpty()) Text(message, color = Lab.red, fontSize = 13.sp)
+    if (message.isNotEmpty()) Text(message, color = Lab.red, fontSize = LabScale.textSm)
     else if (rows == null) Text("Loading…", color = Lab.muted)
-    else if (rows.orEmpty().isEmpty()) Text(empty, color = Lab.muted, fontSize = 13.sp)
+    else if (rows.orEmpty().isEmpty()) Text(empty, color = Lab.muted, fontSize = LabScale.textSm)
     rows.orEmpty().forEach { row(it) }
 }

@@ -7,6 +7,7 @@ All notable changes to LabHUD for Android. The format follows
 ## [Unreleased]
 
 ### Changed
+- **Zone screens from the scale**: `ZoneScreen.kt`, `ZoneObjects.kt`, `ZoneGuests.kt`, `ZoneStacks.kt` and `ZoneHostTab.kt` take type, gaps and paddings from `LabScale`.
 - **Card screen and MiniCard from the scale**: `CardScreen.kt` and `Components.kt` take type, gaps, paddings and small icons from `LabScale` (13/15/16 sp and loose dp are gone there); the small tile has the wall's padding, icon and dot.
 - **Tiles, group screen and game screen from the scale**: icon, state dot, paddings, gaps and type in `StatusTiles.kt`, `GroupScreen.kt`, `GameScreen.kt` and `Paging.kt` come from `LabScale` (no more 13/15/16 sp or loose dp). The host tile uses the wall's line heights, so its bottom line is no longer cut.
 - **The wall's rules on Status**: the same type everywhere (name 12, number 20, line 11, from `design/tokens.json`) in `MiniCard`, `HostTile` and `GroupSummaryTile`, tiles 112 dp, every tile with name, number and bottom line in the same places (the small tile's meter is gone, as on the wall). PVE and PVE2 come first. A group in trouble is one tile (counting what is broken, naming the first two), not the group plus its cards; its screen lists each card in trouble with its broken rows right there. A card that lists what is wrong (FAILURES) shows "4" and the broken rows, not "4 Problems".

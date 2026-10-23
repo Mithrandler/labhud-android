@@ -88,26 +88,26 @@ internal fun TypedConfirm(title: String, word: String, button: String, onOk: () 
     var typed by remember { mutableStateOf("") }
     AlertDialog(
         onDismissRequest = onDismiss, title = { Text(title) },
-        text = { Column { Text("Type  $word  to confirm.", fontSize = 13.sp, color = Lab.sub)
-            OutlinedTextField(typed, { typed = it }, singleLine = true, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) } },
+        text = { Column { Text("Type  $word  to confirm.", fontSize = LabScale.textSm, color = Lab.sub)
+            OutlinedTextField(typed, { typed = it }, singleLine = true, modifier = Modifier.fillMaxWidth().padding(top = LabScale.space2)) } },
         confirmButton = { TextButton(enabled = typed == word, onClick = { onDismiss(); onOk() }) { Text(button) } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     )
 }
 
 @Composable
-internal fun Said(text: String) { if (text.isNotEmpty()) Text(text, color = Lab.warn, fontSize = 13.sp, modifier = Modifier.padding(vertical = 6.dp)) }
+internal fun Said(text: String) { if (text.isNotEmpty()) Text(text, color = Lab.warn, fontSize = LabScale.textSm, modifier = Modifier.padding(vertical = LabScale.space2)) }
 
 @Composable
 internal fun Row2(title: String, sub: String, right: String, rightSub: String = "", tone: Int = 0, rightSubColor: Color = Lab.muted, onClick: () -> Unit) {
-    Row(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = LabScale.space3), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
-            Text(title, fontSize = 15.sp, color = Lab.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(sub, fontSize = 12.sp, color = if (tone == 1) Lab.warn else Lab.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(title, fontSize = LabScale.textMd, color = Lab.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(sub, fontSize = LabScale.textSm, color = if (tone == 1) Lab.warn else Lab.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         Column(horizontalAlignment = Alignment.End) {
-            Text(right, fontSize = 13.sp, color = Lab.sub)
-            if (rightSub.isNotEmpty()) Text(rightSub, fontSize = 11.sp, color = rightSubColor)
+            Text(right, fontSize = LabScale.textSm, color = Lab.sub)
+            if (rightSub.isNotEmpty()) Text(rightSub, fontSize = LabScale.textXs, color = rightSubColor)
         }
     }
     HorizontalDivider(color = Lab.line)
@@ -139,9 +139,9 @@ internal fun ImagesTab(h: ZoneHost, ask: ZoneAsk, gate: Gate) {
     var said by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
     Loaded(h.name, ask, { fresh -> zoneImages(h.name, fresh) }, { it.images }) { rows, message, refresh ->
-        Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
-            OutlinedTextField(query, { query = it.take(60) }, singleLine = true, label = { Text("Filter") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
-            Row(Modifier.horizontalScroll(rememberScrollState()).padding(vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(Modifier.fillMaxSize().padding(horizontal = LabScale.space4)) {
+            OutlinedTextField(query, { query = it.take(60) }, singleLine = true, label = { Text("Filter") }, modifier = Modifier.fillMaxWidth().padding(top = LabScale.space2))
+            Row(Modifier.horizontalScroll(rememberScrollState()).padding(vertical = LabScale.space2), horizontalArrangement = Arrangement.spacedBy(LabScale.space2)) {
                 OutlinedButton(onClick = { pulling = true }) { Text("Pull image…") }
                 OutlinedButton(onClick = { cleaning = "images" }) { Text("Clean unused") }
                 OutlinedButton(onClick = { cleaning = "dangling" }) { Text("Clean untagged") }
@@ -190,26 +190,26 @@ private fun PullDialog(onDismiss: () -> Unit, onPull: (String) -> Unit) {
 private fun ImageSheet(i: ZoneImage, host: String, ask: ZoneAsk, gate: Gate, done: (String) -> Unit) {
     val scope = rememberCoroutineScope()
     var removing by remember { mutableStateOf<String?>(null) }
-    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 20.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = LabScale.space4).padding(bottom = 20.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(LabScale.space2)) {
         Text(i.title(), fontSize = 20.sp, fontWeight = FontWeight.SemiBold, color = Lab.text)
-        Text("${bytesText(i.size.toDouble())} · ${i.id} · ${usedText(i.used, i.usedBy)}", fontSize = 13.sp, color = Lab.muted)
-        Text("Vulnerabilities", fontSize = 12.sp, color = Lab.muted, modifier = Modifier.padding(top = 10.dp))
-        Text(cveText(i.scan), fontSize = 14.sp, color = cveColor(i.scan))
+        Text("${bytesText(i.size.toDouble())} · ${i.id} · ${usedText(i.used, i.usedBy)}", fontSize = LabScale.textSm, color = Lab.muted)
+        Text("Vulnerabilities", fontSize = LabScale.textSm, color = Lab.muted, modifier = Modifier.padding(top = LabScale.space3))
+        Text(cveText(i.scan), fontSize = LabScale.textMd, color = cveColor(i.scan))
         val sc = i.scan
-        if (sc == null) Text("Not scanned: the host needs the scan capability and a ticked container that runs this image.", fontSize = 12.sp, color = Lab.muted)
+        if (sc == null) Text("Not scanned: the host needs the scan capability and a ticked container that runs this image.", fontSize = LabScale.textSm, color = Lab.muted)
         else {
-            Text(scanWhen(sc), fontSize = 12.sp, color = Lab.muted)
-            if (sc.affects.isNotEmpty()) Text("Affects " + sc.affects.joinToString(", "), fontSize = 12.sp, color = Lab.muted)
+            Text(scanWhen(sc), fontSize = LabScale.textSm, color = Lab.muted)
+            if (sc.affects.isNotEmpty()) Text("Affects " + sc.affects.joinToString(", "), fontSize = LabScale.textSm, color = Lab.muted)
         }
-        Text("Remove", fontSize = 12.sp, color = Lab.muted, modifier = Modifier.padding(top = 10.dp))
+        Text("Remove", fontSize = LabScale.textSm, color = Lab.muted, modifier = Modifier.padding(top = LabScale.space3))
         val names = i.tags.ifEmpty { listOf(i.id) }
         names.forEach { n ->
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(n, fontSize = 14.sp, color = Lab.text, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(n, fontSize = LabScale.textMd, color = Lab.text, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 OutlinedButton(onClick = { removing = n }, enabled = i.used == 0) { Text("Remove") }
             }
         }
-        if (i.used > 0) Text("In use: remove the containers that use it first.", fontSize = 12.sp, color = Lab.muted)
+        if (i.used > 0) Text("In use: remove the containers that use it first.", fontSize = LabScale.textSm, color = Lab.muted)
         i.tags.firstOrNull()?.let { tag ->
             OutlinedButton(onClick = { gate.press { scope.launch { val r = ask { zonePull(host, tag) }; done(if (r.ok) "" else "pull: ${r.refusal()}") } } }) { Text("Pull again") }
         }
@@ -230,10 +230,10 @@ internal fun VolumesTab(h: ZoneHost, ask: ZoneAsk, gate: Gate) {
     var open by remember { mutableStateOf<String?>(null) }
     var said by remember { mutableStateOf("") }
     Loaded(h.name, ask, { fresh -> zoneVolumes(h.name, fresh) }, { it.volumes }) { rows, message, refresh ->
-        Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
-            OutlinedTextField(query, { query = it.take(60) }, singleLine = true, label = { Text("Filter") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
+        Column(Modifier.fillMaxSize().padding(horizontal = LabScale.space4)) {
+            OutlinedTextField(query, { query = it.take(60) }, singleLine = true, label = { Text("Filter") }, modifier = Modifier.fillMaxWidth().padding(top = LabScale.space2))
             Said(message.ifEmpty { said })
-            if (rows == null && message.isEmpty()) Text("Loading…", color = Lab.muted, modifier = Modifier.padding(top = 8.dp))
+            if (rows == null && message.isEmpty()) Text("Loading…", color = Lab.muted, modifier = Modifier.padding(top = LabScale.space2))
             LazyColumn(Modifier.fillMaxSize()) {
                 items(rows.orEmpty().filteredVolumes(query), key = { it.name }) { v ->
                     Row2(v.name, usedText(v.used, v.usedBy), volumeSize(v.size), if (v.browse) "browsable" else "", tone = if (v.used == 0) 1 else 0) { open = v.name }
@@ -252,13 +252,13 @@ private fun VolumeSheet(v: ZoneVolume, host: String, ask: ZoneAsk, gate: Gate, o
     val scope = rememberCoroutineScope()
     var removing by remember { mutableStateOf(false) }
     var said by remember { mutableStateOf("") }
-    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 20.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = LabScale.space4).padding(bottom = 20.dp), verticalArrangement = Arrangement.spacedBy(LabScale.space2)) {
         Text(v.name, fontSize = 20.sp, fontWeight = FontWeight.SemiBold, color = Lab.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Text("${volumeSize(v.size)} · ${v.driver} · ${usedText(v.used, v.usedBy)}", fontSize = 13.sp, color = Lab.muted)
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 8.dp)) {
+        Text("${volumeSize(v.size)} · ${v.driver} · ${usedText(v.used, v.usedBy)}", fontSize = LabScale.textSm, color = Lab.muted)
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = LabScale.space2)) {
             Column(Modifier.weight(1f)) {
-                Text("Browse its files", fontSize = 14.sp, color = Lab.text)
-                Text("read only; secrets are hidden", fontSize = 12.sp, color = Lab.muted)
+                Text("Browse its files", fontSize = LabScale.textMd, color = Lab.text)
+                Text("read only; secrets are hidden", fontSize = LabScale.textSm, color = Lab.muted)
             }
             Switch(checked = v.browse, onCheckedChange = { on ->
                 gate.press { scope.launch { val r = ask { zoneVolumeAccess(host, v.name, on) }; if (r.ok) onChanged() else said = r.refusal() } }
@@ -266,8 +266,8 @@ private fun VolumeSheet(v: ZoneVolume, host: String, ask: ZoneAsk, gate: Gate, o
         }
         Said(said)
         if (v.browse) FileBrowser(host, v.name, ask)
-        OutlinedButton(onClick = { removing = true }, enabled = v.used == 0, modifier = Modifier.padding(top = 8.dp)) { Text("Remove volume") }
-        if (v.used > 0) Text("In use: remove the containers that use it first.", fontSize = 12.sp, color = Lab.muted)
+        OutlinedButton(onClick = { removing = true }, enabled = v.used == 0, modifier = Modifier.padding(top = LabScale.space2)) { Text("Remove volume") }
+        if (v.used > 0) Text("In use: remove the containers that use it first.", fontSize = LabScale.textSm, color = Lab.muted)
     }
     if (removing) TypedConfirm("Remove ${v.name}?", v.name, "Remove", onOk = {
         gate.press { scope.launch { val r = ask { zoneRm(host, "volume", v.name, v.name) }; done(if (r.ok) "" else "remove: ${r.refusal()}") } }
@@ -287,19 +287,19 @@ private fun FileBrowser(host: String, volume: String, ask: ZoneAsk) {
         val r = ask { zoneVolumeLs(host, volume, path) }
         if (r.ok) { entries = r.entries; truncated = r.truncated; message = "" } else { message = r.refusal(); entries = emptyList() }
     }
-    Row(Modifier.horizontalScroll(rememberScrollState()).padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(Modifier.horizontalScroll(rememberScrollState()).padding(top = LabScale.space2), verticalAlignment = Alignment.CenterVertically) {
         crumbs(path).forEachIndexed { n, (label, to) ->
             if (n > 0) Text("›", color = Lab.muted)
-            TextButton(onClick = { path = to; file = null }) { Text(label, fontSize = 13.sp) }
+            TextButton(onClick = { path = to; file = null }) { Text(label, fontSize = LabScale.textSm) }
         }
     }
     Said(message)
     val f = file
     if (f != null) {
-        Text(f.path + " · " + bytesText(f.size.toDouble()) + if (f.truncated) " · first 64 KB" else "", fontSize = 12.sp, color = Lab.muted)
+        Text(f.path + " · " + bytesText(f.size.toDouble()) + if (f.truncated) " · first 64 KB" else "", fontSize = LabScale.textSm, color = Lab.muted)
         when {
-            f.masked && f.text.isEmpty() -> Text("Looks like a secret: its content is not shown.", color = Lab.warn, fontSize = 13.sp)
-            f.binary -> Text("A binary file.", color = Lab.muted, fontSize = 13.sp)
+            f.masked && f.text.isEmpty() -> Text("Looks like a secret: its content is not shown.", color = Lab.warn, fontSize = LabScale.textSm)
+            f.binary -> Text("A binary file.", color = Lab.muted, fontSize = LabScale.textSm)
             else -> Mono(f.text.ifEmpty { "(empty)" }, Modifier.fillMaxWidth().heightIn(max = 320.dp).verticalScroll(rememberScrollState()))
         }
         TextButton(onClick = { file = null }) { Text("Back to the folder") }
@@ -312,7 +312,7 @@ private fun FileBrowser(host: String, volume: String, ask: ZoneAsk) {
                 else if (!e.link) { /* a file */ file = ZoneFile(path = childOf(path, e.name), size = e.size, text = "…"); }
             }
         }
-        if (truncated) Text("More than this is in the folder.", fontSize = 12.sp, color = Lab.muted)
+        if (truncated) Text("More than this is in the folder.", fontSize = LabScale.textSm, color = Lab.muted)
     }
     LaunchedEffect(file?.path) {
         val cur = file ?: return@LaunchedEffect
@@ -331,17 +331,17 @@ internal fun NetworksTab(h: ZoneHost, ask: ZoneAsk, gate: Gate) {
     var open by remember { mutableStateOf<String?>(null) }
     var said by remember { mutableStateOf("") }
     Loaded(h.name, ask, { fresh -> zoneNetworks(h.name, fresh) }, { it.networks }) { rows, message, refresh ->
-        Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
-            OutlinedTextField(query, { query = it.take(60) }, singleLine = true, label = { Text("Filter") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
+        Column(Modifier.fillMaxSize().padding(horizontal = LabScale.space4)) {
+            OutlinedTextField(query, { query = it.take(60) }, singleLine = true, label = { Text("Filter") }, modifier = Modifier.fillMaxWidth().padding(top = LabScale.space2))
             Said(message.ifEmpty { said })
-            if (rows == null && message.isEmpty()) Text("Loading…", color = Lab.muted, modifier = Modifier.padding(top = 8.dp))
+            if (rows == null && message.isEmpty()) Text("Loading…", color = Lab.muted, modifier = Modifier.padding(top = LabScale.space2))
             LazyColumn(Modifier.fillMaxSize()) {
                 items(rows.orEmpty().filteredNetworks(query), key = { it.name }) { n ->
                     Column {
                         Row2(n.name, usedText(n.used, n.usedBy), n.driver, if (n.builtin) "built in" else "") { open = n.name }
                         val on = n.usedBy.take(12)   // the tree: what is on the network; the IPs are in its sheet
-                        on.forEachIndexed { i, c -> Text((if (i == on.size - 1 && on.size >= n.used) "└ " else "├ ") + c, fontSize = 13.sp, color = Lab.muted, modifier = Modifier.padding(start = 16.dp)) }
-                        if (n.used > on.size) Text("… +${n.used - on.size}", fontSize = 13.sp, color = Lab.muted, modifier = Modifier.padding(start = 16.dp))
+                        on.forEachIndexed { i, c -> Text((if (i == on.size - 1 && on.size >= n.used) "└ " else "├ ") + c, fontSize = LabScale.textSm, color = Lab.muted, modifier = Modifier.padding(start = LabScale.space4)) }
+                        if (n.used > on.size) Text("… +${n.used - on.size}", fontSize = LabScale.textSm, color = Lab.muted, modifier = Modifier.padding(start = LabScale.space4))
                     }
                 }
             }
@@ -359,20 +359,20 @@ private fun NetworkSheet(n: ZoneNetwork, host: String, ask: ZoneAsk, gate: Gate,
     var now by remember(n.name) { mutableStateOf<ZoneAnswer?>(null) }
     var removing by remember { mutableStateOf(false) }
     LaunchedEffect(n.name) { now = ask { zoneNetwork(host, n.name) } }
-    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 20.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = LabScale.space4).padding(bottom = 20.dp), verticalArrangement = Arrangement.spacedBy(LabScale.space2)) {
         Text(n.name, fontSize = 20.sp, fontWeight = FontWeight.SemiBold, color = Lab.text)
-        Text("${n.driver} · ${n.scope} · ${usedText(n.used, n.usedBy)}", fontSize = 13.sp, color = Lab.muted)
+        Text("${n.driver} · ${n.scope} · ${usedText(n.used, n.usedBy)}", fontSize = LabScale.textSm, color = Lab.muted)
         val a = now
         when {
             a == null -> Text("Loading…", color = Lab.muted)
             !a.ok || a.network == null -> Said(a.refusal())
             else -> Column(Modifier.heightIn(max = 320.dp).verticalScroll(rememberScrollState())) {
-                if (a.network.containers.isEmpty()) Text("No container is on it.", color = Lab.muted, fontSize = 13.sp)
+                if (a.network.containers.isEmpty()) Text("No container is on it.", color = Lab.muted, fontSize = LabScale.textSm)
                 a.network.containers.forEach { c -> Row2(c.name, c.ipv4, "") {} }
             }
         }
-        OutlinedButton(onClick = { removing = true }, enabled = n.used == 0 && !n.builtin, modifier = Modifier.padding(top = 8.dp)) { Text("Remove network") }
-        if (n.builtin) Text("A built-in network is never removed.", fontSize = 12.sp, color = Lab.muted)
+        OutlinedButton(onClick = { removing = true }, enabled = n.used == 0 && !n.builtin, modifier = Modifier.padding(top = LabScale.space2)) { Text("Remove network") }
+        if (n.builtin) Text("A built-in network is never removed.", fontSize = LabScale.textSm, color = Lab.muted)
     }
     if (removing) TypedConfirm("Remove ${n.name}?", n.name, "Remove", onOk = {
         gate.press { scope.launch { val r = ask { zoneRm(host, "network", n.name, n.name) }; done(if (r.ok) "" else "remove: ${r.refusal()}") } }

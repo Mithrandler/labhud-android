@@ -89,41 +89,41 @@ internal fun HostTab(h: ZoneHost, ask: ZoneAsk, gate: Gate) {
         said = "$label…"
         scope.launch { val r = ask(call); said = if (r.ok) "" else "$label: ${r.refusal()}"; tick++ }
     }
-    Column(Modifier.fillMaxSize().padding(horizontal = 16.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Column(Modifier.fillMaxSize().padding(horizontal = LabScale.space4).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(LabScale.space2)) {
         Said(message.ifEmpty { said })
         val r = info
-        if (r == null) { if (message.isEmpty()) Text("Loading…", color = Lab.muted, modifier = Modifier.padding(top = 12.dp)); return@Column }
+        if (r == null) { if (message.isEmpty()) Text("Loading…", color = Lab.muted, modifier = Modifier.padding(top = LabScale.space3)); return@Column }
         val sys = r.host
         listOf("Host" to (sys?.hostname?.ifEmpty { h.name } ?: h.name), "System" to (sys?.os.orEmpty().ifEmpty { "–" }), "Kernel" to (sys?.kernel.orEmpty().ifEmpty { "–" }),
             "Arch" to (sys?.arch.orEmpty().ifEmpty { "–" }), "Up" to uptimeText(r.uptime), "Agent" to r.version.ifEmpty { "–" })
             .plus(listOfNotNull(r.updates?.let { "Updates" to updatesText(it) })).forEach { (k, v) ->
-            Row { Text(k, fontSize = 13.sp, color = if (k == "Updates" && r.updates?.pending != 0) Lab.red else Lab.muted, modifier = Modifier.padding(end = 12.dp).fillMaxWidth(0.25f)); Text(v, fontSize = 13.sp, color = Lab.text) }
+            Row { Text(k, fontSize = LabScale.textSm, color = if (k == "Updates" && r.updates?.pending != 0) Lab.red else Lab.muted, modifier = Modifier.padding(end = LabScale.space3).fillMaxWidth(0.25f)); Text(v, fontSize = LabScale.textSm, color = Lab.text) }
         }
-        Row(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(Modifier.padding(top = LabScale.space2), horizontalArrangement = Arrangement.spacedBy(LabScale.space2)) {
             OutlinedButton(enabled = r.can?.update == true, onClick = { typing = "update" }) { Text("Update OS") }
             OutlinedButton(enabled = r.can?.power == true, onClick = { typing = "reboot" }) { Text("Reboot", color = Lab.red) }
             OutlinedButton(enabled = r.can?.power == true, onClick = { typing = "shutdown" }) { Text("Shutdown", color = Lab.red) }
         }
-        if (r.can?.update != true) Text("Tick Host for this agent in Settings > Hosts and agents to update or reboot it here.", fontSize = 12.sp, color = Lab.muted)
-        Text("Systemd units" + if (r.failed.isNotEmpty()) " · ${r.failed.size} failed" else "", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Lab.text, modifier = Modifier.padding(top = 10.dp))
+        if (r.can?.update != true) Text("Tick Host for this agent in Settings > Hosts and agents to update or reboot it here.", fontSize = LabScale.textSm, color = Lab.muted)
+        Text("Systemd units" + if (r.failed.isNotEmpty()) " · ${r.failed.size} failed" else "", fontSize = LabScale.textMd, fontWeight = FontWeight.SemiBold, color = Lab.text, modifier = Modifier.padding(top = LabScale.space3))
         r.units.forEach { u ->
             Row2(u.name + if (u.ticked) "" else "  (read only)", u.description, u.active + if (u.sub.isNotEmpty() && u.sub != u.active) " · ${u.sub}" else "",
                 tone = if (u.active == "failed" || u.name in r.failed) 1 else 0) { open = u }
         }
-        Text("Scheduler", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Lab.text, modifier = Modifier.padding(top = 10.dp))
+        Text("Scheduler", fontSize = LabScale.textMd, fontWeight = FontWeight.SemiBold, color = Lab.text, modifier = Modifier.padding(top = LabScale.space3))
         OutlinedButton(onClick = { editing = ZoneJob(agent = h.name, kind = "prune", days = listOf(6)) }) { Text("Add job") }
-        if (jobs.isEmpty()) Text("No job for this host yet.", fontSize = 13.sp, color = Lab.muted)
+        if (jobs.isEmpty()) Text("No job for this host yet.", fontSize = LabScale.textSm, color = Lab.muted)
         jobs.forEach { j ->
             val last = if (j.last.t > 0) (if (j.last.ok) "ok" else "failed") + " · " + j.last.day else "never run"
             Row2(j.name + if (j.enabled) "" else "  (off)", daysText(j.days) + " " + j.at + if (j.agent == "*") " · all hosts" else "", last,
                 tone = if (j.last.t > 0 && !j.last.ok) 1 else 0) { editing = j }
         }
-        Text("Activity", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Lab.text, modifier = Modifier.padding(top = 10.dp))
+        Text("Activity", fontSize = LabScale.textMd, fontWeight = FontWeight.SemiBold, color = Lab.text, modifier = Modifier.padding(top = LabScale.space3))
         OutlinedButton(onClick = {
             scope.launch { val v = ask { zoneAuditVerify() }; chain = if (!v.ok) v.refusal() else if (v.intact) "Intact: ${v.checked} entries checked." else "Broken: ${v.broken}" }
         }) { Text("Verify chain") }
         Said(chain)
-        if (log.isEmpty()) Text("Nothing done from here yet.", fontSize = 13.sp, color = Lab.muted)
+        if (log.isEmpty()) Text("Nothing done from here yet.", fontSize = LabScale.textSm, color = Lab.muted)
         log.forEach { e -> Row2(activityText(e), e.target, e.ts.replace("T", " ").take(16), e.who, tone = if (e.ok) 0 else 1) {} }
         if (more) OutlinedButton(onClick = {
             scope.launch { val a = ask { zoneActivity(h.name, log.size) }; if (a.ok) { log = log + a.rows; more = a.more } }
@@ -143,16 +143,16 @@ internal fun HostTab(h: ZoneHost, ask: ZoneAsk, gate: Gate) {
 @Composable
 private fun UnitSheet(u: ZoneUnit, host: String, run: (String, suspend LabApi.() -> ZoneAnswer) -> Unit) {
     var stopping by remember(u.name) { mutableStateOf(false) }
-    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 20.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = LabScale.space4).padding(bottom = 20.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(LabScale.space2)) {
         Text(u.name, fontSize = 20.sp, fontWeight = FontWeight.SemiBold, color = Lab.text, modifier = Modifier.padding(end = 48.dp))
-        Text("${u.active} · ${u.sub}", fontSize = 13.sp, color = Lab.muted)
-        Text(u.description, fontSize = 13.sp, color = Lab.sub)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("${u.active} · ${u.sub}", fontSize = LabScale.textSm, color = Lab.muted)
+        Text(u.description, fontSize = LabScale.textSm, color = Lab.sub)
+        Row(horizontalArrangement = Arrangement.spacedBy(LabScale.space2)) {
             OutlinedButton(enabled = u.ticked, onClick = { run("Start ${u.name}") { zoneUnit(host, u.name, "start") } }) { Text("Start") }
             OutlinedButton(enabled = u.ticked, onClick = { run("Restart ${u.name}") { zoneUnit(host, u.name, "restart") } }) { Text("Restart") }
             OutlinedButton(enabled = u.ticked, onClick = { stopping = true }) { Text("Stop", color = Lab.red) }
         }
-        if (!u.ticked) Text("Not ticked: tick this unit for the agent in Settings > Hosts and agents to act on it.", fontSize = 12.sp, color = Lab.muted)
+        if (!u.ticked) Text("Not ticked: tick this unit for the agent in Settings > Hosts and agents to act on it.", fontSize = LabScale.textSm, color = Lab.muted)
     }
     if (stopping) TypedConfirm("Stop ${u.name}?", u.name, "Stop", onOk = { stopping = false; run("Stop ${u.name}") { zoneUnitStop(host, u.name, u.name) } }, onDismiss = { stopping = false })
 }
@@ -176,27 +176,27 @@ private fun JobSheet(job: ZoneJob, host: String, ask: ZoneAsk, gate: Gate, onDon
     var guests by remember(job.id) { mutableStateOf<List<ZoneGuest>>(emptyList()) }
     LaunchedEffect(kind) { if (kind == "backup") { val g = ask { zoneGuests(host) }; if (g.ok) guests = g.guests.filter { it.ticked && !it.template } } }
     val agent = if (kind == "update" && allHosts) "*" else if (job.agent == "*") host else job.agent
-    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 20.dp).heightIn(max = (LocalConfiguration.current.screenHeightDp * 0.9f).dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = LabScale.space4).padding(bottom = 20.dp).heightIn(max = (LocalConfiguration.current.screenHeightDp * 0.9f).dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(LabScale.space2)) {
         Text(if (isNew) "New job" else job.name, fontSize = 20.sp, fontWeight = FontWeight.SemiBold, color = Lab.text, modifier = Modifier.padding(end = 48.dp))
         OutlinedTextField(name, { name = it.take(60) }, singleLine = true, label = { Text("Name") }, modifier = Modifier.fillMaxWidth())
-        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(LabScale.space2)) {
             JOB_KINDS.forEach { (k, label) -> FilterChip(selected = kind == k, enabled = isNew, onClick = { kind = k }, label = { Text(label) }) }
         }
         if (kind == "update") Row(verticalAlignment = Alignment.CenterVertically) {
             Switch(allHosts, { allHosts = it }, enabled = job.id != UPDATE_JOB)
-            Text("  Every host" + if (allHosts) "" else " (only $host)", color = Lab.text, fontSize = 14.sp)
+            Text("  Every host" + if (allHosts) "" else " (only $host)", color = Lab.text, fontSize = LabScale.textMd)
         }
         if (kind == "backup") {
-            Text("Guests to back up", fontSize = 13.sp, color = Lab.muted)
-            if (guests.isEmpty()) Text("No ticked guest on this host.", fontSize = 12.sp, color = Lab.muted)
+            Text("Guests to back up", fontSize = LabScale.textSm, color = Lab.muted)
+            if (guests.isEmpty()) Text("No ticked guest on this host.", fontSize = LabScale.textSm, color = Lab.muted)
             guests.forEach { g ->
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(g.id in vmids, { vmids = if (it) vmids + g.id else vmids - g.id })
-                    Text("${g.id} ${g.name}", fontSize = 13.sp, color = Lab.text)
+                    Text("${g.id} ${g.name}", fontSize = LabScale.textSm, color = Lab.text)
                 }
             }
             OutlinedTextField(storage, { storage = it.take(40) }, singleLine = true, label = { Text("Backup storage (e.g. local)") }, modifier = Modifier.fillMaxWidth())
-            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(LabScale.space2)) {
                 listOf("snapshot", "suspend", "stop").forEach { m -> FilterChip(selected = mode == m, onClick = { mode = m }, label = { Text(m) }) }
             }
         }
@@ -204,13 +204,13 @@ private fun JobSheet(job: ZoneJob, host: String, ask: ZoneAsk, gate: Gate, onDon
         Row(Modifier.horizontalScroll(rememberScrollState()), verticalAlignment = Alignment.CenterVertically) {
             listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun").forEachIndexed { i, d ->
                 Checkbox(i in days, { days = if (it) days + i else days - i })
-                Text(d, fontSize = 13.sp, color = Lab.sub, modifier = Modifier.padding(end = 6.dp))
+                Text(d, fontSize = LabScale.textSm, color = Lab.sub, modifier = Modifier.padding(end = LabScale.space2))
             }
         }
-        Row(verticalAlignment = Alignment.CenterVertically) { Switch(enabled, { enabled = it }); Text("  Enabled", color = Lab.text, fontSize = 14.sp) }
-        if (!isNew && job.last.t > 0) Text("Last run: ${job.last.day} · " + (if (job.last.ok) "ok" else "failed") + " · ${job.last.text}", fontSize = 12.sp, color = Lab.muted)
+        Row(verticalAlignment = Alignment.CenterVertically) { Switch(enabled, { enabled = it }); Text("  Enabled", color = Lab.text, fontSize = LabScale.textMd) }
+        if (!isNew && job.last.t > 0) Text("Last run: ${job.last.day} · " + (if (job.last.ok) "ok" else "failed") + " · ${job.last.text}", fontSize = LabScale.textSm, color = Lab.muted)
         Said(said)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(LabScale.space2)) {
             OutlinedButton(enabled = jobOk(name, at, days, kind, vmids, storage), onClick = {
                 gate.press { scope.launch {
                     val r = ask { zoneJobSave(job.copy(name = name.trim(), kind = kind, agent = agent, at = at, days = days.sorted(), enabled = enabled, vmids = vmids.toList(), storage = storage.trim(), mode = mode)) }

@@ -58,7 +58,7 @@ import kotlinx.coroutines.launch
 
 private val FILE_TABS = listOf("compose" to "Compose", "env" to ".env", "history" to "History", "git" to "Git")
 private const val NEW_COMPOSE = "services:\n  app:\n    image: nginx:stable\n    restart: unless-stopped\n"
-private val MONO = TextStyle(fontFamily = FontFamily.Monospace, fontSize = 12.sp, color = Lab.text)
+private val MONO = TextStyle(fontFamily = FontFamily.Monospace, fontSize = LabScale.textSm, color = Lab.text)
 
 @Composable
 internal fun StacksTab(h: ZoneHost, ask: ZoneAsk, gate: Gate) {
@@ -73,15 +73,15 @@ internal fun StacksTab(h: ZoneHost, ask: ZoneAsk, gate: Gate) {
         val r = ask { zoneStacks(h.name) }
         if (r.ok) { rows = r.stacks; enabled = r.enabled; message = "" } else message = r.refusal()
     }
-    Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
-        Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(Modifier.fillMaxSize().padding(horizontal = LabScale.space4)) {
+        Row(Modifier.padding(top = LabScale.space2), horizontalArrangement = Arrangement.spacedBy(LabScale.space2)) {
             OutlinedButton(onClick = { tick++ }) { Text("Refresh") }
             OutlinedButton(enabled = enabled, onClick = { naming = true }) { Text("New stack") }
         }
         Said(message)
-        if (!enabled) Text("Stacks is not ticked for this host: tick it in Settings > Hosts and agents.", color = Lab.muted, fontSize = 13.sp, modifier = Modifier.padding(top = 8.dp))
-        else if (rows == null) Text("Loading…", color = Lab.muted, modifier = Modifier.padding(top = 12.dp))
-        else if (rows.orEmpty().isEmpty()) Text("No stack on this host yet.", color = Lab.muted, modifier = Modifier.padding(top = 12.dp))
+        if (!enabled) Text("Stacks is not ticked for this host: tick it in Settings > Hosts and agents.", color = Lab.muted, fontSize = LabScale.textSm, modifier = Modifier.padding(top = LabScale.space2))
+        else if (rows == null) Text("Loading…", color = Lab.muted, modifier = Modifier.padding(top = LabScale.space3))
+        else if (rows.orEmpty().isEmpty()) Text("No stack on this host yet.", color = Lab.muted, modifier = Modifier.padding(top = LabScale.space3))
         Column(Modifier.verticalScroll(rememberScrollState())) {
             rows.orEmpty().forEach { s -> Row2(s.name, s.line(), "") { fresh = false; open = s } }
         }
@@ -99,8 +99,8 @@ private fun NewStackDialog(onDismiss: () -> Unit, onOk: (String) -> Unit) {
     var name by remember { mutableStateOf("") }
     AlertDialog(
         onDismissRequest = onDismiss, title = { Text("A new stack") },
-        text = { Column { Text("Lowercase letters, digits, - and _.", fontSize = 13.sp, color = Lab.sub)
-            OutlinedTextField(name, { name = it.take(64) }, singleLine = true, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) } },
+        text = { Column { Text("Lowercase letters, digits, - and _.", fontSize = LabScale.textSm, color = Lab.sub)
+            OutlinedTextField(name, { name = it.take(64) }, singleLine = true, modifier = Modifier.fillMaxWidth().padding(top = LabScale.space2)) } },
         confirmButton = { TextButton(enabled = stackNameOk(name), onClick = { onOk(name) }) { Text("Create") } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     )
@@ -144,16 +144,16 @@ private fun StackSheet(host: String, stack: ZoneStack, isNew: Boolean, ask: Zone
         }
     }
 
-    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 20.dp).heightIn(max = (LocalConfiguration.current.screenHeightDp * 0.9f).dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = LabScale.space4).padding(bottom = 20.dp).heightIn(max = (LocalConfiguration.current.screenHeightDp * 0.9f).dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(LabScale.space2)) {
         Text(stack.name, fontSize = 20.sp, fontWeight = FontWeight.SemiBold, color = Lab.text, modifier = Modifier.padding(end = 48.dp))
-        Text(if (!kept) "new stack: nothing is written until Save" else stack.line(), fontSize = 13.sp, color = Lab.muted)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(if (!kept) "new stack: nothing is written until Save" else stack.line(), fontSize = LabScale.textSm, color = Lab.muted)
+        Row(horizontalArrangement = Arrangement.spacedBy(LabScale.space2)) {
             OutlinedButton(enabled = kept && !busy && !dirty, onClick = { run("Redeploy", { zoneStackAct(host, stack.name, "redeploy") }) }) { Text("Redeploy") }
             OutlinedButton(enabled = kept && !busy, onClick = { run("Restart", { zoneStackAct(host, stack.name, "restart") }) }) { Text("Restart") }
             OutlinedButton(enabled = kept && !busy, onClick = { down = true }) { Text("Down", color = Lab.red) }
         }
-        if (dirty && kept) Text("Unsaved changes: Save them before Redeploy.", fontSize = 12.sp, color = Lab.warn)
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        if (dirty && kept) Text("Unsaved changes: Save them before Redeploy.", fontSize = LabScale.textSm, color = Lab.warn)
+        Row(horizontalArrangement = Arrangement.spacedBy(LabScale.space2)) {
             FILE_TABS.forEach { (id, label) ->
                 FilterChip(selected = tab == id, enabled = kept || id == "compose" || id == "env", onClick = { tab = id; shown = "" },
                     label = { Text(label + if ((id == "compose" && compose != compose0 && loaded) || (id == "env" && env != env0 && loaded)) " •" else "") })
@@ -163,7 +163,7 @@ private fun StackSheet(host: String, stack: ZoneStack, isNew: Boolean, ask: Zone
         else when (tab) {
             "compose", "env" -> {
                 val isEnv = tab == "env"
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(LabScale.space2)) {
                     OutlinedButton(enabled = !busy, onClick = { run("Validate", { zoneStackValidate(host, stack.name, compose, env) }) }) { Text("Validate") }
                     Button(enabled = dirty && !busy, onClick = {
                         run("Save", { zoneStackSave(host, stack.name, compose, env) }) {
@@ -176,15 +176,15 @@ private fun StackSheet(host: String, stack: ZoneStack, isNew: Boolean, ask: Zone
                     if (isEnv) env else compose, { if (isEnv) env = it.take(48 * 1024) else compose = it.take(48 * 1024) },
                     textStyle = MONO, modifier = Modifier.fillMaxWidth().heightIn(min = 220.dp, max = 360.dp),
                 )
-                if (isEnv) Text("Values stay on the host and show as $mask. Leave a line as it is to keep its value; type a new value to change it.", fontSize = 12.sp, color = Lab.muted)
+                if (isEnv) Text("Values stay on the host and show as $mask. Leave a line as it is to keep its value; type a new value to change it.", fontSize = LabScale.textSm, color = Lab.muted)
             }
             "history" -> {
-                Text("Each save and deploy keeps the files it replaces (the last 10). Restore writes an older version back; it does not deploy.", fontSize = 12.sp, color = Lab.muted)
-                if (dirty) Text("Save or Discard your changes before restoring.", fontSize = 12.sp, color = Lab.warn)
+                Text("Each save and deploy keeps the files it replaces (the last 10). Restore writes an older version back; it does not deploy.", fontSize = LabScale.textSm, color = Lab.muted)
+                if (dirty) Text("Save or Discard your changes before restoring.", fontSize = LabScale.textSm, color = Lab.warn)
                 if (versions.isEmpty()) Text("No older version yet.", color = Lab.muted)
                 versions.forEach { v ->
                     Row(Modifier.fillMaxWidth(), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                        Text(versionText(v), color = Lab.text, fontSize = 14.sp, modifier = Modifier.weight(1f))
+                        Text(versionText(v), color = Lab.text, fontSize = LabScale.textMd, modifier = Modifier.weight(1f))
                         TextButton(onClick = { scope.launch { val r = ask { zoneStackRead(host, stack.name, v) }; shown = if (r.ok) r.compose + if (r.hasEnv) "\n# .env\n" + r.env else "" else r.refusal() } }) { Text("View") }
                         TextButton(enabled = !dirty && !busy, onClick = { run("Restore", { zoneStackRestore(host, stack.name, v) }) { reload() } }) { Text("Restore") }
                     }
@@ -193,7 +193,7 @@ private fun StackSheet(host: String, stack: ZoneStack, isNew: Boolean, ask: Zone
             }
             else -> GitPane(host, stack, ask, gate, busy, ::say, onChanged)
         }
-        if (said.isNotEmpty()) Text(said, color = if (bad) Lab.red else Lab.sub, fontSize = 13.sp)
+        if (said.isNotEmpty()) Text(said, color = if (bad) Lab.red else Lab.sub, fontSize = LabScale.textSm)
     }
     if (down) TypedConfirm("Take ${stack.name} down? (volumes stay)", stack.name, "Down", onOk = { run("Down", { zoneStackDown(host, stack.name, stack.name) }) }, onDismiss = { down = false })
 }
@@ -207,11 +207,11 @@ private fun GitPane(host: String, stack: ZoneStack, ask: ZoneAsk, gate: Gate, bu
     var hasSource by remember(stack.name) { mutableStateOf(stack.source != null) }
     var token by remember { mutableStateOf("") }
     var url by remember { mutableStateOf("") }
-    Text("The compose file can come from a repository. Sync pulls it, saves it (the .env stays) and redeploys. A token for a private repository is used once and never kept, so a webhook only works for a repository that needs none.", fontSize = 12.sp, color = Lab.muted)
+    Text("The compose file can come from a repository. Sync pulls it, saves it (the .env stays) and redeploys. A token for a private repository is used once and never kept, so a webhook only works for a repository that needs none.", fontSize = LabScale.textSm, color = Lab.muted)
     OutlinedTextField(repo, { repo = it.take(200) }, singleLine = true, label = { Text("Repository") }, modifier = Modifier.fillMaxWidth())
     OutlinedTextField(branch, { branch = it.take(100) }, singleLine = true, label = { Text("Branch") }, modifier = Modifier.fillMaxWidth())
     OutlinedTextField(path, { path = it.take(200) }, singleLine = true, label = { Text("Path of the file") }, modifier = Modifier.fillMaxWidth())
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    Row(horizontalArrangement = Arrangement.spacedBy(LabScale.space2)) {
         Button(enabled = !busy && repo.isNotBlank() && path.isNotBlank(), onClick = {
             gate.press { scope.launch {
                 val r = ask { zoneStackSource(host, stack.name, repo.trim(), branch.trim(), path.trim()) }
@@ -229,7 +229,7 @@ private fun GitPane(host: String, stack: ZoneStack, ask: ZoneAsk, gate: Gate, bu
     }
     OutlinedTextField(token, { token = it.take(300) }, singleLine = true, label = { Text("Token (private repository only)") }, modifier = Modifier.fillMaxWidth(),
         visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation())
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    Row(horizontalArrangement = Arrangement.spacedBy(LabScale.space2)) {
         OutlinedButton(enabled = hasSource && !busy, onClick = {
             gate.press { scope.launch {
                 say("Syncing…", false)
@@ -247,7 +247,7 @@ private fun GitPane(host: String, stack: ZoneStack, ask: ZoneAsk, gate: Gate, bu
         }) { Text(if (stack.hook) "New webhook" else "Make webhook") }
     }
     if (url.isNotEmpty()) {
-        Text("Call it with POST from your git host (the server's address in front); it only syncs this stack, at most once in 30 s:", fontSize = 12.sp, color = Lab.muted)
+        Text("Call it with POST from your git host (the server's address in front); it only syncs this stack, at most once in 30 s:", fontSize = LabScale.textSm, color = Lab.muted)
         SelectionContainer { Text(url, style = MONO) }
     }
 }

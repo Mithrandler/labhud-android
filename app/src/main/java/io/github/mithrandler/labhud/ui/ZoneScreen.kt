@@ -157,8 +157,8 @@ fun ZoneScreen(repo: LabRepository, bar: BarNav, onSignIn: () -> Unit) {
 
 @Composable
 private fun Notice(text: String, button: String, onClick: () -> Unit) {
-    Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text(text, color = Lab.sub, fontSize = 14.sp)
+    Column(Modifier.fillMaxWidth().padding(LabScale.space4), verticalArrangement = Arrangement.spacedBy(LabScale.space3)) {
+        Text(text, color = Lab.sub, fontSize = LabScale.textMd)
         Button(onClick = onClick) { Text(button) }
     }
 }
@@ -171,16 +171,16 @@ internal fun Dot(tone: Int, size: Int = 10) {
 @Composable
 private fun HostList(hosts: List<ZoneHost>?, message: String, onOpen: (String) -> Unit, onRefresh: () -> Unit) {
     LazyColumn(Modifier.fillMaxSize(), contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp, vertical = 8.dp)) {
-        if (message.isNotEmpty()) item { Text(message, color = Lab.warn, fontSize = 13.sp, modifier = Modifier.padding(bottom = 8.dp)) }
+        if (message.isNotEmpty()) item { Text(message, color = Lab.warn, fontSize = LabScale.textSm, modifier = Modifier.padding(bottom = LabScale.space2)) }
         if (hosts == null) item { Text("Loading…", color = Lab.muted) }
         else if (hosts.isEmpty()) item { Text("No agents yet. Add one in Settings > Hosts and agents.", color = Lab.muted) }
         items(hosts.orEmpty(), key = { it.name }) { h ->
-            Row(Modifier.fillMaxWidth().clickable { onOpen(h.name) }.padding(vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.fillMaxWidth().clickable { onOpen(h.name) }.padding(vertical = LabScale.space3), verticalAlignment = Alignment.CenterVertically) {
                 Dot(if (h.online) 0 else 2)
-                Spacer(Modifier.width(12.dp))
-                Text(h.name, fontSize = 16.sp, color = Lab.text, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(h.line(), fontSize = 13.sp, color = Lab.muted)
-                if (h.online) Text("  ${h.cpu.toInt()}%  ${h.mem.toInt()}%", fontSize = 13.sp, color = Lab.muted)
+                Spacer(Modifier.width(LabScale.space3))
+                Text(h.name, fontSize = LabScale.textMd, color = Lab.text, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(h.line(), fontSize = LabScale.textSm, color = Lab.muted)
+                if (h.online) Text("  ${h.cpu.toInt()}%  ${h.mem.toInt()}%", fontSize = LabScale.textSm, color = Lab.muted)
                 Icon(LabIcons.chevronRight, null, tint = Lab.muted, modifier = Modifier.size(20.dp))
             }
             androidx.compose.material3.HorizontalDivider(color = Lab.line)
@@ -206,12 +206,12 @@ private fun HostScreen(h: ZoneHost, ask: suspend (suspend LabApi.() -> ZoneAnswe
     }
     val tabs = TABS.filter { it.first != "vms" || h.pve }
     if (wide) Row(Modifier.fillMaxSize()) {
-        Column(Modifier.width(140.dp).verticalScroll(rememberScrollState()).padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Column(Modifier.width(140.dp).verticalScroll(rememberScrollState()).padding(LabScale.space2), verticalArrangement = Arrangement.spacedBy(LabScale.space1)) {
             tabs.forEach { (id, label) -> FilterChip(selected = tab == id, onClick = { tab = id }, label = { Text(label) }, modifier = Modifier.fillMaxWidth()) }
         }
         Box(Modifier.weight(1f)) { content() }
     } else Column(Modifier.fillMaxSize()) {
-        Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = LabScale.space4), horizontalArrangement = Arrangement.spacedBy(LabScale.space2)) {
             tabs.forEach { (id, label) -> FilterChip(selected = tab == id, onClick = { tab = id }, label = { Text(label) }) }
         }
         Box(Modifier.weight(1f)) { content() }
@@ -221,10 +221,10 @@ private fun HostScreen(h: ZoneHost, ask: suspend (suspend LabApi.() -> ZoneAnswe
 @Composable
 internal fun Cell(label: String, big: String, sub: String = "", modifier: Modifier = Modifier) {
     Surface(shape = CardShape, color = Lab.card, border = BorderStroke(1.dp, Lab.line), modifier = modifier) {
-        Column(Modifier.padding(12.dp)) {
-            Text(label, fontSize = 12.sp, color = Lab.muted)
+        Column(Modifier.padding(LabScale.space3)) {
+            Text(label, fontSize = LabScale.textSm, color = Lab.muted)
             Text(big, fontSize = 22.sp, fontWeight = FontWeight.SemiBold, color = Lab.text)
-            if (sub.isNotEmpty()) Text(sub, fontSize = 12.sp, color = Lab.muted)
+            if (sub.isNotEmpty()) Text(sub, fontSize = LabScale.textSm, color = Lab.muted)
         }
     }
 }
@@ -232,7 +232,7 @@ internal fun Cell(label: String, big: String, sub: String = "", modifier: Modifi
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun Overview(h: ZoneHost) {
-    FlowRow(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    FlowRow(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(LabScale.space4), horizontalArrangement = Arrangement.spacedBy(LabScale.space3), verticalArrangement = Arrangement.spacedBy(LabScale.space3)) {
         Cell("Status", if (h.online) "Online" else "Offline", if (h.version.isNotEmpty()) "agent ${h.version}" else "", Modifier.width(150.dp))
         Cell("Containers", "${h.containers.running} / ${h.containers.total}", "running / all", Modifier.width(150.dp))
         Cell("CPU", "${h.cpu.toInt()}%", "", Modifier.width(150.dp))
@@ -253,26 +253,26 @@ private fun ContainersTab(h: ZoneHost, ask: suspend (suspend LabApi.() -> ZoneAn
         val r = ask { zoneContainers(h.name) }
         if (r.ok) { rows = r.containers; message = "" } else message = r.refusal()
     }
-    Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
-        OutlinedTextField(query, { query = it.take(60) }, singleLine = true, label = { Text("Filter") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
-        if (message.isNotEmpty()) Text(message, color = Lab.warn, fontSize = 13.sp, modifier = Modifier.padding(top = 6.dp))
+    Column(Modifier.fillMaxSize().padding(horizontal = LabScale.space4)) {
+        OutlinedTextField(query, { query = it.take(60) }, singleLine = true, label = { Text("Filter") }, modifier = Modifier.fillMaxWidth().padding(top = LabScale.space2))
+        if (message.isNotEmpty()) Text(message, color = Lab.warn, fontSize = LabScale.textSm, modifier = Modifier.padding(top = LabScale.space2))
         // the list under an open sheet stays as it was: no re-sorting, no jump
         val frozen = remember { arrayOf<List<ZoneContainer>?>(null) }
         if (open == null) frozen[0] = rows
         val shown = (frozen[0] ?: rows)?.filtered(query).orEmpty()
-        if (rows == null) Text("Loading…", color = Lab.muted, modifier = Modifier.padding(top = 12.dp))
+        if (rows == null) Text("Loading…", color = Lab.muted, modifier = Modifier.padding(top = LabScale.space3))
         LazyColumn(Modifier.fillMaxSize()) {
             items(shown, key = { it.name }) { c ->
-                Row(Modifier.fillMaxWidth().clickable { open = c.name }.padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(Modifier.fillMaxWidth().clickable { open = c.name }.padding(vertical = LabScale.space3), verticalAlignment = Alignment.CenterVertically) {
                     Dot(c.tone())
-                    Spacer(Modifier.width(12.dp))
+                    Spacer(Modifier.width(LabScale.space3))
                     Column(Modifier.weight(1f)) {
-                        Text(c.name, fontSize = 15.sp, color = Lab.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text(c.image, fontSize = 12.sp, color = Lab.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(c.name, fontSize = LabScale.textMd, color = Lab.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(c.image, fontSize = LabScale.textSm, color = Lab.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                     Column(horizontalAlignment = Alignment.End) {
-                        Text(c.status(), fontSize = 12.sp, color = when (c.tone()) { 0 -> Lab.green; 1 -> Lab.warn; else -> Lab.red })
-                        if (c.state == "running") Text("${c.cpu.toInt()}% · ${c.memPct.toInt()}%", fontSize = 12.sp, color = Lab.muted)
+                        Text(c.status(), fontSize = LabScale.textSm, color = when (c.tone()) { 0 -> Lab.green; 1 -> Lab.warn; else -> Lab.red })
+                        if (c.state == "running") Text("${c.cpu.toInt()}% · ${c.memPct.toInt()}%", fontSize = LabScale.textSm, color = Lab.muted)
                     }
                 }
                 androidx.compose.material3.HorizontalDivider(color = Lab.line)
@@ -304,10 +304,10 @@ private fun ContainerSheet(host: String, c: ZoneContainer, ask: suspend (suspend
             onChanged()
         }
     }
-    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 16.dp)) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = LabScale.space4).padding(bottom = LabScale.space4)) {
         Text(c.name, fontSize = 20.sp, fontWeight = FontWeight.SemiBold, color = Lab.text)
-        Text("${c.image} · ${c.status()}", fontSize = 13.sp, color = Lab.muted)
-        Row(Modifier.horizontalScroll(rememberScrollState()).padding(vertical = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("${c.image} · ${c.status()}", fontSize = LabScale.textSm, color = Lab.muted)
+        Row(Modifier.horizontalScroll(rememberScrollState()).padding(vertical = LabScale.space3), horizontalArrangement = Arrangement.spacedBy(LabScale.space2)) {
             for (verb in listOf("start", "stop", "restart", "update")) {
                 val on = verb in c.can && !busy && !(verb == "start" && c.state == "running") && !(verb == "stop" && c.state != "running")
                 OutlinedButton(onClick = { if (verb == "stop" || verb == "update") confirm = verb else send(verb) }, enabled = on) {
@@ -315,8 +315,8 @@ private fun ContainerSheet(host: String, c: ZoneContainer, ask: suspend (suspend
                 }
             }
         }
-        if (said.isNotEmpty()) Text(said, color = Lab.warn, fontSize = 13.sp)
-        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (said.isNotEmpty()) Text(said, color = Lab.warn, fontSize = LabScale.textSm)
+        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(LabScale.space2)) {
             FilterChip(view == "logs", { view = "logs" }, label = { Text("Logs live") })
             FilterChip(view == "inspect", { view = "inspect" }, label = { Text("Inspect") })
             FilterChip(view == "stats", { view = "stats" }, label = { Text("Stats") })
@@ -335,8 +335,8 @@ private fun ContainerSheet(host: String, c: ZoneContainer, ask: suspend (suspend
         AlertDialog(
             onDismissRequest = { confirm = null },
             title = { Text("${verb.replaceFirstChar { it.uppercase() }} ${c.name}?") },
-            text = { Column { Text("Type its name to confirm.", fontSize = 13.sp, color = Lab.sub)
-                OutlinedTextField(typed, { typed = it }, singleLine = true, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) } },
+            text = { Column { Text("Type its name to confirm.", fontSize = LabScale.textSm, color = Lab.sub)
+                OutlinedTextField(typed, { typed = it }, singleLine = true, modifier = Modifier.fillMaxWidth().padding(top = LabScale.space2)) } },
             confirmButton = { TextButton(enabled = typed == c.name, onClick = { confirm = null; send(verb) }) { Text(verb.replaceFirstChar { it.uppercase() }) } },
             dismissButton = { TextButton(onClick = { confirm = null }) { Text("Cancel") } },
         )
@@ -364,7 +364,7 @@ private fun LogView(host: String, name: String, repo: LabRepository, ask: suspen
         followStream(repo, id!!, cur, onText = { text = tailLines(text + it, LOG_LINES); scroll.scrollTo(scroll.maxValue) }) { status = "ended: $it"; id = null; over = true }
     }
     DisposableEffect(name) { onDispose { id?.let { i -> repo.zoneCloseLater(i) } } }
-    Text(status, fontSize = 12.sp, color = Lab.muted)
+    Text(status, fontSize = LabScale.textSm, color = Lab.muted)
     Mono(text.ifEmpty { "…" }, Modifier.fillMaxWidth().heightIn(min = 160.dp, max = 420.dp).verticalScroll(scroll))
 }
 
@@ -398,7 +398,7 @@ private suspend fun followStream(repo: LabRepository, id: String, cur: StreamCur
 @Composable
 internal fun Mono(text: String, modifier: Modifier = Modifier) {
     Surface(color = Color.Black, shape = CardShape, border = BorderStroke(1.dp, Lab.line), modifier = modifier) {
-        Text(text, fontSize = 11.sp, fontFamily = FontFamily.Monospace, color = Lab.text, modifier = Modifier.padding(8.dp))
+        Text(text, fontSize = LabScale.textXs, fontFamily = FontFamily.Monospace, color = Lab.text, modifier = Modifier.padding(LabScale.space2))
     }
 }
 
@@ -412,8 +412,8 @@ private fun InspectView(host: String, name: String, ask: suspend (suspend LabApi
         !a.ok || a.inspect == null -> Text(a.refusal(), color = Lab.warn)
         else -> {
             val i = a.inspect
-            Column(Modifier.heightIn(max = 460.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                @Composable fun row(k: String, v: String) { if (v.isNotEmpty()) Column { Text(k, fontSize = 11.sp, color = Lab.muted); Text(v, fontSize = 13.sp, color = Lab.text) } }
+            Column(Modifier.heightIn(max = 460.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(LabScale.space2)) {
+                @Composable fun row(k: String, v: String) { if (v.isNotEmpty()) Column { Text(k, fontSize = LabScale.textXs, color = Lab.muted); Text(v, fontSize = LabScale.textSm, color = Lab.text) } }
                 row("Image", i.image); row("Created", i.created); row("Started", i.started)
                 row("Restart", i.restart + if (i.restarts > 0) " (${i.restarts} restarts)" else ""); row("Health", i.health); row("Command", i.command)
                 row("Ports", i.ports.joinToString("\n")); row("Mounts", i.mounts.joinToString("\n")); row("Networks", i.networks.joinToString("\n"))
@@ -434,7 +434,7 @@ private fun StatsView(host: String, name: String, ask: suspend (suspend LabApi.(
         !a.ok || a.stats == null -> Text(a.refusal(), color = Lab.warn)
         else -> {
             val s = a.stats
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(LabScale.space3), verticalArrangement = Arrangement.spacedBy(LabScale.space3)) {
                 Cell("CPU", "${s.cpu.toInt()}%", "of one core", Modifier.width(150.dp))
                 Cell("Memory", bytesText(s.mem), if (s.memLimit > 0) "${s.memPct.toInt()}% of ${bytesText(s.memLimit)}" else "", Modifier.width(150.dp))
                 Cell("Network", "↓ ${bytesText(s.netRx)}", "↑ ${bytesText(s.netTx)} since start", Modifier.width(150.dp))
@@ -477,10 +477,10 @@ private fun ShellView(host: String, name: String, repo: LabRepository, ask: susp
             repo.api()?.let { api -> runCatching { api.zoneInput(i, data) } }
         }
     }
-    Text(status, fontSize = 12.sp, color = Lab.muted)
+    Text(status, fontSize = LabScale.textSm, color = Lab.muted)
     Mono(text.ifEmpty { "…" }, Modifier.fillMaxWidth().heightIn(min = 160.dp, max = 320.dp).verticalScroll(scroll))
-    Row(Modifier.horizontalScroll(rememberScrollState()).padding(vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        SHELL_KEYS.forEach { (label, seq) -> OutlinedButton(onClick = { send(seq) }, enabled = id != null) { Text(label, fontSize = 12.sp) } }
+    Row(Modifier.horizontalScroll(rememberScrollState()).padding(vertical = LabScale.space2), horizontalArrangement = Arrangement.spacedBy(LabScale.space2)) {
+        SHELL_KEYS.forEach { (label, seq) -> OutlinedButton(onClick = { send(seq) }, enabled = id != null) { Text(label, fontSize = LabScale.textSm) } }
     }
     OutlinedTextField(
         line, { line = it }, singleLine = true, enabled = id != null, label = { Text("Command") }, modifier = Modifier.fillMaxWidth(),
