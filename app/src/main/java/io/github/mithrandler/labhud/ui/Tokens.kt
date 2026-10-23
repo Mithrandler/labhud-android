@@ -1,4 +1,4 @@
-// Written by labhud's design/build.py from its design/tokens.json (cfda8c65873a): edit there, not here.
+// Written by labhud's design/build.py from its design/tokens.json (fed8312765ff): edit there, not here.
 package io.github.mithrandler.labhud.ui
 
 import androidx.compose.ui.graphics.Color
@@ -89,19 +89,19 @@ object LabScale {
     /** the one gap: between tiles and around them, on the wall */
     val wallGap = 8.dp
     /** a wall tile's least height (the rows share the screen, never less than this) */
-    val wallTileMin = 92.dp
+    val wallTileMin = 112.dp
     /** a wall tile's greatest height */
-    val wallTileMax = 132.dp
+    val wallTileMax = 112.dp
     /** tiles per row on the wall, landscape */
     val wallColsLandscape = 4.dp
     /** tiles per row on the wall, portrait */
     val wallColsPortrait = 3.dp
     /** the smallest text on a wall tile: read from 1-2 m */
-    val textWallMin = 13.sp
+    val textWallMin = 11.sp
     /** a wall tile's name (two lines when it is long) */
-    val textWallName = 15.sp
+    val textWallName = 12.sp
     /** the one number on a wall tile */
-    val textWallNum = 28.sp
+    val textWallNum = 20.sp
 }
 
 /** The icons of the wall and ⚙: thin lines on a 24×24 grid, tinted by Icon() like any other. */

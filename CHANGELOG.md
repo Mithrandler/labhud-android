@@ -7,6 +7,7 @@ All notable changes to LabHUD for Android. The format follows
 ## [Unreleased]
 
 ### Changed
+- **The wall's rules on Status**: the same type everywhere (name 12, number 20, line 11, from `design/tokens.json`) in `MiniCard`, `HostTile` and `GroupSummaryTile`, tiles 112 dp, every tile with name, number and bottom line in the same places (the small tile's meter is gone, as on the wall). PVE and PVE2 come first. A group in trouble is one tile (counting what is broken, naming the first two), not the group plus its cards; its screen lists each card in trouble with its broken rows right there. A card that lists what is wrong (FAILURES) shows "4" and the broken rows, not "4 Problems".
 - **No page bars anywhere**: the grids and lists of a card's screen (VM/LXC, containers, storage, rows), Devices and Activity show all their items and the screen scrolls, as Status does.
 
 ## [0.1.27] - 2026-10-23

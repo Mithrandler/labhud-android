@@ -46,14 +46,14 @@ class SlotsTest {
     @Test fun onGeneralAHostIsWideAndItsGuestsAreInsideIt() {
         val h = host("pve", "pve"); val g1 = guest("vm1", "pve"); val other = card("nas", pct("CPU", 5.0))
         val slots = buildSlots(page("general", Group("a", "PVE", listOf("pve", "vm1")), Group("b", "Storage", listOf("nas"))), false, byId(h, g1, other), emptySet())
-        assertEquals(listOf("c-a-pve", "c-b-nas"), slots.map { it.key })
+        assertEquals(listOf("c-host-pve", "c-b-nas"), slots.map { it.key })
         assertEquals(true, slots[0].wide); assertEquals(2, slots[0].span(4)); assertEquals(1, slots[1].span(4))
     }
 
     @Test fun aGuestInTroubleComesToTheFrontAndIsNotShownTwice() {
         val h = host("pve", "pve"); val g1 = guest("vm1", "pve", bad = true)
         val slots = buildSlots(page("general", Group("a", "PVE", listOf("pve", "vm1"))), false, byId(h, g1), emptySet())
-        assertEquals(listOf("t-attention", "c-attn-vm1", "c-a-pve"), slots.map { it.key })
+        assertEquals(listOf("c-host-pve", "t-attention", "c-attn-vm1"), slots.map { it.key })
     }
 
     @Test fun aGuestWithoutItsHostInThePageStaysATile() {
@@ -64,8 +64,22 @@ class SlotsTest {
     @Test fun otherPagesFoldAGroupOfSeveralCardsIntoOneTile() {
         val a = card("a", pct("CPU", 5.0)); val b = card("b", bad = true); val solo = card("solo", pct("CPU", 5.0))
         val slots = buildSlots(page("security", Group("g", "Threats", listOf("a", "b")), Group("s", "Solo", listOf("solo"))), false, byId(a, b, solo), emptySet())
-        assertEquals(listOf("t-attention", "c-attn-b", "g-g", "c-s-solo"), slots.map { it.key })
-        assertEquals(1, slots[2].group?.problems); assertEquals(listOf("a", "b"), slots[2].group?.cards?.map { it.id })
+        assertEquals(listOf("t-attention", "g-g", "c-s-solo"), slots.map { it.key })
+        assertEquals(1, slots[1].group?.problems); assertEquals(listOf("a", "b"), slots[1].group?.cards?.map { it.id })
+    }
+
+    @Test fun pveAndPve2ComeFirstWhateverTheConfigOrder() {
+        val a = host("storage", "nas"); val b = host("h2", "PVE2"); val c = host("h1", "PVE")
+        val slots = buildSlots(page("general", Group("g", "Hosts", listOf("storage", "h2", "h1"))), false, byId(a, b, c), emptySet())
+        assertEquals(listOf("c-host-h1", "c-host-h2", "c-host-storage"), slots.map { it.key })
+    }
+
+    @Test fun aGroupCountsWhatIsBrokenInItsCardsNotTheCards() {
+        val rows = listOf(listOf("pve2: fleet-update", "failed", "true"), listOf("job: backup", "no ping", "true"), listOf("fine", "ok", "false"))
+        val failures = card("units", bad = true).copy(rawRows = rows.map { r -> kotlinx.serialization.json.JsonArray(r.mapIndexed { i, v -> if (i == 2) kotlinx.serialization.json.JsonPrimitive(v == "true") else kotlinx.serialization.json.JsonPrimitive(v) }) })
+        val b = card("b", bad = true)
+        val slots = buildSlots(page("health", Group("fleet", "Fleet", listOf("units", "b"))), false, byId(failures, b), emptySet())
+        assertEquals(3, slots.first { it.group != null }.group?.problems)   // 2 broken rows + the one card that lists none
     }
 
     @Test fun aQuietPageHasNoAttentionRowAndFavouritesComeOnTheFirstPageOnly() {

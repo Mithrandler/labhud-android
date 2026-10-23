@@ -9,9 +9,17 @@ internal const val TITLE_H = 26f
 
 /** A group of several cards on a listing page, folded into one tile: how many are in trouble; the list is on its own screen. */
 internal data class GroupTile(val id: String, val title: String, val cards: List<Card>) {
-    val problems: Int get() = cards.count(::isProblem)
+    /** Broken things, not broken cards: a card that lists what is wrong counts each row, any other counts one. */
+    val problems: Int get() = cards.filter(::isProblem).sumOf { brokenRows(it).size.coerceAtLeast(1) }
     val warnings: Int get() = cards.count { !isProblem(it) && it.severity() == "warn" }
+    val hasProblem: Boolean get() = cards.any(::isProblem)
 }
+
+/** The rows of a card that its list marks as bad (FAILURES: "pve2: fleet-update"); empty for a card that lists nothing. */
+internal fun brokenRows(c: Card) = c.rows.filter { it.bad }
+
+/** Where a host comes among the hosts: PVE, PVE2, then the others as configured. */
+internal fun hostRank(c: Card): Int = when (c.node.lowercase()) { "pve" -> 0; "pve2" -> 1; else -> 2 }
 
 /**
  * One thing on a Status screen, with a key for its grid cell: a card (a small tile; [wide] a host, two cells with its four meters),
@@ -54,29 +62,37 @@ internal fun buildSlots(page: Page, first: Boolean, byId: Map<String, Card>, fav
     if (page.games) return page.servers.map { Slot("game-" + it.id.ifEmpty { it.name }, game = it) }
     val out = mutableListOf<Slot>()
     val groups = page.groups.map { it to it.cards.mapNotNull { id -> byId[id] } }.filter { it.second.isNotEmpty() }
-    val trouble = groups.flatMap { it.second }.filter(::isProblem).distinctBy { it.id }
-    if (trouble.isNotEmpty()) {
+    val expanded = page.id == "general"
+    fun folded(cards: List<Card>) = !expanded && cards.size > 1
+    // the hosts first, PVE and PVE2 at the head (a host in trouble is red where it is)
+    val hosts = if (expanded) groups.flatMap { it.second }.filter(::isHost).distinctBy { it.id }.sortedBy(::hostRank) else emptyList()
+    hosts.forEach { out += Slot("c-host-${it.id}", it, wide = true) }
+    val hostIds = hosts.map { it.id }.toSet()
+    // in trouble: a card of its own, or, where a group is folded into one tile, that tile (not its cards as well)
+    val trouble = groups.filter { !folded(it.second) }.flatMap { it.second }.filter { isProblem(it) && it.id !in hostIds }.distinctBy { it.id }
+    val troubledGroups = groups.filter { folded(it.second) && it.second.any(::isProblem) }
+    if (trouble.isNotEmpty() || troubledGroups.isNotEmpty()) {
         out += Slot("t-attention", title = "Needs attention", bad = true)
+        troubledGroups.forEach { (g, cards) -> out += Slot("g-${g.id}", group = GroupTile(g.id, g.title, cards)) }
         trouble.forEach { out += Slot("c-attn-${it.id}", it, wide = isHost(it), mini = !isHost(it)) }
     }
     if (first) {
-        val fav = favs.mapNotNull { byId[it] }.filter { f -> trouble.none { it.id == f.id } }.sortedBy { it.name.lowercase() }
+        val fav = favs.mapNotNull { byId[it] }.filter { f -> trouble.none { it.id == f.id } && f.id !in hostIds }.sortedBy { it.name.lowercase() }
         if (fav.isNotEmpty()) {
             out += Slot("t-favorites", title = "Favorites")
             fav.forEach { out += Slot("c-fav-${it.id}", it, mini = true) }
         }
     }
-    val inTrouble = trouble.map { it.id }.toSet()
-    val expanded = page.id == "general"
+    val inTrouble = trouble.map { it.id }.toSet() + hostIds
     for ((g, cards) in groups) {
-        if (expanded || cards.size == 1) {
+        if (!folded(cards)) {
             val nodes = cards.filter(::isHost).map { it.node }.filter { it.isNotEmpty() }.toSet()
             for (c in cards) {
                 if (c.id in inTrouble) continue
                 if (c.kind == "guest" && c.node in nodes) continue
                 out += Slot("c-${g.id}-${c.id}", c, wide = isHost(c), mini = !isHost(c))
             }
-        } else out += Slot("g-${g.id}", group = GroupTile(g.id, g.title, cards))
+        } else if (troubledGroups.none { it.first.id == g.id }) out += Slot("g-${g.id}", group = GroupTile(g.id, g.title, cards))
     }
     return out
 }

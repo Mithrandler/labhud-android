@@ -107,22 +107,19 @@ internal fun GroupSummaryTile(g: GroupTile, server: Server?, modifier: Modifier 
     val warnings = g.warnings
     val color = when { problems > 0 -> Lab.red; warnings > 0 -> Lab.warn; else -> Lab.green }
     val count = if (problems > 0) problems else warnings
-    val word = when { problems > 0 -> if (problems == 1) "problem" else "problems"; warnings > 0 -> if (warnings == 1) "warning" else "warnings"; else -> "problems" }
+    // what is wrong, not who has it: the first broken things of the cards in trouble (the card's own name when it lists none)
     val who = g.cards.filter { isProblem(it) || it.severity() == "warn" }.sortedByDescending { isProblem(it) }
+        .flatMap { c -> brokenRows(c).map { it.name }.ifEmpty { listOf(c.name) } }
     TileSurface(tintOf(if (problems > 0) "crit" else if (warnings > 0) "warn" else ""), modifier, onClick) {
         Column(Modifier.padding(horizontal = LabScale.space2 + 2.dp, vertical = LabScale.space2), verticalArrangement = Arrangement.SpaceBetween) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 g.cards.firstOrNull()?.let { CardIcon(it, server, 18.dp); Spacer(Modifier.width(6.dp)) }
-                FitText(g.title, LabScale.textWallName, FontWeight.SemiBold, Modifier.weight(1f), minSize = LabScale.textWallMin)
+                FitText(g.title.uppercase(), LabScale.textWallName, FontWeight.SemiBold, Modifier.weight(1f), minSize = LabScale.textWallMin)
                 Spacer(Modifier.width(4.dp))
                 Box(Modifier.size(8.dp).clip(CircleShape).background(color))
             }
-            Row(verticalAlignment = Alignment.Bottom) {
-                Text("$count", fontSize = LabScale.textWallNum, fontWeight = FontWeight.SemiBold, color = color, maxLines = 1)
-                Spacer(Modifier.width(4.dp))
-                Text(word, fontSize = LabScale.textWallMin, color = Lab.sub, maxLines = 1, modifier = Modifier.padding(bottom = 3.dp))
-            }
-            Text(if (who.isEmpty()) "all fine" else who.take(2).joinToString(", ") { it.name } + if (who.size > 2) " +${who.size - 2}" else "",
+            Text("$count", fontSize = LabScale.textWallNum, fontWeight = FontWeight.SemiBold, color = color, maxLines = 1)
+            Text(if (who.isEmpty()) "all fine" else who.take(2).joinToString(", ") + if (who.size > 2) " +${who.size - 2}" else "",
                 fontSize = LabScale.textWallMin, color = Lab.sub, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }

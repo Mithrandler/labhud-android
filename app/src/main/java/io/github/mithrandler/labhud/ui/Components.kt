@@ -422,37 +422,35 @@ fun MiniCard(c: Card, server: Server?, modifier: Modifier = Modifier, chip: Stri
         },
         shadowElevation = if (Lab.hud) 0.dp else 1.dp,
     ) {
-        Column(Modifier.padding(horizontal = 8.dp, vertical = 7.dp)) {
+        // the same three places as every wall tile (HostTile, GroupSummaryTile): name on top, the one number, one line at the bottom
+        Column(Modifier.padding(horizontal = LabScale.space2 + 2.dp, vertical = LabScale.space2), verticalArrangement = Arrangement.SpaceBetween) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 CardIcon(c, server, 18.dp)
                 Spacer(Modifier.width(6.dp))
-                FitText(c.name, LabScale.textTileName, FontWeight.SemiBold, Modifier.weight(1f), minSize = LabScale.textXs)
+                FitText(c.name, LabScale.textWallName, FontWeight.SemiBold, Modifier.weight(1f), minSize = LabScale.textWallMin)
                 if (c.status != null || c.bad != null) { Spacer(Modifier.width(4.dp)); StatusDot(c, 8) }
             }
             val head = c.headline()
             val word = statusWord(c)
-            Column(Modifier.padding(top = 4.dp).weight(1f).alpha(if (c.frozen) 0.45f else 1f), verticalArrangement = Arrangement.SpaceEvenly) {
-                if (head == null) Text(
-                    word.ifEmpty {
-                        c.rows.take(3).joinToString("\n") { it.name.ifEmpty { it.value } }.ifEmpty {
-                            c.notes?.takeIf { it.isNotBlank() } ?: c.bookmarks.take(3).joinToString("\n") { it.name }.ifEmpty { c.summary.ifEmpty { c.subtitle } }
-                        }
-                    },
-                    fontSize = LabScale.textXs, lineHeight = 14.sp, maxLines = 3, overflow = TextOverflow.Ellipsis, color = if (c.status == "down") Lab.red else Lab.muted)
+            val broken = brokenRows(c)
+            val text = c.rows.firstOrNull()?.let { it.name.ifEmpty { it.value } }
+                ?: c.notes?.takeIf { it.isNotBlank() } ?: c.bookmarks.firstOrNull()?.name ?: c.summary.ifEmpty { c.subtitle }
+            Row(Modifier.alpha(if (c.frozen) 0.45f else 1f), verticalAlignment = Alignment.Bottom) {
+                if (head == null) FitText(word.ifEmpty { text.ifEmpty { "—" } }, LabScale.textWallName, FontWeight.SemiBold,
+                    Modifier.weight(1f, fill = false), color = if (c.status == "down") Lab.red else Lab.text, minSize = LabScale.textWallMin)
                 else {
-                    Row(verticalAlignment = Alignment.Bottom) {
-                        FitText(head.value, LabScale.textTile, FontWeight.SemiBold, Modifier.weight(1f, fill = false), color = sevColor(head.sev), minSize = LabScale.textMd)
-                        Spacer(Modifier.width(4.dp))
-                        Text(head.short(), fontSize = LabScale.textXs, color = Lab.muted, maxLines = 1, modifier = Modifier.padding(bottom = 3.dp))
-                    }
-                    head.pct?.let { Meter(it, head.sev, Modifier.fillMaxWidth(), height = 4.dp) }
-                    if (!low) {
-                        val up = c.guest?.uptime?.let { "up " + upText(it) } ?: c.metrics.firstOrNull { it.short().equals("uptime", true) }?.value?.let { "up $it" }
-                        val line = word.ifEmpty { listOfNotNull(up, chip?.substringBefore(" ")).joinToString(" · ") }
-                        Text(line.ifEmpty { " " }, fontSize = LabScale.textXs, color = if (c.status == "down") Lab.red else Lab.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    }
+                    FitText(head.value, LabScale.textWallNum, FontWeight.SemiBold, Modifier.weight(1f, fill = false), color = sevColor(head.sev), minSize = LabScale.textWallMin)
+                    // a card that lists what is wrong needs no unit: its name says what the number counts
+                    if (broken.isEmpty()) { Spacer(Modifier.width(4.dp)); Text(head.short(), fontSize = LabScale.textWallMin, color = Lab.muted, maxLines = 1, modifier = Modifier.padding(bottom = 3.dp)) }
                 }
             }
+            val up = c.guest?.uptime?.let { "up " + upText(it) } ?: c.metrics.firstOrNull { it.short().equals("uptime", true) }?.value?.let { "up $it" }
+            val line = when {
+                broken.isNotEmpty() -> broken.take(2).joinToString(", ") { it.name } + if (broken.size > 2) " +${broken.size - 2}" else ""
+                head == null -> c.subtitle.takeIf { word.isEmpty() && it != text }.orEmpty()
+                else -> word.ifEmpty { listOfNotNull(up, chip?.substringBefore(" ")).joinToString(" · ") }
+            }
+            Text(if (low) " " else line.ifEmpty { " " }, fontSize = LabScale.textWallMin, color = if (c.status == "down") Lab.red else Lab.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
 }
