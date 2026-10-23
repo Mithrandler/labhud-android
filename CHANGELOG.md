@@ -6,6 +6,8 @@ All notable changes to LabHUD for Android. The format follows
 
 ## [Unreleased]
 
+## [0.1.27] - 2026-10-23
+
 ### Changed
 - **Status as the wall's equal tiles**: 4 to a row in landscape, 3 in portrait, one gap between them and around them, every tile the same height. On General a host (PVE, PVE2…) is a tile two cells wide with CPU, RAM, GPU and VRAM (the busiest GPU) and “6 VM · 3 LXC · all fine”; its guests are inside it and come out as tiles of their own only when in trouble. On the other pages a group of several cards is one tile (how many are in trouble: red, orange for warnings, green when none), the list on a screen of its own. “Needs attention” is on every page and has no “+N”: it lists all of them. The whole screen scrolls and a swipe anywhere moves between pages: the page bar and the half-screen swipe zones are gone from Status.
 - Screens fade in over 150 ms and the number rings grow smoothly, neither with the system's animations off; a button you confirm gives a short haptic tick. Loading states use one grey placeholder (Status, a card).
@@ -279,7 +281,8 @@ those parts are simply not shown.
   back in the settings or the camera was switched off in Quick Settings. It now asks again, offers
   the system settings after a permanent refusal, and pasting the link or signing in always works.
 
-[Unreleased]: https://github.com/Mithrandler/labhud-android/compare/v0.1.26...HEAD
+[Unreleased]: https://github.com/Mithrandler/labhud-android/compare/v0.1.27...HEAD
+[0.1.27]: https://github.com/Mithrandler/labhud-android/compare/v0.1.26...v0.1.27
 [0.1.26]: https://github.com/Mithrandler/labhud-android/compare/v0.1.25...v0.1.26
 [0.1.25]: https://github.com/Mithrandler/labhud-android/compare/v0.1.24...v0.1.25
 [0.1.24]: https://github.com/Mithrandler/labhud-android/compare/v0.1.23...v0.1.24
