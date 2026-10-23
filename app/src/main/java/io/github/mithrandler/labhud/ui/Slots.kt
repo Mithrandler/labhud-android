@@ -4,12 +4,18 @@ import io.github.mithrandler.labhud.data.Card
 import io.github.mithrandler.labhud.data.GameServer
 import io.github.mithrandler.labhud.data.Page
 
-/** The height of a group's title on Status, dp (its space above included). */
+/** The height of a title on Status ("Needs attention"), dp (its space above included). */
 internal const val TITLE_H = 26f
 
+/** A group of several cards on a listing page, folded into one tile: how many are in trouble; the list is on its own screen. */
+internal data class GroupTile(val id: String, val title: String, val cards: List<Card>) {
+    val problems: Int get() = cards.count(::isProblem)
+    val warnings: Int get() = cards.count { !isProblem(it) && it.severity() == "warn" }
+}
+
 /**
- * One thing on a Status screen, with a key for its grid cell: a card, a game server, a group's title, the "+N" of the problems that
- * did not fit, or (with [mini]) a card forced to a small tile, as in the "Needs attention" row.
+ * One thing on a Status screen, with a key for its grid cell: a card (a small tile; [wide] a host, two cells with its four meters),
+ * a [group]'s summary tile, a game server, or the title of the "Needs attention" / "Favorites" rows.
  */
 internal data class Slot(
     val key: String,
@@ -17,63 +23,60 @@ internal data class Slot(
     val game: GameServer? = null,
     val title: String? = null,
     val bad: Boolean = false,
-    val more: Int = 0,
+    val group: GroupTile? = null,
+    val wide: Boolean = false,
     val mini: Boolean = false,
 ) {
-    /** Cells it takes in a line of [cols]: a title the line, a small tile one, a card by its kind, a game server one cell on a wide screen, else half a line or more. */
+    /** Cells it takes in a line of [cols]: a title the line, a host two, every other tile one, a game server one cell on a wide screen. */
     fun span(cols: Int): Int = when {
         title != null -> cols
-        more > 0 || mini -> 1
-        else -> card?.tileSpan(cols) ?: if (cols >= 4) 1 else cols
+        wide -> 2.coerceAtMost(cols)
+        group != null || card != null -> 1
+        else -> if (cols >= 4) 1 else cols
     }
 
-    /** How tall it is, in dp. */
-    fun height(tile: Float): Float = when {
-        title != null -> TITLE_H
-        more > 0 || mini -> tile
-        else -> card?.tileHeight(tile) ?: tile
-    }
+    /** How tall it is, in dp: every tile the same. */
+    fun height(tile: Float): Float = if (title != null) TITLE_H else tile
 }
 
 /** A card in trouble: the server marks it, or a number of it is red. */
 internal fun isProblem(c: Card): Boolean = c.bad == true || c.severity() == "crit"
 
+/** A Proxmox host: the card with the rings of a machine, whose guests are inside it. */
+internal fun isHost(c: Card): Boolean = c.type == "proxmox" && c.kind != "guest"
+
 /**
- * What a page shows, in order: on the first page a "Needs attention" row (the cards in trouble as small tiles, at most one line, the
- * rest as "+N"), the favourites, then every group under its title, the cards in trouble first after the big ones (the order inside is kept).
+ * What a page shows, in order, as the wall does: the cards in trouble first (a "Needs attention" row), the favourites on the first
+ * page, then, on General, a tile per card (a host two cells wide with its guests inside it, so a guest is a tile of its own only when
+ * it is in trouble), and on the other pages one summary tile per group of several cards.
  */
-internal fun buildSlots(page: Page, first: Boolean, byId: Map<String, Card>, favs: Set<String>, cols: Int): List<Slot> {
+internal fun buildSlots(page: Page, first: Boolean, byId: Map<String, Card>, favs: Set<String>): List<Slot> {
     if (page.games) return page.servers.map { Slot("game-" + it.id.ifEmpty { it.name }, game = it) }
     val out = mutableListOf<Slot>()
+    val groups = page.groups.map { it to it.cards.mapNotNull { id -> byId[id] } }.filter { it.second.isNotEmpty() }
+    val trouble = groups.flatMap { it.second }.filter(::isProblem).distinctBy { it.id }
+    if (trouble.isNotEmpty()) {
+        out += Slot("t-attention", title = "Needs attention", bad = true)
+        trouble.forEach { out += Slot("c-attn-${it.id}", it, wide = isHost(it), mini = !isHost(it)) }
+    }
     if (first) {
-        val trouble = page.groups.flatMap { it.cards }.mapNotNull { byId[it] }.filter(::isProblem).distinctBy { it.id }
-        if (trouble.isNotEmpty()) {
-            out += Slot("t-attention", title = "Needs attention", bad = true)
-            val shown = if (trouble.size > cols) trouble.take(maxOf(cols - 1, 1)) else trouble
-            shown.forEach { out += Slot("c-attn-${it.id}", it, mini = true) }
-            if (trouble.size > shown.size) out += Slot("attn-more", more = trouble.size - shown.size)
-        }
-        val fav = favs.mapNotNull { byId[it] }.sortedBy { it.name.lowercase() }
+        val fav = favs.mapNotNull { byId[it] }.filter { f -> trouble.none { it.id == f.id } }.sortedBy { it.name.lowercase() }
         if (fav.isNotEmpty()) {
             out += Slot("t-favorites", title = "Favorites")
-            fav.forEach { out += Slot("c-fav-${it.id}", it) }
+            fav.forEach { out += Slot("c-fav-${it.id}", it, mini = true) }
         }
     }
-    for (g in page.groups) {
-        val cards = g.cards.mapNotNull { byId[it] }
-        if (cards.isEmpty()) continue
-        if (g.title.isNotEmpty()) out += Slot("t-${g.id}", title = g.title, bad = cards.any(::isProblem))
-        // a big card (the host) stays the group's first; then the cards in trouble
-        cards.sortedBy { if (it.isBig()) 0 else if (isProblem(it)) 1 else 2 }.forEach { out += Slot("c-${g.id}-${it.id}", it) }
-    }
-    return out
-}
-
-/** A title never ends a screen with its cards on the next one: it moves down with them. */
-internal fun keepTitlesWithCards(screens: List<List<Slot>>): List<List<Slot>> {
-    val out = screens.map { it.toMutableList() }
-    for (i in 0 until out.size - 1) {
-        while (out[i].size > 1 && out[i].last().title != null) out[i + 1].add(0, out[i].removeAt(out[i].size - 1))
+    val inTrouble = trouble.map { it.id }.toSet()
+    val expanded = page.id == "general"
+    for ((g, cards) in groups) {
+        if (expanded || cards.size == 1) {
+            val nodes = cards.filter(::isHost).map { it.node }.filter { it.isNotEmpty() }.toSet()
+            for (c in cards) {
+                if (c.id in inTrouble) continue
+                if (c.kind == "guest" && c.node in nodes) continue
+                out += Slot("c-${g.id}-${c.id}", c, wide = isHost(c), mini = !isHost(c))
+            }
+        } else out += Slot("g-${g.id}", group = GroupTile(g.id, g.title, cards))
     }
     return out
 }

@@ -1,0 +1,129 @@
+package io.github.mithrandler.labhud.ui
+
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import io.github.mithrandler.labhud.data.Card
+import io.github.mithrandler.labhud.data.Server
+import kotlin.math.roundToInt
+
+/* The two tiles of the redesigned Status screen (the wall's, see labhud static/tiles.js): a host two cells wide with its four
+   meters, and the summary of a group of cards. Every other card is a MiniCard. */
+
+/** One of a host's four meters: its name, the percentage (null when the host has no such number) and the colour the server gives it. */
+internal class HostMeter(val label: String, val pct: Double?, val sev: String)
+
+/** CPU, RAM, GPU and video memory of a host; with several GPUs the busiest. A missing number is null: its place stays. */
+internal fun Card.hostMeters(): List<HostMeter> {
+    fun share(vararg names: String) = metrics.firstOrNull { m -> m.pct != null && names.any { m.short().equals(it, true) } }
+    val cpu = share("CPU")
+    val ram = share("RAM", "Memory")
+    val gpu = gpus.maxByOrNull { it.util }
+    val vram = gpus.filter { it.mem != null }.maxByOrNull { it.mem ?: 0.0 }
+    return listOf(
+        HostMeter("CPU", cpu?.pct, cpu?.sev.orEmpty()),
+        HostMeter("RAM", ram?.pct, ram?.sev.orEmpty()),
+        HostMeter("GPU", gpu?.util, gpu?.utilSev.orEmpty()),
+        HostMeter("VRAM", vram?.mem, vram?.memSev.orEmpty()),
+    )
+}
+
+/** "6 VM · 3 LXC · all fine", or how many of them are stopped; the card's subtitle when it knows no guests. */
+internal fun Card.guestLine(): String {
+    val kinds = guestCounts.entries.sortedByDescending { it.key }.filter { it.value.size == 2 && it.value[1] > 0 }
+    if (kinds.isEmpty()) return subtitle
+    val stopped = kinds.sumOf { it.value[1] - it.value[0] }
+    return kinds.joinToString(" · ") { "${it.value[1]} ${it.key.uppercase()}" } + " · " + if (stopped > 0) "$stopped stopped" else "all fine"
+}
+
+private fun tintOf(sev: String): Color? = when (sev) { "crit" -> Lab.red; "warn" -> Lab.warn; else -> null }
+
+@Composable
+private fun TileSurface(tint: Color?, modifier: Modifier, onClick: () -> Unit, content: @Composable () -> Unit) {
+    Surface(
+        onClick = onClick, modifier = modifier.fillMaxWidth().height(LocalTileH.current), shape = CardShape,
+        color = tint?.copy(alpha = 0.12f)?.compositeOver(Lab.card) ?: Lab.card,
+        border = when {
+            tint != null -> BorderStroke(1.dp, tint.copy(alpha = 0.7f))
+            Lab.hud -> BorderStroke(1.dp, Lab.line)
+            else -> null
+        },
+        shadowElevation = if (Lab.hud) 0.dp else 1.dp,
+    ) { content() }
+}
+
+/** A host: its name and dot, CPU / RAM / GPU / VRAM as a number and a bar each, and how many guests it runs. Its guests are listed on its screen. */
+@Composable
+internal fun HostTile(c: Card, server: Server?, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    val sev = c.severity().let { if (c.bad == true) "crit" else it }
+    TileSurface(tintOf(sev), modifier, onClick) {
+        Column(Modifier.padding(horizontal = LabScale.space2 + 2.dp, vertical = LabScale.space2), verticalArrangement = Arrangement.SpaceBetween) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                CardIcon(c, server, 20.dp)
+                Spacer(Modifier.width(6.dp))
+                FitText(c.name, LabScale.textWallName, FontWeight.SemiBold, Modifier.weight(1f), minSize = LabScale.textWallMin)
+                if (c.status != null || c.bad != null) { Spacer(Modifier.width(4.dp)); StatusDot(c, 9) }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(LabScale.space2)) {
+                c.hostMeters().forEach { m ->
+                    Column(Modifier.weight(1f)) {
+                        Text(m.label, fontSize = LabScale.textWallMin, color = Lab.sub, maxLines = 1)
+                        Text(m.pct?.let { "${it.roundToInt()}%" } ?: "—", fontSize = LabScale.textWallNum, fontWeight = FontWeight.SemiBold,
+                            color = sevColor(m.sev), maxLines = 1, softWrap = false)
+                        Meter(m.pct ?: 0.0, m.sev, Modifier.fillMaxWidth().padding(top = 2.dp), height = 4.dp)
+                    }
+                }
+            }
+            Text(c.guestLine().ifEmpty { " " }, fontSize = LabScale.textWallMin, color = Lab.sub, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+    }
+}
+
+/** A group of cards: how many are in trouble (red while any is, orange for warnings, green when none), and who. The list is one tap away. */
+@Composable
+internal fun GroupSummaryTile(g: GroupTile, server: Server?, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    val problems = g.problems
+    val warnings = g.warnings
+    val color = when { problems > 0 -> Lab.red; warnings > 0 -> Lab.warn; else -> Lab.green }
+    val count = if (problems > 0) problems else warnings
+    val word = when { problems > 0 -> if (problems == 1) "problem" else "problems"; warnings > 0 -> if (warnings == 1) "warning" else "warnings"; else -> "problems" }
+    val who = g.cards.filter { isProblem(it) || it.severity() == "warn" }.sortedByDescending { isProblem(it) }
+    TileSurface(tintOf(if (problems > 0) "crit" else if (warnings > 0) "warn" else ""), modifier, onClick) {
+        Column(Modifier.padding(horizontal = LabScale.space2 + 2.dp, vertical = LabScale.space2), verticalArrangement = Arrangement.SpaceBetween) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                g.cards.firstOrNull()?.let { CardIcon(it, server, 18.dp); Spacer(Modifier.width(6.dp)) }
+                FitText(g.title, LabScale.textWallName, FontWeight.SemiBold, Modifier.weight(1f), minSize = LabScale.textWallMin)
+                Spacer(Modifier.width(4.dp))
+                Box(Modifier.size(8.dp).clip(CircleShape).background(color))
+            }
+            Row(verticalAlignment = Alignment.Bottom) {
+                Text("$count", fontSize = LabScale.textWallNum, fontWeight = FontWeight.SemiBold, color = color, maxLines = 1)
+                Spacer(Modifier.width(4.dp))
+                Text(word, fontSize = LabScale.textWallMin, color = Lab.sub, maxLines = 1, modifier = Modifier.padding(bottom = 3.dp))
+            }
+            Text(if (who.isEmpty()) "all fine" else who.take(2).joinToString(", ") { it.name } + if (who.size > 2) " +${who.size - 2}" else "",
+                fontSize = LabScale.textWallMin, color = Lab.sub, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+    }
+}

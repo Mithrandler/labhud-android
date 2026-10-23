@@ -68,6 +68,7 @@ import io.github.mithrandler.labhud.ui.settings.SettingsNav
 import io.github.mithrandler.labhud.ui.settings.section
 import io.github.mithrandler.labhud.ui.StatusScreen
 import io.github.mithrandler.labhud.ui.ZoneScreen
+import io.github.mithrandler.labhud.ui.GroupScreen
 import io.github.mithrandler.labhud.ui.HostHistoryScreen
 import io.github.mithrandler.labhud.ui.Lab
 import io.github.mithrandler.labhud.ui.LabTheme
@@ -211,12 +212,16 @@ class MainActivity : FragmentActivity() {
                 popEnterTransition = { fadeIn(tween(fade)) }, popExitTransition = { ExitTransition.None },
                 modifier = Modifier.weight(1f).fillMaxHeight().background(Lab.bg)) {
                 composable("home") {
-                    StatusScreen(repo, bar, onGame = { nav.open(Routes.game(it)) }, onServers = { nav.open(Routes.settings("servers")) })
+                    StatusScreen(repo, bar, onGame = { nav.open(Routes.game(it)) }, onServers = { nav.open(Routes.settings("servers")) },
+                        onGroup = { nav.open(Routes.group(it)) })
                 }
                 composable("card/{id}?ask={ask}", arguments = listOf(navArgument("ask") { type = NavType.StringType; defaultValue = "" })) {
                     CardScreen(repo, it.arguments?.getString("id").orEmpty(), onBack = { nav.popBackStack() },
                         onHistory = { id -> nav.open(Routes.host(id)) }, onSignIn = { nav.open("signin") },
                         askFirst = it.arguments?.getString("ask").orEmpty(), onCard = { id -> nav.open(Routes.card(id)) })
+                }
+                composable("group/{id}") {
+                    GroupScreen(repo, it.arguments?.getString("id").orEmpty(), onBack = { nav.popBackStack() }, onCard = { id -> nav.open(Routes.card(id)) })
                 }
                 composable("game/{id}") {
                     GameScreen(repo, it.arguments?.getString("id").orEmpty(), onBack = { nav.popBackStack() }, onSignIn = { nav.open("signin") })

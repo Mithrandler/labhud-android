@@ -9,8 +9,6 @@ import io.github.mithrandler.labhud.ui.Slot
 import io.github.mithrandler.labhud.ui.TITLE_H
 import io.github.mithrandler.labhud.ui.buildSlots
 import io.github.mithrandler.labhud.ui.headline
-import io.github.mithrandler.labhud.ui.keepTitlesWithCards
-import io.github.mithrandler.labhud.ui.packGrid
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -40,47 +38,47 @@ class SlotsTest {
         assertNull(card("c", Metric(label = "x", value = "—")).headline())
     }
 
-    private fun page(vararg groups: Group) = Page(id = "general", groups = groups.toList())
+    private fun page(id: String, vararg groups: Group) = Page(id = id, groups = groups.toList())
     private fun byId(vararg c: Card) = c.associateBy { it.id }
+    private fun host(id: String, node: String) = Card(id = id, name = id, type = "proxmox", node = node, metrics = listOf(pct("CPU", 5.0)))
+    private fun guest(id: String, node: String, bad: Boolean? = null) = Card(id = id, name = id, kind = "guest", node = node, bad = bad)
 
-    @Test fun groupsGetTheirTitlesAndTheCardsInTroubleComeFirstAfterTheBigOnes() {
-        val host = card("host", pct("CPU", 5.0), type = "proxmox")
-        val ok = card("ok", pct("CPU", 5.0)); val down = card("down", bad = true)
-        val slots = buildSlots(page(Group("g", "Proxmox", listOf("ok", "down", "host"))), false, byId(host, ok, down), emptySet(), 3)
-        assertEquals(listOf("t-g", "c-g-host", "c-g-down", "c-g-ok"), slots.map { it.key })
-        assertEquals(true, slots[0].bad)
+    @Test fun onGeneralAHostIsWideAndItsGuestsAreInsideIt() {
+        val h = host("pve", "pve"); val g1 = guest("vm1", "pve"); val other = card("nas", pct("CPU", 5.0))
+        val slots = buildSlots(page("general", Group("a", "PVE", listOf("pve", "vm1")), Group("b", "Storage", listOf("nas"))), false, byId(h, g1, other), emptySet())
+        assertEquals(listOf("c-a-pve", "c-b-nas"), slots.map { it.key })
+        assertEquals(true, slots[0].wide); assertEquals(2, slots[0].span(4)); assertEquals(1, slots[1].span(4))
     }
 
-    @Test fun needsAttentionIsOnlyOnTheFirstPageAndOnlyWhenSomethingIsRed() {
-        val down = card("down", bad = true); val ok = card("ok", pct("CPU", 5.0))
-        val p = page(Group("g", "Lab", listOf("ok", "down")))
-        assertEquals(listOf("t-attention", "c-attn-down"), buildSlots(p, true, byId(ok, down), emptySet(), 3).map { it.key }.take(2))
-        assertEquals(listOf("t-g", "c-g-down", "c-g-ok"), buildSlots(p, false, byId(ok, down), emptySet(), 3).map { it.key })
-        assertEquals(listOf("t-g", "c-g-ok"), buildSlots(page(Group("g", "Lab", listOf("ok"))), true, byId(ok), emptySet(), 3).map { it.key })
+    @Test fun aGuestInTroubleComesToTheFrontAndIsNotShownTwice() {
+        val h = host("pve", "pve"); val g1 = guest("vm1", "pve", bad = true)
+        val slots = buildSlots(page("general", Group("a", "PVE", listOf("pve", "vm1"))), false, byId(h, g1), emptySet())
+        assertEquals(listOf("t-attention", "c-attn-vm1", "c-a-pve"), slots.map { it.key })
     }
 
-    @Test fun theAttentionRowIsOneLineWithAPlusN() {
-        val cards = (1..5).map { card("d$it", bad = true) }
-        val slots = buildSlots(page(Group("g", "", cards.map { it.id })), true, byId(*cards.toTypedArray()), emptySet(), 3)
-        val row = slots.takeWhile { it.key.startsWith("c-attn") || it.key == "t-attention" || it.key == "attn-more" }
-        assertEquals(listOf("t-attention", "c-attn-d1", "c-attn-d2", "attn-more"), row.map { it.key })
-        assertEquals(3, row.last().more)
-        assertEquals(1, row.last().span(3))
+    @Test fun aGuestWithoutItsHostInThePageStaysATile() {
+        val g1 = guest("vm1", "pve")
+        assertEquals(listOf("c-a-vm1"), buildSlots(page("general", Group("a", "VMs", listOf("vm1"))), false, byId(g1), emptySet()).map { it.key })
     }
 
-    @Test fun aTitleIsAFullLineAndASmallTileOneCell() {
+    @Test fun otherPagesFoldAGroupOfSeveralCardsIntoOneTile() {
+        val a = card("a", pct("CPU", 5.0)); val b = card("b", bad = true); val solo = card("solo", pct("CPU", 5.0))
+        val slots = buildSlots(page("security", Group("g", "Threats", listOf("a", "b")), Group("s", "Solo", listOf("solo"))), false, byId(a, b, solo), emptySet())
+        assertEquals(listOf("t-attention", "c-attn-b", "g-g", "c-s-solo"), slots.map { it.key })
+        assertEquals(1, slots[2].group?.problems); assertEquals(listOf("a", "b"), slots[2].group?.cards?.map { it.id })
+    }
+
+    @Test fun aQuietPageHasNoAttentionRowAndFavouritesComeOnTheFirstPageOnly() {
+        val ok = card("ok", pct("CPU", 5.0))
+        val p = page("general", Group("g", "Lab", listOf("ok")))
+        assertEquals(listOf("c-g-ok"), buildSlots(p, false, byId(ok), setOf("ok")).map { it.key })
+        assertEquals(listOf("t-favorites", "c-fav-ok", "c-g-ok"), buildSlots(p, true, byId(ok), setOf("ok")).map { it.key })
+    }
+
+    @Test fun aTitleIsAFullLineAndEveryTileTheSameHeight() {
         val t = Slot("t", title = "Lab")
         assertEquals(4, t.span(4)); assertEquals(TITLE_H, t.height(112f), 0f)
-        val big = Slot("c", card("h", pct("CPU", 1.0), type = "proxmox"), mini = true)
-        assertEquals(1, big.span(3)); assertEquals(112f, big.height(112f), 0f)   // forced small
-    }
-
-    @Test fun aTitleNeverEndsAScreenWithItsCardsOnTheNextOne() {
-        val items = listOf(Slot("t1", title = "A"), Slot("a", card("a")), Slot("t2", title = "B"), Slot("b", card("b")))
-        val screens = keepTitlesWithCards(listOf(items.subList(0, 3), items.subList(3, 4)))
-        assertEquals(listOf(listOf("t1", "a"), listOf("t2", "b")), screens.map { s -> s.map { it.key } })
-        // packed by height: titles count in the budget
-        val packed = packGrid(items, { it.span(3) }, { it.height(112f) }, 3, 12f, 26f + 12f + 112f)
-        assertEquals(2, keepTitlesWithCards(packed).size)
+        assertEquals(132f, Slot("c", card("h"), mini = true).height(132f), 0f)
+        assertEquals(132f, Slot("h", host("h", "h"), wide = true).height(132f), 0f)
     }
 }

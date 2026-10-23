@@ -6,6 +6,7 @@ package io.github.mithrandler.labhud
  */
 object Routes {
     fun card(id: String, ask: String = "") = "card/${enc(id)}" + if (ask.isEmpty()) "" else "?ask=${enc(ask)}"
+    fun group(id: String) = "group/${enc(id)}"
     fun host(id: String) = "host/${enc(id)}"
     fun game(id: String) = "game/${enc(id)}"
     fun agent(id: String) = "agent/${enc(id)}"

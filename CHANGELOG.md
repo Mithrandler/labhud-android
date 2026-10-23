@@ -7,6 +7,7 @@ All notable changes to LabHUD for Android. The format follows
 ## [Unreleased]
 
 ### Changed
+- **Status as the wall's equal tiles**: 4 to a row in landscape, 3 in portrait, one gap between them and around them, every tile the same height. On General a host (PVE, PVE2…) is a tile two cells wide with CPU, RAM, GPU and VRAM (the busiest GPU) and “6 VM · 3 LXC · all fine”; its guests are inside it and come out as tiles of their own only when in trouble. On the other pages a group of several cards is one tile (how many are in trouble: red, orange for warnings, green when none), the list on a screen of its own. “Needs attention” is on every page and has no “+N”: it lists all of them. The whole screen scrolls and a swipe anywhere moves between pages: the page bar and the half-screen swipe zones are gone from Status.
 - Screens fade in over 150 ms and the number rings grow smoothly, neither with the system's animations off; a button you confirm gives a short haptic tick. Loading states use one grey placeholder (Status, a card).
 - No fixed 9 and 10 sp left in the day chips and the calendar header: they use the app's scale.
 - **Small tiles say one thing**: the name (13 sp, shrinking to 11), the state dot, the one number the card is about (22 sp: the worst of CPU, RAM and disk, the CPU when all are fine; a guest's RAM counts only on memory pressure) with its label, a thin bar, and how long it has run (or its state in words). A tile in trouble has a red or orange edge and ground. Everything else is on the card's screen.
