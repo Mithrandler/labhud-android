@@ -47,32 +47,32 @@ fun GroupScreen(repo: LabRepository, id: String, onBack: () -> Unit, onCard: (St
             )
         },
     ) { pad ->
-        LazyColumn(Modifier.padding(pad).fillMaxSize(), contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp, vertical = 8.dp)) {
+        LazyColumn(Modifier.padding(pad).fillMaxSize(), contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = LabScale.space4, vertical = LabScale.space2)) {
             // one level: what is wrong inside a card in trouble is listed right here, under the card's name; the cards that are fine follow
             cards.forEach { c ->
                 val broken = brokenRows(c)
                 if (isProblem(c) && broken.isNotEmpty()) {
                     item(key = "h-${c.id}") {
-                        Text(c.name.uppercase(), fontSize = 11.sp, color = Lab.muted, fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier.fillMaxWidth().clickable { onCard(c.id) }.padding(top = 14.dp, bottom = 4.dp))
+                        Text(c.name.uppercase(), fontSize = LabScale.textXs, color = Lab.muted, fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.fillMaxWidth().clickable { onCard(c.id) }.padding(top = LabScale.space3, bottom = LabScale.space1))
                     }
                     items(broken.size, key = { "b-${c.id}-$it" }) { i ->
                         val r = broken[i]
-                        Row(Modifier.fillMaxWidth().clickable { onCard(c.id) }.padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Text(r.name, fontSize = 15.sp, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-                            Text(r.value, fontSize = 14.sp, color = Lab.red, maxLines = 1)
+                        Row(Modifier.fillMaxWidth().clickable { onCard(c.id) }.padding(vertical = LabScale.space3), verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(LabScale.space3)) {
+                            Text(r.name, fontSize = LabScale.textMd, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                            Text(r.value, fontSize = LabScale.textMd, color = Lab.red, maxLines = 1)
                         }
                         HorizontalDivider(color = Lab.line)
                     }
                 } else item(key = c.id) {
                     val head = c.headline()
                     val word = statusWord(c)
-                    Row(Modifier.fillMaxWidth().clickable { onCard(c.id) }.padding(vertical = 14.dp), verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(Modifier.fillMaxWidth().clickable { onCard(c.id) }.padding(vertical = LabScale.space3), verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(LabScale.space3)) {
                         StatusDot(c)
-                        Text(c.name, fontSize = 16.sp, fontWeight = FontWeight.Medium, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-                        Text(word.ifEmpty { head?.let { "${it.value} ${it.short()}" } ?: c.summary.ifEmpty { c.rows.firstOrNull()?.let { r -> r.name.ifEmpty { r.value } }.orEmpty() } }, fontSize = 15.sp,
+                        Text(c.name, fontSize = LabScale.textMd, fontWeight = FontWeight.Medium, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                        Text(word.ifEmpty { head?.let { "${it.value} ${it.short()}" } ?: c.summary.ifEmpty { c.rows.firstOrNull()?.let { r -> r.name.ifEmpty { r.value } }.orEmpty() } }, fontSize = LabScale.textMd,
                             color = if (isProblem(c)) Lab.red else sevColor(head?.sev.orEmpty()), maxLines = 1)
                     }
                     HorizontalDivider(color = Lab.line)

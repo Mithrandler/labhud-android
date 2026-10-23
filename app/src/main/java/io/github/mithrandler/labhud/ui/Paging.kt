@@ -79,9 +79,9 @@ fun <T> packGrid(items: List<T>, span: (T) -> Int, height: (T) -> Float, cells: 
 /** [items] as a grid of [cols] cells a row, all of them: the screen they are on scrolls. The cells share the row's width; the last row is padded so its cells stay as wide as the others. */
 @Composable
 fun <T> PagedGrid(items: List<T>, cols: Int, rows: Int = 2, modifier: Modifier = Modifier, cell: @Composable RowScope.(T) -> Unit) {
-    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(LabScale.wallGap)) {
         items.chunked(cols.coerceAtLeast(1)).forEach { row ->
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(LabScale.wallGap)) {
                 row.forEach { cell(it) }
                 repeat(cols - row.size) { Spacer(Modifier.weight(1f)) }
             }
@@ -98,7 +98,7 @@ fun <T> PagedList(items: List<T>, per: Int = 6, modifier: Modifier = Modifier, r
 /** A whole screen of rows, scrolled as one. */
 @Composable
 fun <T> PagedScreen(items: List<T>, per: Int, modifier: Modifier = Modifier, row: @Composable (T) -> Unit) {
-    Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp)) {
+    Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = LabScale.space4, vertical = LabScale.space2)) {
         items.forEach { row(it) }
     }
 }

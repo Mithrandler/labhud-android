@@ -80,25 +80,25 @@ fun GameScreen(repo: LabRepository, id: String, onBack: () -> Unit, onSignIn: ()
             Text("Loading…", color = Lab.muted, modifier = Modifier.padding(pad).padding(24.dp))
             return@Scaffold
         }
-        LazyColumn(Modifier.padding(pad).fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        LazyColumn(Modifier.padding(pad).fillMaxSize(), contentPadding = PaddingValues(LabScale.space4), verticalArrangement = Arrangement.spacedBy(LabScale.space3)) {
             item {
                 Surface(shape = CardShape, color = Lab.card, border = BorderStroke(1.dp, Lab.line)) {
-                    Column(Modifier.fillMaxWidth().padding(16.dp)) {
+                    Column(Modifier.fillMaxWidth().padding(LabScale.space4)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(Modifier.size(12.dp).clip(CircleShape).background(if (g.running) Lab.green else Lab.border))
-                            Spacer(Modifier.width(10.dp))
-                            NamedIcon(g.icon, LabIcons.games, server, 22.dp)
-                            Spacer(Modifier.width(8.dp))
+                            Box(Modifier.size(LabScale.dotTile).clip(CircleShape).background(if (g.running) Lab.green else Lab.border))
+                            Spacer(Modifier.width(LabScale.space3))
+                            NamedIcon(g.icon, LabIcons.games, server, LabScale.iconTile)
+                            Spacer(Modifier.width(LabScale.space2))
                             Text(if (g.running) "Running" else g.state.ifEmpty { "Stopped" }.replaceFirstChar(Char::uppercase),
-                                fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+                                fontSize = LabScale.textLg, fontWeight = FontWeight.SemiBold)
                         }
-                        Text(g.title, color = Lab.muted, fontSize = 13.sp, modifier = Modifier.padding(top = 4.dp))
-                        Text(g.line, color = Lab.sub, fontSize = 14.sp, modifier = Modifier.padding(top = 4.dp))
+                        Text(g.title, color = Lab.muted, fontSize = LabScale.textSm, modifier = Modifier.padding(top = LabScale.space1))
+                        Text(g.line, color = Lab.sub, fontSize = LabScale.textMd, modifier = Modifier.padding(top = LabScale.space1))
                     }
                 }
             }
             if (g.actions.isNotEmpty()) item {
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(LabScale.space3), verticalArrangement = Arrangement.spacedBy(LabScale.space2)) {
                     g.actions.forEach { a -> ActionButton(a) { gate.press { ask = a } } }
                 }
             }
@@ -112,17 +112,17 @@ fun GameScreen(repo: LabRepository, id: String, onBack: () -> Unit, onSignIn: ()
                         g.ramMb.takeIf { it > 0 }?.let { "RAM" to (if (g.ramMaxMb != null) "$it / ${g.ramMaxMb} MB" else "$it MB") },
                         g.uptime.takeIf { it > 0 }?.let { "Up for" to duration(it) },
                     )
-                    if (rows.isEmpty()) Text("Nothing more is known.", color = Lab.muted, fontSize = 14.sp)
+                    if (rows.isEmpty()) Text("Nothing more is known.", color = Lab.muted, fontSize = LabScale.textMd)
                     rows.forEach { (k, v) ->
-                        Row(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-                            Text(k, color = Lab.sub, fontSize = 14.sp, modifier = Modifier.weight(1f))
-                            Text(v, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                        Row(Modifier.fillMaxWidth().padding(vertical = LabScale.space1)) {
+                            Text(k, color = Lab.sub, fontSize = LabScale.textMd, modifier = Modifier.weight(1f))
+                            Text(v, fontSize = LabScale.textMd, fontWeight = FontWeight.Medium)
                         }
                     }
                 }
             }
             if (g.who.isNotEmpty()) item {
-                Panel("Playing now") { g.who.forEach { Text(it, fontSize = 14.sp, modifier = Modifier.padding(vertical = 3.dp)) } }
+                Panel("Playing now") { g.who.forEach { Text(it, fontSize = LabScale.textMd, modifier = Modifier.padding(vertical = LabScale.space1)) } }
             }
         }
     }

@@ -78,24 +78,24 @@ private fun TileSurface(tint: Color?, modifier: Modifier, onClick: () -> Unit, c
 internal fun HostTile(c: Card, server: Server?, modifier: Modifier = Modifier, onClick: () -> Unit) {
     val sev = c.severity().let { if (c.bad == true) "crit" else it }
     TileSurface(tintOf(sev), modifier, onClick) {
-        Column(Modifier.padding(horizontal = LabScale.space2 + 2.dp, vertical = LabScale.space2), verticalArrangement = Arrangement.SpaceBetween) {
+        Column(Modifier.padding(horizontal = LabScale.space3, vertical = LabScale.space2), verticalArrangement = Arrangement.SpaceBetween) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                CardIcon(c, server, 20.dp)
-                Spacer(Modifier.width(6.dp))
+                CardIcon(c, server, LabScale.iconTile)
+                Spacer(Modifier.width(LabScale.space2))
                 FitText(c.name, LabScale.textWallName, FontWeight.SemiBold, Modifier.weight(1f), minSize = LabScale.textWallMin)
-                if (c.status != null || c.bad != null) { Spacer(Modifier.width(4.dp)); StatusDot(c, 9) }
+                if (c.status != null || c.bad != null) { Spacer(Modifier.width(LabScale.space1)); StatusDot(c, LabScale.dotTile.value.toInt()) }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(LabScale.space2)) {
                 c.hostMeters().forEach { m ->
                     Column(Modifier.weight(1f)) {
-                        Text(m.label, fontSize = LabScale.textWallMin, color = Lab.sub, maxLines = 1)
-                        Text(m.pct?.let { "${it.roundToInt()}%" } ?: "—", fontSize = LabScale.textWallNum, fontWeight = FontWeight.SemiBold,
+                        Text(m.label, fontSize = LabScale.textWallMin, lineHeight = LabScale.textWallMin * 1.15f, color = Lab.sub, maxLines = 1)
+                        Text(m.pct?.let { "${it.roundToInt()}%" } ?: "—", fontSize = LabScale.textWallNum, lineHeight = LabScale.textWallNum * 1.15f, fontWeight = FontWeight.SemiBold,
                             color = sevColor(m.sev), maxLines = 1, softWrap = false)
-                        Meter(m.pct ?: 0.0, m.sev, Modifier.fillMaxWidth().padding(top = 2.dp), height = 4.dp)
+                        Meter(m.pct ?: 0.0, m.sev, Modifier.fillMaxWidth().padding(top = LabScale.space1), height = LabScale.bar)
                     }
                 }
             }
-            Text(c.guestLine().ifEmpty { " " }, fontSize = LabScale.textWallMin, color = Lab.sub, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(c.guestLine().ifEmpty { " " }, fontSize = LabScale.textWallMin, lineHeight = LabScale.textWallMin * 1.2f, color = Lab.sub, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
 }
@@ -111,12 +111,12 @@ internal fun GroupSummaryTile(g: GroupTile, server: Server?, modifier: Modifier 
     val who = g.cards.filter { isProblem(it) || it.severity() == "warn" }.sortedByDescending { isProblem(it) }
         .flatMap { c -> brokenRows(c).map { it.name }.ifEmpty { listOf(c.name) } }
     TileSurface(tintOf(if (problems > 0) "crit" else if (warnings > 0) "warn" else ""), modifier, onClick) {
-        Column(Modifier.padding(horizontal = LabScale.space2 + 2.dp, vertical = LabScale.space2), verticalArrangement = Arrangement.SpaceBetween) {
+        Column(Modifier.padding(horizontal = LabScale.space3, vertical = LabScale.space2), verticalArrangement = Arrangement.SpaceBetween) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                g.cards.firstOrNull()?.let { CardIcon(it, server, 18.dp); Spacer(Modifier.width(6.dp)) }
+                g.cards.firstOrNull()?.let { CardIcon(it, server, LabScale.iconTile); Spacer(Modifier.width(LabScale.space2)) }
                 FitText(g.title.uppercase(), LabScale.textWallName, FontWeight.SemiBold, Modifier.weight(1f), minSize = LabScale.textWallMin)
-                Spacer(Modifier.width(4.dp))
-                Box(Modifier.size(8.dp).clip(CircleShape).background(color))
+                Spacer(Modifier.width(LabScale.space1))
+                Box(Modifier.size(LabScale.dotTile).clip(CircleShape).background(color))
             }
             Text("$count", fontSize = LabScale.textWallNum, fontWeight = FontWeight.SemiBold, color = color, maxLines = 1)
             Text(if (who.isEmpty()) "all fine" else who.take(2).joinToString(", ") + if (who.size > 2) " +${who.size - 2}" else "",
