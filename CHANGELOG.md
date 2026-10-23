@@ -6,6 +6,9 @@ All notable changes to LabHUD for Android. The format follows
 
 ## [Unreleased]
 
+### Changed
+- **No page bars anywhere**: the grids and lists of a card's screen (VM/LXC, containers, storage, rows), Devices and Activity show all their items and the screen scrolls, as Status does.
+
 ## [0.1.27] - 2026-10-23
 
 ### Changed

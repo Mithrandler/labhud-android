@@ -4,6 +4,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.key
 import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.shape.CircleShape
@@ -154,7 +155,7 @@ fun DevicesScreen(repo: LabRepository, bar: BarNav) {
                     }
                 }
                 val cols = gridColumns()
-                Column(Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 8.dp)) {
+                Column(Modifier.fillMaxSize().verticalScroll(androidx.compose.foundation.rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp)) {
                     key(picked.first) {
                         PagedGrid(picked.third, cols, rows = 4) { c -> DeviceCell(c, server, Modifier.weight(1f)) { onCard(c.id) } }
                     }
