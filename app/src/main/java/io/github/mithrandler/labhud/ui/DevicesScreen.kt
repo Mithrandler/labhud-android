@@ -67,12 +67,11 @@ private fun Card.matches(f: Filter): Boolean = when (f) {
     Filter.Problems -> bad == true
 }
 
-/** The sections, each with the types it holds in order: the Proxmox hosts, then the VMs and LXC they run (indented). */
+/** The sections: physical machines only. The VMs and LXC are seen on their Proxmox card, the Docker hosts in Servers. */
 private val SECTIONS = listOf(
-    "Proxmox" to listOf("proxmox", "vm"),
+    "Proxmox" to listOf("proxmox"),
     "NAS & backup" to listOf("nas"),
-    "Docker hosts" to listOf("docker"),
-    "PCs & other" to listOf("pc"),
+    "PCs" to listOf("pc"),
 )
 
 /** The red ones first, then by name. */
@@ -97,13 +96,13 @@ fun DevicesScreen(repo: LabRepository, bar: BarNav) {
     var filter by rememberSaveable { mutableStateOf(Filter.All) }
     var sectionPick by rememberSaveable { mutableStateOf("") }
 
-    val devices = remember(state) { state?.cards.orEmpty().filter { it.type.isNotEmpty() }.distinctBy { it.id } }
+    val devices = remember(state) { state?.cards.orEmpty().filter { it.type in listOf("proxmox", "nas", "pc") }.distinctBy { it.id } }
     val filtered = remember(devices, filter) { devices.filter { it.matches(filter) } }
     // sorted once per change of the state, not on every redraw: the red ones first, then by name
     val grouped = remember(filtered) {
         SECTIONS.map { (title, types) ->
             // by type first (hosts before guests), the red ones first within a type
-            Triple(title, title, if (types == listOf("proxmox", "vm")) hostsWithGuests(filtered) else types.flatMap { t ->
+            Triple(title, title, types.flatMap { t ->
                 filtered.filter { it.type == t }.sortedWith(compareBy({ it.bad != true }, { it.name.lowercase() }))
             })
         }.filter { it.third.isNotEmpty() }

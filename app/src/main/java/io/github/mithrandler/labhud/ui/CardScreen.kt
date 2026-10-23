@@ -78,7 +78,9 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
                /** A button picked in the command palette: it asks once the card is here, as if pressed. */
                askFirst: String = "",
                /** Another card (a VM's host, a host's VM): opens its screen. */
-               onCard: (String) -> Unit = {}) {
+               onCard: (String) -> Unit = {},
+               /** A guest that runs an agent with Docker opens Servers at that host. */
+               onServers: (String) -> Unit = {}) {
     // only what this screen draws is taken from the stream: another card's new number does not redraw it
     val live by remember(id) { repo.state.map { it?.byId?.get(id) }.distinctUntilChanged() }
         .collectAsStateWithLifecycle(initialValue = repo.snapshot()?.byId?.get(id))
@@ -268,7 +270,7 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
                 }
             })
             if (guests.isNotEmpty()) add(CTab("VM/LXC") {
-                item(key = "guests") { PagedGrid(guests, cols, rows = 2) { g -> MiniCard(g, server, Modifier.weight(1f)) { onCard(g.id) } } }
+                item(key = "guests") { PagedGrid(guests, cols, rows = 2) { g -> MiniCard(g, server, Modifier.weight(1f)) { if (g.agent.isNotEmpty()) onServers(g.agent) else onCard(g.id) } } }
             })
             if (stacks.isNotEmpty()) add(CTab("Containers") {
                 // one stack at a time (chips when there are several), its containers a few to a page

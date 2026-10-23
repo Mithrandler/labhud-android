@@ -6,6 +6,15 @@ All notable changes to LabHUD for Android. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Servers lists the Docker hosts as a table (health, name, containers, CPU, RAM, updates, agent); a container with a newer image shows "update"; Update all, Host packages, Clean and Reboot on a host's Containers tab.
+- A Proxmox guest with an agent opens Servers at that host.
+
+### Changed
+
+- Devices shows only physical machines: Proxmox, NAS & backup, PCs.
+
 ### Fixed
 
 - Buttons no longer answer "forbidden" after a few minutes of only reading: the unlock ticket is no longer extended by the app alone, a heartbeat keeps it alive on the server while the app is in front, and a "locked" answer renews it and repeats the call.

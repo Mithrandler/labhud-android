@@ -1,6 +1,7 @@
 package io.github.mithrandler.labhud
 
 import io.github.mithrandler.labhud.ui.LabScale
+import io.github.mithrandler.labhud.ui.ZoneTarget
 import android.content.ComponentName
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
@@ -230,7 +231,8 @@ class MainActivity : FragmentActivity() {
                 composable("card/{id}?ask={ask}", arguments = listOf(navArgument("ask") { type = NavType.StringType; defaultValue = "" })) {
                     CardScreen(repo, it.arguments?.getString("id").orEmpty(), onBack = { nav.popBackStack() },
                         onHistory = { id -> nav.open(Routes.host(id)) }, onSignIn = { nav.open("signin") },
-                        askFirst = it.arguments?.getString("ask").orEmpty(), onCard = { id -> nav.open(Routes.card(id)) })
+                        askFirst = it.arguments?.getString("ask").orEmpty(), onCard = { id -> nav.open(Routes.card(id)) },
+                        onServers = { agent -> ZoneTarget.host = agent; nav.open("zone") })
                 }
                 composable("group/{id}") {
                     GroupScreen(repo, it.arguments?.getString("id").orEmpty(), onBack = { nav.popBackStack() }, onCard = { id -> nav.open(Routes.card(id)) })

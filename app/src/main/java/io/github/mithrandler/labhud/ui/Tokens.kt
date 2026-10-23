@@ -1,4 +1,4 @@
-// Written by labhud's design/build.py from its design/tokens.json (7f8eac319fef): edit there, not here.
+// Written by labhud's design/build.py from its design/tokens.json (71328ee1e0d9): edit there, not here.
 package io.github.mithrandler.labhud.ui
 
 import androidx.compose.ui.graphics.Color
@@ -229,6 +229,10 @@ object LabScale {
     val wallTileLow = 84.dp
     /** a home-screen widget's corners */
     val radiusWidget = 16.dp
+    /** a short table column (CPU, RAM, updates) */
+    val colS = 44.dp
+    /** a wider table column (containers as running / all) */
+    val colM = 64.dp
 }
 
 /** The icons of the wall and ⚙: thin lines on a 24×24 grid, tinted by Icon() like any other. */

@@ -77,6 +77,10 @@ import io.github.mithrandler.labhud.data.tone
 import io.github.mithrandler.labhud.data.zoneAction
 import io.github.mithrandler.labhud.data.zoneClose
 import io.github.mithrandler.labhud.data.zoneContainers
+import io.github.mithrandler.labhud.data.zoneClean
+import io.github.mithrandler.labhud.data.zoneHostPower
+import io.github.mithrandler.labhud.data.zoneHostUpdate
+import io.github.mithrandler.labhud.data.zoneUpdateAll
 import io.github.mithrandler.labhud.data.zoneHosts
 import io.github.mithrandler.labhud.data.zoneInput
 import io.github.mithrandler.labhud.data.zoneInspect
@@ -101,6 +105,11 @@ internal typealias ZoneAsk = suspend (suspend LabApi.() -> ZoneAnswer) -> ZoneAn
 private const val LOG_LINES = 800
 private val SHELL_KEYS = listOf("Ctrl-C" to "\u0003", "Tab" to "\t", "Esc" to "\u001B", "↑" to "\u001B[A", "↓" to "\u001B[B")
 
+/** Set by a screen that sends the person to one host of Servers (a guest of Proxmox with Docker); ZoneScreen takes it once. */
+object ZoneTarget {
+    var host by mutableStateOf("")
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ZoneScreen(repo: LabRepository, bar: BarNav, onSignIn: () -> Unit) {
@@ -111,6 +120,7 @@ fun ZoneScreen(repo: LabRepository, bar: BarNav, onSignIn: () -> Unit) {
     var hosts by remember { mutableStateOf<List<ZoneHost>?>(null) }
     var message by remember { mutableStateOf("") }
     var host by rememberSaveable { mutableStateOf("") }
+    LaunchedEffect(ZoneTarget.host) { if (ZoneTarget.host.isNotEmpty()) { host = ZoneTarget.host; ZoneTarget.host = "" } }
     var tick by remember { mutableStateOf(0) }
 
     /** A call to labhud: a session that ended or a refusal the PIN may mend goes back to the start button. */
@@ -173,22 +183,45 @@ internal fun Dot(tone: Int, size: Int = 10) {
 
 @Composable
 private fun HostList(hosts: List<ZoneHost>?, message: String, onOpen: (String) -> Unit, onRefresh: () -> Unit) {
+    val docker = hosts?.filter { it.docker }
     LazyColumn(Modifier.fillMaxSize(), contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = LabScale.space4, vertical = LabScale.space2)) {
         if (message.isNotEmpty()) item { Text(message, color = Lab.warn, fontSize = LabScale.textSm, modifier = Modifier.padding(bottom = LabScale.space2)) }
-        if (hosts == null) item { Text("Loading…", color = Lab.muted) }
-        else if (hosts.isEmpty()) item { Text("No agents yet. Add one in Settings > Hosts and agents.", color = Lab.muted) }
-        items(hosts.orEmpty(), key = { it.name }) { h ->
+        if (docker == null) item { Text("Loading…", color = Lab.muted) }
+        else if (docker.isEmpty()) item { Text("No Docker host yet. Add an agent in Settings > Hosts and agents.", color = Lab.muted) }
+        else item {
+            Row(Modifier.fillMaxWidth().padding(vertical = LabScale.space2), verticalAlignment = Alignment.CenterVertically) {
+                Spacer(Modifier.width(LabScale.space4 + LabScale.space3))
+                Text("Name", fontSize = LabScale.textXs, color = Lab.muted, modifier = Modifier.weight(1f))
+                HostCell("Cont.", LabScale.colM, Lab.muted, header = true)
+                HostCell("CPU", LabScale.colS, Lab.muted, header = true)
+                HostCell("RAM", LabScale.colS, Lab.muted, header = true)
+                HostCell("Upd.", LabScale.colS, Lab.muted, header = true)
+                HostCell("Agent", LabScale.colS, Lab.muted, header = true)
+                Spacer(Modifier.width(LabScale.iconCard))
+            }
+            androidx.compose.material3.HorizontalDivider(color = Lab.line)
+        }
+        items(docker.orEmpty(), key = { it.name }) { h ->
             Row(Modifier.fillMaxWidth().clickable { onOpen(h.name) }.padding(vertical = LabScale.space3), verticalAlignment = Alignment.CenterVertically) {
-                Dot(if (h.online) 0 else 2)
+                Dot(h.tone())
                 Spacer(Modifier.width(LabScale.space3))
                 Text(h.name, fontSize = LabScale.textMd, color = Lab.text, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(h.line(), fontSize = LabScale.textSm, color = Lab.muted)
-                if (h.online) Text("  ${h.cpu.toInt()}%  ${h.mem.toInt()}%", fontSize = LabScale.textSm, color = Lab.muted)
+                HostCell(h.line(), LabScale.colM, if (h.containers.bad > 0) Lab.warn else Lab.sub)
+                HostCell(if (h.online) "${h.cpu.toInt()}%" else "–", LabScale.colS, Lab.sub)
+                HostCell(if (h.online) "${h.mem.toInt()}%" else "–", LabScale.colS, Lab.sub)
+                HostCell(if (h.online) h.containers.updates.toString() else "–", LabScale.colS, if (h.containers.updates > 0) Lab.warn else Lab.sub)
+                HostCell(if (h.update) "new" else h.version.ifEmpty { "–" }, LabScale.colS, if (h.update) Lab.warn else Lab.muted, small = true)
                 Icon(LabIcons.chevronRight, null, tint = Lab.muted, modifier = Modifier.size(LabScale.iconCard))
             }
             androidx.compose.material3.HorizontalDivider(color = Lab.line)
         }
     }
+}
+
+@Composable
+private fun HostCell(text: String, width: androidx.compose.ui.unit.Dp, color: androidx.compose.ui.graphics.Color, header: Boolean = false, small: Boolean = false) {
+    Text(text, fontSize = if (header || small) LabScale.textXs else LabScale.textSm, color = color, maxLines = 1, overflow = TextOverflow.Clip,
+        textAlign = androidx.compose.ui.text.style.TextAlign.End, modifier = Modifier.width(width))
 }
 
 private val TABS = listOf("overview" to "Overview", "containers" to "Containers", "stacks" to "Stacks", "images" to "Images", "volumes" to "Volumes", "networks" to "Networks", "vms" to "VMs & LXC", "host" to "Host")
@@ -257,6 +290,40 @@ private fun ContainersTab(h: ZoneHost, ask: suspend (suspend LabApi.() -> ZoneAn
         if (r.ok) { rows = r.containers; message = "" } else message = r.refusal()
     }
     Column(Modifier.fillMaxSize().padding(horizontal = LabScale.space4)) {
+        var bulk by remember { mutableStateOf<String?>(null) }
+        var said by remember { mutableStateOf("") }
+        val scope = rememberCoroutineScope()
+        val waiting = rows.orEmpty().count { it.update && !it.updating && "update" in it.can }
+        fun run(label: String, call: suspend LabApi.() -> ZoneAnswer) = scope.launch {
+            said = "$label…"
+            val r = ask(call)
+            said = if (r.ok) "$label: done" + (if (r.started.isNotEmpty()) " (${r.started.size} started)" else "") else "$label: ${r.refusal()}"
+            tick++
+        }
+        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(top = LabScale.space2), horizontalArrangement = Arrangement.spacedBy(LabScale.space2)) {
+            OutlinedButton(enabled = waiting > 0, onClick = { gate.press { bulk = "update-all" } }) { Text("Update all ($waiting)") }
+            OutlinedButton(onClick = { gate.press { bulk = "packages" } }) { Text("Host packages") }
+            OutlinedButton(onClick = { gate.press { bulk = "clean" } }) { Text("Clean") }
+            OutlinedButton(onClick = { gate.press { bulk = "reboot" } }) { Text("Reboot", color = Lab.red) }
+        }
+        Said(said)
+        when (bulk) {
+            "update-all", "packages", "clean" -> AlertDialog(
+                onDismissRequest = { bulk = null },
+                title = { Text(when (bulk) { "update-all" -> "Update $waiting container(s) on ${h.name}?"; "packages" -> "Update the packages of ${h.name}?"; else -> "Remove unused images on ${h.name}?" }) },
+                text = { Text(when (bulk) { "update-all" -> "Every ticked container with a newer image is pulled and restarted, one after the other."; "packages" -> "Runs the host's package update."; else -> "Deletes the images no container uses (dangling ones)." }, color = Lab.sub, fontSize = LabScale.textMd) },
+                confirmButton = { TextButton(onClick = {
+                    val what = bulk; bulk = null
+                    when (what) {
+                        "update-all" -> run("Update all") { zoneUpdateAll(h.name) }
+                        "packages" -> run("Host packages") { zoneHostUpdate(h.name) }
+                        else -> run("Clean") { zoneClean(h.name, "dangling", "dangling") }
+                    }
+                }) { Text("Go") } },
+                dismissButton = { TextButton(onClick = { bulk = null }) { Text("Cancel") } },
+            )
+            "reboot" -> TypedConfirm("Reboot ${h.name}?", h.name, "Reboot", onOk = { run("Reboot") { zoneHostPower(h.name, "reboot", h.name) } }, onDismiss = { bulk = null })
+        }
         OutlinedTextField(query, { query = it.take(60) }, singleLine = true, label = { Text("Filter") }, modifier = Modifier.fillMaxWidth().padding(top = LabScale.space2))
         if (message.isNotEmpty()) Text(message, color = Lab.warn, fontSize = LabScale.textSm, modifier = Modifier.padding(top = LabScale.space2))
         // the list under an open sheet stays as it was: no re-sorting, no jump
@@ -270,7 +337,10 @@ private fun ContainersTab(h: ZoneHost, ask: suspend (suspend LabApi.() -> ZoneAn
                     Dot(c.tone())
                     Spacer(Modifier.width(LabScale.space3))
                     Column(Modifier.weight(1f)) {
-                        Text(c.name, fontSize = LabScale.textMd, color = Lab.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(c.name, fontSize = LabScale.textMd, color = Lab.text, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                            if (c.update) Text("  update", fontSize = LabScale.textXs, color = Lab.warn)
+                        }
                         Text(c.image, fontSize = LabScale.textSm, color = Lab.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                     Column(horizontalAlignment = Alignment.End) {

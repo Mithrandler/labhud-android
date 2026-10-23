@@ -12,7 +12,7 @@ import kotlinx.serialization.json.put
 /* The zone Servers (api/servers.py): the hosts' Docker. Every call goes through labhud's own gate: HTTPS only, the admin's level, a session that ends after 15 minutes without a call. */
 
 @Serializable
-data class ZoneCount(val running: Int = 0, val total: Int = 0)
+data class ZoneCount(val running: Int = 0, val total: Int = 0, val bad: Int = 0, val updates: Int = 0)
 
 @Serializable
 data class ZoneHost(
@@ -41,6 +41,8 @@ data class ZoneContainer(
     @SerialName("net_tx") val netTx: Long = 0,
     val restarts: Int = 0,
     val updating: Boolean = false,
+    /** The agent saw a newer image in the registry. */
+    val update: Boolean = false,
     /** The verbs this container may be sent (empty when it is not ticked for them). */
     val can: List<String> = emptyList(),
     val shell: Boolean = false,
@@ -148,6 +150,8 @@ data class ZoneAnswer(
     val hosts: List<ZoneHost> = emptyList(),
     val online: Boolean = false,
     val containers: List<ZoneContainer> = emptyList(),
+    /** update-all: the containers it started (`failed` lists the others). */
+    val started: List<String> = emptyList(),
     val text: String = "",
     val inspect: ZoneInspect? = null,
     val stats: ZoneStats? = null,
@@ -268,6 +272,7 @@ private suspend fun LabApi.zone(op: String, seconds: Long = 0, build: JsonObject
 
 suspend fun LabApi.zoneSession() = zone("session")
 suspend fun LabApi.zoneHostInfo(agent: String) = zone("host", 35) { put("agent", agent) }
+suspend fun LabApi.zoneUpdateAll(agent: String) = zone("update-all", 620) { put("agent", agent) }
 suspend fun LabApi.zoneHostUpdate(agent: String) = zone("host-update", 60) { put("agent", agent) }
 suspend fun LabApi.zoneHostPower(agent: String, verb: String, confirm: String) = zone("host-power", 60) { put("agent", agent); put("verb", verb); put("confirm", confirm) }
 suspend fun LabApi.zoneUnit(agent: String, name: String, verb: String) = zone("unit", 60) { put("agent", agent); put("name", name); put("verb", verb) }
@@ -359,6 +364,13 @@ fun List<ZoneContainer>.filtered(query: String): List<ZoneContainer> {
     val q = query.trim().lowercase()
     return filter { q.isEmpty() || it.name.lowercase().contains(q) || it.image.lowercase().contains(q) }
         .sortedWith(compareBy({ -it.tone() }, { it.name.lowercase() }))
+}
+
+/** The host's health bullet: 0 good, 1 containers stopped or unhealthy, 2 offline. */
+fun ZoneHost.tone(): Int = when {
+    !online -> 2
+    containers.bad > 0 -> 1
+    else -> 0
 }
 
 /** "3 / 14" for a host, "–" when it is offline. */

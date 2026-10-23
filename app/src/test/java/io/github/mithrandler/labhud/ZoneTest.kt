@@ -347,4 +347,11 @@ class ZoneObjectsTest {
         val many = d.copy(ok = false, problems = (1..10).map { "p$it" })
         assertEquals(true, io.github.mithrandler.labhud.data.configSaid(many, false).endsWith("… 2 more"))
     }
+
+    @Test fun `a host's health bullet follows online and stopped or unhealthy containers`() {
+        val up = ZoneHost(online = true, containers = ZoneCount(running = 3, total = 3))
+        assertEquals(0, up.tone())
+        assertEquals(1, up.copy(containers = ZoneCount(running = 2, total = 3, bad = 1)).tone())
+        assertEquals(2, up.copy(online = false).tone())
+    }
 }
