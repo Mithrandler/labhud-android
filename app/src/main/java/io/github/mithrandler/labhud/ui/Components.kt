@@ -1,5 +1,8 @@
 package io.github.mithrandler.labhud.ui
 
+import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.unit.isSpecified
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -377,30 +380,43 @@ fun Card.tileSpan(cols: Int): Int = when {
     else -> 1
 }
 
-/** Rows of cells a card takes: a machine with four or more gauges needs three in portrait ([tile] is a cell's height) to show them 2×2. */
-fun Card.tileRows(tile: Float = 112f): Int = if (!isBig()) 1 else if (tile >= 100f && gaugeCount() >= 4) 3 else 2
+/** Rows of cells a card takes. */
+fun Card.tileRows(): Int = if (isBig()) 2 else 1
 
-/** A card's height in dp: its rows of cells and the gaps between them; a card with gauges is never shorter than they need (a ring of 80 dp, its label, the chips and the head). */
+/**
+ * A card's height in dp: its rows of cells and the gaps between them; a card with gauges is never shorter than they need. Four or more
+ * rings are 2×2 (two rings of 80 dp, their labels, the chips and the head: 326 dp) in portrait, one row (208 dp) on a low screen
+ * ([tile] is a cell's height); two or three are one row.
+ */
 fun Card.tileHeight(tile: Float): Float {
-    val rows = tileRows(tile)
+    val rows = tileRows()
     val h = tile * rows + 12f * (rows - 1)
-    return if (isBig() && gaugeCount() >= 2) maxOf(h, 208f) else h
+    val n = if (isBig()) gaugeCount() else 0
+    return when {
+        n >= 4 -> maxOf(h, if (tile >= 100f) 326f else 208f)
+        n >= 2 -> maxOf(h, 208f)
+        else -> h
+    }
 }
 
 /** The cards that need more than a cell: a machine's rings, and the widgets that draw themselves (clock, calendar, a frame). Lists, notes and links are cells too. */
 fun Card.isBig(): Boolean = kind != "guest" && (type == "proxmox" || type == "nas" || widget.isNotEmpty() || frame.isNotEmpty())
 
 /**
- * A small card, one cell of the grid: always [LocalTileH] high. Its name and dot, how long it has run as a
- * chip beside the name (nothing when it has none: the card does not change size), then three thin bars
- * (CPU, RAM, disk, or its first percentages), or what it says about itself when it has no percentages.
+ * A small card, one cell of the grid: always [LocalTileH] high. Its icon, name and dot; then the one number it is about ([headline]:
+ * the worst of CPU, RAM and disk) with its label, a thin bar, and how long it has run or what state it is in. A card without numbers
+ * says what it knows about itself. A card in trouble has a coloured edge and ground. Everything else is on the card's own screen.
  */
 @Composable
 fun MiniCard(c: Card, server: Server?, modifier: Modifier = Modifier, chip: String? = null, onClick: () -> Unit) {
+    val sev = c.severity().let { if (c.bad == true) "crit" else it }
+    val tint = when (sev) { "crit" -> Lab.red; "warn" -> Lab.warn; else -> null }
+    val low = LocalTileH.current < 100.dp   // a wide, low screen: no room for the last line
     Surface(
-        onClick = onClick, modifier = modifier.fillMaxWidth().height(LocalTileH.current), shape = CardShape, color = Lab.card,
+        onClick = onClick, modifier = modifier.fillMaxWidth().height(LocalTileH.current), shape = CardShape,
+        color = tint?.copy(alpha = 0.12f)?.compositeOver(Lab.card) ?: Lab.card,
         border = when {
-            c.bad == true -> BorderStroke(1.dp, Lab.red.copy(alpha = 0.7f))
+            tint != null -> BorderStroke(1.dp, tint.copy(alpha = 0.7f))
             Lab.hud -> BorderStroke(1.dp, Lab.line)
             else -> null
         },
@@ -410,32 +426,45 @@ fun MiniCard(c: Card, server: Server?, modifier: Modifier = Modifier, chip: Stri
             Row(verticalAlignment = Alignment.CenterVertically) {
                 CardIcon(c, server, 18.dp)
                 Spacer(Modifier.width(6.dp))
-                FitText(c.name, 12.sp, FontWeight.SemiBold, Modifier.weight(1f))
-                val up = c.guest?.uptime?.let { upText(it) } ?: c.metrics.firstOrNull { it.short().equals("uptime", true) }?.value
-                val tag = listOfNotNull(up, chip?.substringBefore(" ")).joinToString(" · ")
-                if (tag.isNotEmpty()) {
-                    Spacer(Modifier.width(4.dp))
-                    Text(tag, fontSize = 9.sp, color = Lab.muted, maxLines = 1, modifier = Modifier.clip(RoundedCornerShape(50)).background(Lab.block).padding(horizontal = 5.dp, vertical = 1.dp))
-                }
+                FitText(c.name, LabScale.textTileName, FontWeight.SemiBold, Modifier.weight(1f), minSize = LabScale.textXs)
                 if (c.status != null || c.bad != null) { Spacer(Modifier.width(4.dp)); StatusDot(c, 8) }
             }
-            val bars = c.guest?.meters() ?: c.metrics.filter { it.pct != null && it.value.isNotEmpty() && it.value != "—" }.take(3)
-            Column(Modifier.padding(top = 5.dp).weight(1f).alpha(if (c.frozen) 0.45f else 1f), verticalArrangement = Arrangement.SpaceEvenly) {
-                if (bars.isEmpty()) Text(
-                    statusWord(c).ifEmpty {
+            val head = c.headline()
+            val word = statusWord(c)
+            Column(Modifier.padding(top = 4.dp).weight(1f).alpha(if (c.frozen) 0.45f else 1f), verticalArrangement = Arrangement.SpaceEvenly) {
+                if (head == null) Text(
+                    word.ifEmpty {
                         c.rows.take(3).joinToString("\n") { it.name.ifEmpty { it.value } }.ifEmpty {
                             c.notes?.takeIf { it.isNotBlank() } ?: c.bookmarks.take(3).joinToString("\n") { it.name }.ifEmpty { c.summary.ifEmpty { c.subtitle } }
                         }
                     },
-                    fontSize = 11.sp, lineHeight = 14.sp, maxLines = 3, overflow = TextOverflow.Ellipsis, color = if (c.status == "down") Lab.red else Lab.muted)
-                else bars.forEach { m ->
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(m.short(), fontSize = 9.sp, color = Lab.muted, modifier = Modifier.width(26.dp), maxLines = 1)
-                        Meter(m.pct ?: 0.0, m.sev, Modifier.weight(1f), height = 4.dp)
-                        Text(m.value.ifEmpty { "—" }, fontSize = 9.sp, color = sevColor(m.sev), maxLines = 1, textAlign = androidx.compose.ui.text.style.TextAlign.End,
-                            modifier = Modifier.width(28.dp))
+                    fontSize = LabScale.textXs, lineHeight = 14.sp, maxLines = 3, overflow = TextOverflow.Ellipsis, color = if (c.status == "down") Lab.red else Lab.muted)
+                else {
+                    Row(verticalAlignment = Alignment.Bottom) {
+                        FitText(head.value, LabScale.textTile, FontWeight.SemiBold, Modifier.weight(1f, fill = false), color = sevColor(head.sev), minSize = LabScale.textMd)
+                        Spacer(Modifier.width(4.dp))
+                        Text(head.short(), fontSize = LabScale.textXs, color = Lab.muted, maxLines = 1, modifier = Modifier.padding(bottom = 3.dp))
+                    }
+                    head.pct?.let { Meter(it, head.sev, Modifier.fillMaxWidth(), height = 4.dp) }
+                    if (!low) {
+                        val up = c.guest?.uptime?.let { "up " + upText(it) } ?: c.metrics.firstOrNull { it.short().equals("uptime", true) }?.value?.let { "up $it" }
+                        val line = word.ifEmpty { listOfNotNull(up, chip?.substringBefore(" ")).joinToString(" · ") }
+                        Text(line.ifEmpty { " " }, fontSize = LabScale.textXs, color = if (c.status == "down") Lab.red else Lab.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 }
+            }
+        }
+    }
+}
+
+/** The "+3" that ends the "Needs attention" row when more cards are in trouble than the row holds. */
+@Composable
+fun MoreTile(n: Int) {
+    Surface(shape = CardShape, color = Lab.card, border = BorderStroke(1.dp, Lab.line), modifier = Modifier.fillMaxWidth().height(LocalTileH.current)) {
+        Box(contentAlignment = Alignment.Center) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("+$n", fontSize = LabScale.textTile, fontWeight = FontWeight.SemiBold, color = Lab.red)
+                Text("more", fontSize = LabScale.textXs, color = Lab.muted)
             }
         }
     }
@@ -447,7 +476,10 @@ fun MiniCard(c: Card, server: Server?, modifier: Modifier = Modifier, chip: Stri
  */
 @OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
-fun FitText(text: String, size: androidx.compose.ui.unit.TextUnit, weight: FontWeight? = null, modifier: Modifier = Modifier, color: androidx.compose.ui.graphics.Color = androidx.compose.ui.graphics.Color.Unspecified) {
+fun FitText(text: String, size: androidx.compose.ui.unit.TextUnit, weight: FontWeight? = null, modifier: Modifier = Modifier, color: androidx.compose.ui.graphics.Color = androidx.compose.ui.graphics.Color.Unspecified,
+            /** The smallest size it shrinks to; half of [size] when not given. */
+            minSize: androidx.compose.ui.unit.TextUnit = androidx.compose.ui.unit.TextUnit.Unspecified) {
     Text(text, modifier, color = color, fontWeight = weight, maxLines = 1, overflow = TextOverflow.Ellipsis,
-        autoSize = androidx.compose.foundation.text.TextAutoSize.StepBased(minFontSize = size * 0.5f, maxFontSize = size, stepSize = 0.5.sp))
+        autoSize = androidx.compose.foundation.text.TextAutoSize.StepBased(
+            minFontSize = if (minSize.isSpecified) minSize else size * 0.5f, maxFontSize = size, stepSize = 0.5.sp))
 }

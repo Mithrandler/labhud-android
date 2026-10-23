@@ -43,6 +43,22 @@ private fun kindOf(m: Metric): String? {
     return listOf("cpu", "gpu").firstOrNull { Regex("\\b$it").containsMatchIn(t) }
 }
 
+private fun sevRank(sev: String) = when (sev) { "crit" -> 2; "warn" -> 1; else -> 0 }
+private fun kindRank(m: Metric): Int {
+    val t = (m.label + " " + m.key).lowercase()
+    return when { "cpu" in t -> 0; "ram" in t || "mem" in t -> 1; "disk" in t || "storage" in t -> 2; else -> 3 }
+}
+
+/**
+ * The one number a small tile shows: of CPU, RAM and disk the one that is worst by colour (the CPU when all are fine; a guest's
+ * RAM is only coloured by memory pressure). A card without shares gives its first value, else null (the tile says its state).
+ */
+fun Card.headline(): Metric? {
+    val shares = guest?.meters() ?: metrics.filter { it.pct != null && it.value.isNotEmpty() && it.value != "—" }
+    if (shares.isNotEmpty()) return shares.sortedBy { kindRank(it) }.maxByOrNull { sevRank(it.sev) }
+    return metrics.firstOrNull { it.value.isNotEmpty() && it.value != "—" }
+}
+
 /** The worse of two severities: crit, then warn, then none. */
 fun worseSev(a: String, b: String): String = listOf("crit", "warn").firstOrNull { it == a || it == b } ?: ""
 

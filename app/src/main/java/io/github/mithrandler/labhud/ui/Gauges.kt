@@ -107,21 +107,22 @@ fun Card.gaugeCount(): Int = gaugesOf(this, metrics.filter { it.value.isNotEmpty
 data class GaugeLayout(val cols: Int, val size: Float, val cell: Float)
 
 /**
- * The columns that give the biggest rings (up to [maxRing]) in the room there is: each row also needs [labelH] for its label.
- * Equal sizes (to 8 dp) prefer fewer rows, then fewer columns, so 4 gauges are 2×2 when the height allows and one row when not.
- * A height of [Float.MAX_VALUE] means no limit.
+ * The columns for [n] gauges: the biggest ring (up to [maxRing]) the room allows, with each row needing [labelH] more for its label;
+ * every layout whose ring is at least 85% of that counts as good, and among them the shape decides: one row for up to three gauges,
+ * from four the fewest columns (two at least), so 4 gauges are 2×2 unless one row gives clearly bigger rings. A height of
+ * [Float.MAX_VALUE] means no limit.
  */
 fun gaugeLayout(n: Int, width: Float, height: Float, maxRing: Float = 96f, gap: Float = 12f, labelH: Float = 22f): GaugeLayout {
-    var best = GaugeLayout(1, 0f, width)
-    var bestKey = Int.MIN_VALUE
-    for (cols in 1..n.coerceIn(1, 6)) {
+    val from = if (n >= 4) 2 else 1
+    val options = (from..n.coerceIn(from, 6)).map { cols ->
         val rows = (n + cols - 1) / cols
         val cell = (width - gap * (cols - 1)) / cols
         val size = minOf(maxRing, cell, (height - rows * labelH - gap * (rows - 1)) / rows).coerceAtLeast(0f)
-        val key = (size / 8).toInt() * 10_000 - rows * 100 - cols   // size first, then fewer rows, then fewer columns
-        if (key > bestKey) { best = GaugeLayout(cols, size, cell); bestKey = key }
+        Triple(cols, rows, GaugeLayout(cols, size, cell))
     }
-    return best
+    val top = options.maxOf { it.third.size }
+    val good = options.filter { it.third.size >= top * 0.85f }
+    return good.minWith(compareBy({ if (n <= 3) it.second else it.first }, { -it.third.size })).third
 }
 
 private val GapDp = 12f

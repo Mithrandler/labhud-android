@@ -73,10 +73,10 @@ class GaugesTest {
         assertEquals(5, gaugeLayout(5, 800f, 120f).cols.coerceAtLeast(5))
     }
 
-    @Test fun aMachineWithFourGaugesIsThreeRowsTallInPortraitAndNeverShortOfTheirRoom() {
+    @Test fun aMachineWithFourGaugesIsTallEnoughForThemTwoByTwoInPortraitAndOneRowWhenLow() {
         val c = host(Gpu(util = 1.0, mem = 1.0), Gpu(util = 1.0, mem = 1.0))
         assertEquals(4, c.gaugeCount())
-        assertEquals(112f * 3 + 24f, c.tileHeight(112f), 0f)
+        assertEquals(326f, c.tileHeight(112f), 0f)
         assertEquals(208f, c.tileHeight(84f), 0f)          // landscape: two rows are 180, the rings need 208
         val plain = Card(id = "n", type = "nas", metrics = listOf(disk))
         assertEquals(112f * 2 + 12f, plain.tileHeight(112f), 0f)

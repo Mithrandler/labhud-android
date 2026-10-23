@@ -198,14 +198,12 @@ fun StatusScreen(
                         val gapDp = 12.dp
                         val tile = LocalTileH.current.value
                         val cols = (page?.columns?.takeIf { it > 0 } ?: (((maxWidth.value - 24f + 12f) / (104f + 12f)).toInt())).coerceIn(2, 6)
-                        val slots = if (page == null) emptyList() else if (page.games) page.servers.map { Slot("game-" + it.id.ifEmpty { it.name }, game = it) } else
-                            (if (index == 0) favs.mapNotNull { byId[it] }.sortedBy { it.name.lowercase() }.map { Slot("c-fav-${it.id}", it) } else emptyList()) +
-                                page.groups.flatMap { g -> g.cards.mapNotNull { byId[it] }.map { Slot("c-${g.id}-${it.id}", it) } }
+                        val slots = if (page == null) emptyList() else buildSlots(page, index == 0, byId, favs, cols)
                         val barH = pageBarHeight().value
                         // the packing depends on what each cell takes, not on the numbers in it: a new number must not pack again
                         val layout = slots.map { Triple(it.key, it.span(cols), it.height(tile)) }
                         val screens = remember(layout, cols, maxHeight, barH) {
-                            packGrid(slots, { it.span(cols) }, { it.height(tile) }, cols, 12f, maxHeight.value - 24f - barH)
+                            keepTitlesWithCards(packGrid(slots, { it.span(cols) }, { it.height(tile) }, cols, 12f, maxHeight.value - 24f - barH))
                         }
                         val fresh = slots.associateBy { it.key }
                         var asked by rememberSaveable(page?.id) { mutableIntStateOf(0) }
@@ -239,8 +237,10 @@ fun StatusScreen(
                                 screens[cur].forEach { packed ->
                                     val sl = fresh[packed.key] ?: packed   // the packing may be older than the numbers
                                     val c = sl.card
+                                    sl.title?.let { t -> item(key = sl.key, span = { GridItemSpan(maxLineSpan) }) { SectionTitle(t, sl.bad) } }
+                                    if (sl.more > 0) item(key = sl.key) { MoreTile(sl.more) }
                                     if (c != null) item(key = sl.key, span = { GridItemSpan(sl.span(maxLineSpan)) }) {
-                                        if (c.isBig()) HudCard(c, server, Modifier.height(sl.height(tile).dp), sparks = sparks, uptime = uptime?.cards?.get(c.id), percent = uptime?.percent?.get(c.id),
+                                        if (c.isBig() && !sl.mini) HudCard(c, server, Modifier.height(sl.height(tile).dp), sparks = sparks, uptime = uptime?.cards?.get(c.id), percent = uptime?.percent?.get(c.id),
                                             coverage = uptime?.coverage?.get(c.id), compact = compact,
                                             chip = boxChips[c.id]) { onCard(c.id) }
                                         else MiniCard(c, server, chip = boxChips[c.id]) { onCard(c.id) }
@@ -263,15 +263,6 @@ internal fun swipeStep(total: Float, width: Float): Int = when {
     total < -width * 0.15f -> 1
     total > width * 0.15f -> -1
     else -> 0
-}
-
-/** One thing on a Status screen: a card (or a game server) with a key for its grid cell. */
-private data class Slot(val key: String, val card: Card? = null, val game: GameServer? = null) {
-    /** Cells it takes in a line of [cols]: a card by its kind, a game server one cell on a wide screen, else half a line or more. */
-    fun span(cols: Int): Int = card?.tileSpan(cols) ?: if (cols >= 4) 1 else cols
-
-    /** How tall it is, in dp: a cell, or two cells and the gap between them. */
-    fun height(tile: Float): Float = card?.tileHeight(tile) ?: tile
 }
 
 @Composable
