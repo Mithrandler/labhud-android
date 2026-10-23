@@ -1,4 +1,4 @@
-// Written by labhud's design/build.py from its design/tokens.json (0ab26a5c1940): edit there, not here.
+// Written by labhud's design/build.py from its design/tokens.json (6ae2362cb43c): edit there, not here.
 package io.github.mithrandler.labhud.ui
 
 import androidx.compose.ui.graphics.Color
@@ -76,6 +76,16 @@ object LabScale {
     val bar = 6.dp
     /** a card's service icon */
     val iconCard = 20.dp
+    /** the diameter of a gauge ring on a machine card (smaller when the card is short) */
+    val ring = 104.dp
+    /** the thickness of a gauge ring */
+    val ringStroke = 8.dp
+    /** the number inside a gauge ring */
+    val textRing = 14.sp
+    /** the one number on a small tile */
+    val textTile = 22.sp
+    /** a small tile's name */
+    val textTileName = 13.sp
 }
 
 /** The icons of the wall and ⚙: thin lines on a 24×24 grid, tinted by Icon() like any other. */
@@ -84,7 +94,6 @@ object LabIcons {
     val pages: ImageVector by lazy { icon("pages", "M4.5 4H8.5A1.5 1.5 0 0 1 10 5.5V9.5A1.5 1.5 0 0 1 8.5 11H4.5A1.5 1.5 0 0 1 3 9.5V5.5A1.5 1.5 0 0 1 4.5 4Z" to false, "M15.5 4H19.5A1.5 1.5 0 0 1 21 5.5V9.5A1.5 1.5 0 0 1 19.5 11H15.5A1.5 1.5 0 0 1 14 9.5V5.5A1.5 1.5 0 0 1 15.5 4Z" to false, "M4.5 14H8.5A1.5 1.5 0 0 1 10 15.5V18.5A1.5 1.5 0 0 1 8.5 20H4.5A1.5 1.5 0 0 1 3 18.5V15.5A1.5 1.5 0 0 1 4.5 14Z" to false, "M15.5 14H19.5A1.5 1.5 0 0 1 21 15.5V18.5A1.5 1.5 0 0 1 19.5 20H15.5A1.5 1.5 0 0 1 14 18.5V15.5A1.5 1.5 0 0 1 15.5 14Z" to false) }
     val bell: ImageVector by lazy { icon("bell", "M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z" to false, "M10 20.5a2 2 0 0 0 4 0" to false) }
     val devices: ImageVector by lazy { icon("devices", "M4.5 4H19.5A1.5 1.5 0 0 1 21 5.5V8.5A1.5 1.5 0 0 1 19.5 10H4.5A1.5 1.5 0 0 1 3 8.5V5.5A1.5 1.5 0 0 1 4.5 4Z" to false, "M4.5 14H19.5A1.5 1.5 0 0 1 21 15.5V18.5A1.5 1.5 0 0 1 19.5 20H4.5A1.5 1.5 0 0 1 3 18.5V15.5A1.5 1.5 0 0 1 4.5 14Z" to false, "M7 7h.01M7 17h.01M11 7h6M11 17h6" to false) }
-    val servers: ImageVector by lazy { icon("servers", "M12 3l8 4.5v9L12 21l-8-4.5v-9z" to false, "M12 12l8-4.5M12 12v9M12 12L4 7.5" to false) }
     val security: ImageVector by lazy { icon("security", "M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z" to false, "M9 12l2 2 4-4" to false) }
     val sources: ImageVector by lazy { icon("sources", "M5 6a7 2.5 0 1 0 14 0a7 2.5 0 1 0 -14 0Z" to false, "M5 6v6c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5V6M5 12v6c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5v-6" to false) }
     val advanced: ImageVector by lazy { icon("advanced", "M8 6l-5 6 5 6M16 6l5 6-5 6M14 4l-4 16" to false) }
@@ -95,7 +104,6 @@ object LabIcons {
     val activity: ImageVector by lazy { icon("activity", "M3 12h4l3-7 4 14 3-7h4" to false) }
     val settings: ImageVector by lazy { icon("settings", "M9.87 5.12L10.44 2.93L13.56 2.93L14.13 5.12A7.2 7.2 0 0 1 15.36 5.63L17.31 4.49L19.51 6.69L18.37 8.64A7.2 7.2 0 0 1 18.88 9.87L21.07 10.44L21.07 13.56L18.88 14.13A7.2 7.2 0 0 1 18.37 15.36L19.51 17.31L17.31 19.51L15.36 18.37A7.2 7.2 0 0 1 14.13 18.88L13.56 21.07L10.44 21.07L9.87 18.88A7.2 7.2 0 0 1 8.64 18.37L6.69 19.51L4.49 17.31L5.63 15.36A7.2 7.2 0 0 1 5.12 14.13L2.93 13.56L2.93 10.44L5.12 9.87A7.2 7.2 0 0 1 5.63 8.64L4.49 6.69L6.69 4.49L8.64 5.63A7.2 7.2 0 0 1 9.87 5.12Z" to false, "M9 12a3 3 0 1 0 6 0a3 3 0 1 0 -6 0Z" to false) }
     val more: ImageVector by lazy { icon("more", "M10.8 5a1.2 1.2 0 1 0 2.4 0a1.2 1.2 0 1 0 -2.4 0Z" to true, "M10.8 12a1.2 1.2 0 1 0 2.4 0a1.2 1.2 0 1 0 -2.4 0Z" to true, "M10.8 19a1.2 1.2 0 1 0 2.4 0a1.2 1.2 0 1 0 -2.4 0Z" to true) }
-    val info: ImageVector by lazy { icon("info", "M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0Z" to false, "M12 11v5.5" to false, "M12 7.8h.01" to false) }
     val wall: ImageVector by lazy { icon("wall", "M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5" to false) }
     val home: ImageVector by lazy { icon("home", "M4 11l8-7 8 7" to false, "M6 9.5V20h12V9.5" to false, "M10 20v-5h4v5" to false) }
     val network: ImageVector by lazy { icon("network", "M10 5a2 2 0 1 0 4 0a2 2 0 1 0 -4 0Z" to false, "M3 19a2 2 0 1 0 4 0a2 2 0 1 0 -4 0Z" to false, "M17 19a2 2 0 1 0 4 0a2 2 0 1 0 -4 0Z" to false, "M12 7v5M12 12l-5.5 5.5M12 12l5.5 5.5" to false) }
@@ -104,10 +112,8 @@ object LabIcons {
     val discover: ImageVector by lazy { icon("discover", "M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0Z" to false, "M7 12a5 5 0 1 0 10 0a5 5 0 1 0 -10 0Z" to false, "M12 12l6-6" to false, "M11 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0Z" to true) }
     val warning: ImageVector by lazy { icon("warning", "M12 3.5l9.5 16.5h-19z" to false, "M12 10v4.5" to false, "M11 17.2a1 1 0 1 0 2 0a1 1 0 1 0 -2 0Z" to true) }
     val offline: ImageVector by lazy { icon("offline", "M8.5 6.4A6 6 0 0 1 17.9 10.6 3.6 3.6 0 0 1 19.6 17M16 18H7a4 4 0 0 1-1.6-7.7 6 6 0 0 1 .7-1.6" to false, "M3 3l18 18" to false) }
-    val close: ImageVector by lazy { icon("close", "M6 6l12 12M18 6L6 18" to false) }
     val back: ImageVector by lazy { icon("back", "M20 12H5M11 6l-6 6 6 6" to false) }
     val chevronRight: ImageVector by lazy { icon("chevron_right", "M9 6l6 6-6 6" to false) }
-    val chevronUp: ImageVector by lazy { icon("chevron_up", "M6 15l6-6 6 6" to false) }
     val chevronDown: ImageVector by lazy { icon("chevron_down", "M6 9l6 6 6-6" to false) }
     val check: ImageVector by lazy { icon("check", "M5 12.5l4.5 4.5L19 7.5" to false) }
     val checkCircle: ImageVector by lazy { icon("check_circle", "M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0Z" to false, "M8 12.5l2.7 2.7L16 10" to false) }
@@ -134,6 +140,10 @@ object LabIcons {
     val plug: ImageVector by lazy { icon("plug", "M9 3v5M15 3v5" to false, "M6 8h12v3a6 6 0 0 1-12 0z" to false, "M12 17v4" to false) }
     val phone: ImageVector by lazy { icon("phone", "M9 2.5H15A2 2 0 0 1 17 4.5V19.5A2 2 0 0 1 15 21.5H9A2 2 0 0 1 7 19.5V4.5A2 2 0 0 1 9 2.5Z" to false, "M11 18.5h2" to false) }
     val key: ImageVector by lazy { icon("key", "M4 15a4 4 0 1 0 8 0a4 4 0 1 0 -8 0Z" to false, "M11 12l9-9M16 7l3 3M14 9l2 2" to false) }
+    val servers: ImageVector by lazy { icon("servers", "M12 3l8 4.5v9L12 21l-8-4.5v-9z" to false, "M12 12l8-4.5M12 12v9M12 12L4 7.5" to false) }
+    val info: ImageVector by lazy { icon("info", "M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0Z" to false, "M12 11v5.5" to false, "M12 7.8h.01" to false) }
+    val close: ImageVector by lazy { icon("close", "M6 6l12 12M18 6L6 18" to false) }
+    val chevronUp: ImageVector by lazy { icon("chevron_up", "M6 15l6-6 6 6" to false) }
 
     private fun icon(name: String, vararg paths: Pair<String, Boolean>): ImageVector =
         ImageVector.Builder(name, 24.dp, 24.dp, 24f, 24f).apply {

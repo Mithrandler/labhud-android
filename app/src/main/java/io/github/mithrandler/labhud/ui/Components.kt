@@ -148,9 +148,9 @@ fun HudCard(
         },
         shadowElevation = if (Lab.hud) 0.dp else 1.dp,
     ) {
-        Row(Modifier.height(IntrinsicSize.Min)) {
-            if (sev.isNotEmpty()) Box(Modifier.width(3.dp).fillMaxHeight().background(barColor(sev)))
-            Column(Modifier.weight(1f).heightIn(min = if (compact) 72.dp else 92.dp)
+        Box {
+            if (sev.isNotEmpty()) Box(Modifier.width(3.dp).fillMaxHeight().background(barColor(sev)).align(Alignment.CenterStart))
+            Column(Modifier.fillMaxWidth().heightIn(min = if (compact) 72.dp else 92.dp)
                 .padding(horizontal = LabScale.space3, vertical = if (compact) 6.dp else 10.dp)) {
                 CardHead(c, server)
                 val fade = Modifier.alpha(if (c.frozen) 0.45f else 1f)
@@ -217,15 +217,15 @@ private fun CardBody(c: Card, fade: Modifier, server: Server? = null, chip: Stri
             c.frame.isNotEmpty() -> FrameWidget(c.frame, c.frameHeight)
             shown.isNotEmpty() -> {
                 val (rings, others) = ringsAndChips(shown)
-                // two or more percentages: rings side by side, a temperature under its number; one alone keeps its bar
-                if (rings.size >= 2 && c.type == "proxmox") Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
-                    rings.take(4).forEach { (m, t) -> Ring(m, Modifier.weight(1f), t) }
-                    c.gpus.take(2).forEachIndexed { i, g -> GpuRing(g, if (c.gpus.size > 1) "GPU${i + 1}" else "GPU", Modifier.weight(1f)) }
-                } else rings.forEach { (m, t) -> MeterRow(m, thin = true); if (t != null) Chip(t) }
+                val gauges = remember(c) { gaugesOf(c, shown) }
+                // two or more shares: gauge rings (one ring holds two: CPU and RAM, a GPU's load and memory); one alone keeps its bar
+                val ringed = gauges.size >= 2 || (c.type == "proxmox" && gauges.isNotEmpty())
                 // the GPU's temperature is in its own ring
                 val counts = c.guestCounts.entries.sortedBy { it.key }.mapNotNull { (k, v) -> if (v.size == 2 && v[1] > 0) Metric(label = k.uppercase(), value = "${v[0]}/${v[1]}") else null }
                 val facts = others.filter { o -> counts.isEmpty() || counts.none { it.label.equals(o.label, true) } }.filter { c.gpus.isEmpty() || !(it.format == "celsius" && "gpu" in (it.label + it.key).lowercase()) } + listOfNotNull(c.guest?.uptime?.let { Metric(label = "up", value = upText(it)) }) + counts +
                     listOfNotNull(chip).map { Metric(value = it) }
+                if (ringed) MachineGauges(gauges, Modifier.padding(vertical = 2.dp), reserve = if (facts.isNotEmpty()) 40.dp else 0.dp)
+                else rings.forEach { (m, t) -> MeterRow(m, thin = true); if (t != null) Chip(t) }
                 if (facts.isNotEmpty()) FlowRow(Modifier.fillMaxWidth().padding(top = 2.dp),
                     horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
                     verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -255,32 +255,6 @@ fun Chip(m: Metric) {
             Spacer(Modifier.width(6.dp))
         }
         Text(m.value, fontSize = LabScale.textSm, fontWeight = FontWeight.Medium, color = sevColor(m.sev), maxLines = 1)
-    }
-}
-
-/** A percentage as a ring (orange and red past its marks) with the number in the middle and its label under it. */
-@Composable
-fun Ring(m: Metric, modifier: Modifier = Modifier, temp: Metric? = null) {
-    val pct = (m.pct ?: 0.0).coerceIn(0.0, 100.0)
-    val sev = if (temp == null) m.sev else worseSev(m.sev, temp.sev)
-    val color = barColor(sev)
-    val track = Lab.block
-    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        Box(Modifier.size(64.dp), contentAlignment = Alignment.Center) {
-            Canvas(Modifier.fillMaxSize()) {
-                val w = 6.dp.toPx()
-                val box = Size(size.width - w, size.height - w)
-                val at = Offset(w / 2, w / 2)
-                drawArc(track, 0f, 360f, false, topLeft = at, size = box, style = Stroke(w))
-                if (pct > 0) drawArc(color, -90f, (360 * pct / 100).toFloat(), false, topLeft = at, size = box,
-                    style = Stroke(w, cap = StrokeCap.Round))
-            }
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("${Math.round(pct)}%", fontSize = LabScale.textXs, fontWeight = FontWeight.SemiBold, color = sevColor(m.sev))
-                if (temp != null) Text(temp.value, fontSize = 10.sp, color = sevColor(temp.sev), maxLines = 1)
-            }
-        }
-        Text(m.short(), fontSize = LabScale.textXs, color = Lab.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
@@ -403,7 +377,15 @@ fun Card.tileSpan(cols: Int): Int = when {
     else -> 1
 }
 
-fun Card.tileRows(): Int = if (isBig()) 2 else 1
+/** Rows of cells a card takes: a machine with four or more gauges needs three in portrait ([tile] is a cell's height) to show them 2×2. */
+fun Card.tileRows(tile: Float = 112f): Int = if (!isBig()) 1 else if (tile >= 100f && gaugeCount() >= 4) 3 else 2
+
+/** A card's height in dp: its rows of cells and the gaps between them; a card with gauges is never shorter than they need (a ring of 80 dp, its label, the chips and the head). */
+fun Card.tileHeight(tile: Float): Float {
+    val rows = tileRows(tile)
+    val h = tile * rows + 12f * (rows - 1)
+    return if (isBig() && gaugeCount() >= 2) maxOf(h, 208f) else h
+}
 
 /** The cards that need more than a cell: a machine's rings, and the widgets that draw themselves (clock, calendar, a frame). Lists, notes and links are cells too. */
 fun Card.isBig(): Boolean = kind != "guest" && (type == "proxmox" || type == "nas" || widget.isNotEmpty() || frame.isNotEmpty())
@@ -460,48 +442,6 @@ fun MiniCard(c: Card, server: Server?, modifier: Modifier = Modifier, chip: Stri
 }
 
 /**
- * A graphics card in one ring: the load round the outside, the video memory in a thinner ring inside it,
- * the load and the temperature in the middle, "VRAM 30%" under the name.
- */
-@Composable
-fun GpuRing(g: io.github.mithrandler.labhud.data.Gpu, name: String, modifier: Modifier = Modifier) {
-    val util = g.util.coerceIn(0.0, 100.0)
-    val mem = g.mem?.coerceIn(0.0, 100.0)
-    val track = Lab.block
-    // the server's colour for each number (its [display] marks, with hysteresis); an older server sends none: 80 and 92
-    fun sev(s: String?, v: Double) = s ?: if (v >= 92) "crit" else if (v >= 80) "warn" else ""
-    val loadSev = sev(g.utilSev, util)
-    val loadColor = when (loadSev) { "crit" -> Lab.red; "warn" -> Lab.warn; else -> Lab.accent }
-    val memColor = when (sev(g.memSev, mem ?: 0.0)) { "crit" -> Lab.red; "warn" -> Lab.warn; else -> Lab.accent.copy(alpha = 0.55f) }
-    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        Box(Modifier.size(64.dp), contentAlignment = Alignment.Center) {
-            Canvas(Modifier.fillMaxSize()) {
-                val w = 6.dp.toPx(); val w2 = 4.dp.toPx()
-                val outer = Size(size.width - w, size.height - w)
-                drawArc(track, 0f, 360f, false, topLeft = Offset(w / 2, w / 2), size = outer, style = Stroke(w))
-                if (util > 0) drawArc(loadColor, -90f, (360 * util / 100).toFloat(), false, topLeft = Offset(w / 2, w / 2), size = outer,
-                    style = Stroke(w, cap = StrokeCap.Round))
-                if (mem != null) {
-                    val inset = w + 2.dp.toPx() + w2 / 2
-                    val inner = Size(size.width - 2 * inset, size.height - 2 * inset)
-                    drawArc(track, 0f, 360f, false, topLeft = Offset(inset, inset), size = inner, style = Stroke(w2))
-                    if (mem > 0) drawArc(memColor, -90f, (360 * mem / 100).toFloat(), false, topLeft = Offset(inset, inset), size = inner,
-                        style = Stroke(w2, cap = StrokeCap.Round))
-                }
-            }
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("${Math.round(util)}%", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = if (loadSev.isNotEmpty()) loadColor else Lab.text)
-                g.temp?.let { Text("${Math.round(it)}°", fontSize = 10.sp, color = Lab.muted, maxLines = 1) }
-            }
-        }
-        Text(name, fontSize = LabScale.textXs, color = Lab.muted, maxLines = 1)
-        // the legend, in the rings' own colours: the outer ring is the load, the thinner inner one the video memory
-        GpuKey(loadColor, "Load ${Math.round(util)}%", 4.dp)
-        mem?.let { GpuKey(memColor, "VRAM ${Math.round(it)}%", 2.dp) }
-    }
-}
-
-/**
  * A name on one line that shrinks (down to half of [size]) until all of it shows; only a name that is
  * still too long then ends in "…". Cards cut "homeassistant" to "homeassi…" otherwise.
  */
@@ -510,14 +450,4 @@ fun GpuRing(g: io.github.mithrandler.labhud.data.Gpu, name: String, modifier: Mo
 fun FitText(text: String, size: androidx.compose.ui.unit.TextUnit, weight: FontWeight? = null, modifier: Modifier = Modifier, color: androidx.compose.ui.graphics.Color = androidx.compose.ui.graphics.Color.Unspecified) {
     Text(text, modifier, color = color, fontWeight = weight, maxLines = 1, overflow = TextOverflow.Ellipsis,
         autoSize = androidx.compose.foundation.text.TextAutoSize.StepBased(minFontSize = size * 0.5f, maxFontSize = size, stepSize = 0.5.sp))
-}
-
-/** One line of a GPU ring's legend: a swatch as thick as the ring it names, then the words. */
-@Composable
-private fun GpuKey(color: androidx.compose.ui.graphics.Color, text: String, thickness: androidx.compose.ui.unit.Dp) {
-    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 1.dp)) {
-        Box(Modifier.width(12.dp).height(thickness).clip(androidx.compose.foundation.shape.RoundedCornerShape(50)).background(color))
-        Spacer(Modifier.width(4.dp))
-        Text(text, fontSize = 10.sp, lineHeight = 12.sp, color = Lab.sub, maxLines = 1)
-    }
 }

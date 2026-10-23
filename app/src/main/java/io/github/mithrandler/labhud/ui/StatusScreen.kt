@@ -271,7 +271,7 @@ private data class Slot(val key: String, val card: Card? = null, val game: GameS
     fun span(cols: Int): Int = card?.tileSpan(cols) ?: if (cols >= 4) 1 else cols
 
     /** How tall it is, in dp: a cell, or two cells and the gap between them. */
-    fun height(tile: Float): Float = (card?.tileRows() ?: 1).let { tile * it + 12f * (it - 1) }
+    fun height(tile: Float): Float = card?.tileHeight(tile) ?: tile
 }
 
 @Composable

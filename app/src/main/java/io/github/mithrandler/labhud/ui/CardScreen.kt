@@ -184,12 +184,11 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
                 item { StatusHeader(c, server) }
                 val own = c.metrics.filter { it.value.isNotEmpty() && it.value != "—" }.ifEmpty { c.guest?.meters().orEmpty() }
                 val (rings, others) = ringsAndChips(own)
-                if (rings.size >= 2 || c.type == "proxmox" && rings.isNotEmpty()) item {
+                // the same rule and the same gauges as the card on Status
+                val gauges = gaugesOf(c, own)
+                if (gauges.size >= 2 || c.type == "proxmox" && gauges.isNotEmpty()) item {
                     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                            rings.take(4).forEach { (m, t) -> Ring(m, Modifier.weight(1f), t) }
-                            c.gpus.take(2).forEachIndexed { i, g -> GpuRing(g, if (c.gpus.size > 1) "GPU${i + 1}" else "GPU", Modifier.weight(1f)) }
-                        }
+                        MachineGauges(gauges)
                         val facts = others.filter { c.guestCounts.isEmpty() || it.label.uppercase() !in c.guestCounts.keys.map { k -> k.uppercase() } }
                             .filter { c.gpus.isEmpty() || !(it.format == "celsius" && "gpu" in (it.label + it.key).lowercase()) } +
                             listOfNotNull(c.guest?.uptime?.let { Metric(label = "up", value = upText(it)) }) +

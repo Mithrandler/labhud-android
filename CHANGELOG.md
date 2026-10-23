@@ -6,6 +6,9 @@ All notable changes to LabHUD for Android. The format follows
 
 ## [Unreleased]
 
+### Changed
+- **Machine cards: rings that fit**: the CPU and the RAM are one ring (the CPU on the left half, the RAM on the right), and so are a GPU's load and its video memory; the disk is a ring of its own. The rings are the same size and the same type everywhere, in a 2×2 grid when the card is tall enough (a machine with four or more rings takes three rows in portrait) and in one row when it is not. Under a ring only its name (“CPU · RAM”, “GPU2 · VRAM”): the “Load” and “VRAM” lines are gone. Status and the card's own screen use the same rule and the same code, so a NAS has rings in both. The numbers grow smoothly (not with animations turned off in the system) and a screen reader hears “CPU · RAM: 23 percent, 60 percent, 52 degrees”.
+
 ### Fixed
 - **Healthy VMs no longer turn orange or red on RAM**: Proxmox counts the page cache, so 95% is normal. A guest's RAM is coloured only when the server reports real memory pressure (as on the wall); with a server older than labhud 0.1.16 it stays plain.
 - **A GPU's colours** follow the server's `[display]` marks and their hysteresis, not 80 and 92 written in the app (an older server keeps those two).
