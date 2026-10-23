@@ -94,6 +94,10 @@ fun MainTopBar(
                 border = BorderStroke(LabScale.hairline, Lab.line)) {
                 DropdownMenuItem(text = { Text("Settings") }, leadingIcon = { Icon(LabIcons.settings, null) },
                     onClick = { menu = false; nav.onOpenSettings() })
+                s?.cards.orEmpty().filter { it.menu }.forEach { c ->
+                    DropdownMenuItem(text = { Text(c.name.lowercase().replaceFirstChar { it.uppercase() }) }, leadingIcon = { Icon(LabIcons.note, null) },
+                        onClick = { menu = false; nav.onCard(c.id) })
+                }
                 DropdownMenuItem(text = { Text("Wall mode") }, leadingIcon = { Icon(LabIcons.wall, null) },
                     onClick = { menu = false; nav.onWall() })
                 DropdownMenuItem(text = { Text("About") }, leadingIcon = { Icon(LabIcons.info, null) },

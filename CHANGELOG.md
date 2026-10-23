@@ -6,6 +6,8 @@ All notable changes to LabHUD for Android. The format follows
 
 ## [Unreleased]
 
+- The menu lists the cards the server marks `menu` (the notes), which are on no page.
+
 - Back without the shrinking "predictive back" animation: the manifest opts out, the app takes Back itself at the root, and the screens under it fade as for any change.
 - A back arrow on a host of Servers and on Settings opened from the menu; screens without the tab bar keep clear of the gesture bar.
 - Activity: Alerts and the notifications this phone received are one list (alerts now, problems, then received); the empty Notifications segment is gone, and the empty text says where they are chosen (Settings > Notifications).

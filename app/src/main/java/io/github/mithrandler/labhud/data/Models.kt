@@ -339,6 +339,8 @@ data class Card(
     val charts: List<ChartRef> = emptyList(),
     val containers: List<Container> = emptyList(),
     val agent: String = "",
+    /** A card on no page that only the app's menu opens (the notes). */
+    val menu: Boolean = false,
     /** A notes card's text, a bookmarks card's links, the fleet's updates. */
     val notes: String? = null,
     val bookmarks: List<Bookmark> = emptyList(),
