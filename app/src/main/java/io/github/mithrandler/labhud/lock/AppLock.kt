@@ -26,6 +26,9 @@ object AppLock {
     private var hiddenAt = 0L
     private var known = false
 
+    /** Called when the app comes back after more than [IDLE_MS] in the background, lock or no lock: the held PIN and ticket go. */
+    var onIdleExpired: (() -> Unit)? = null
+
     /** Set from the stored settings. The first value read decides whether the app opens locked. */
     var mode: LockMode = LockMode.None
         set(value) {
@@ -50,7 +53,10 @@ object AppLock {
     }
 
     fun onShown() {
-        if (on && hiddenAt != 0L && SystemClock.elapsedRealtime() - hiddenAt > IDLE_MS) _unlocked.value = false
+        if (hiddenAt != 0L && SystemClock.elapsedRealtime() - hiddenAt > IDLE_MS) {
+            onIdleExpired?.invoke()
+            if (on) _unlocked.value = false
+        }
     }
 
     fun lockNow() {
@@ -61,9 +67,21 @@ object AppLock {
     fun canUse(activity: FragmentActivity, m: LockMode): Boolean =
         m == LockMode.None || BiometricManager.from(activity).canAuthenticate(authenticators(m)) == BiometricManager.BIOMETRIC_SUCCESS
 
-    fun prompt(activity: FragmentActivity, onError: (String) -> Unit) {
+    /**
+     * Opens the app. With a fingerprint and the wall's PIN already sealed ([sealedPin]), the one fingerprint prompt
+     * also opens the sealed PIN ([onPin] gets it), so the buttons are unlocked with the app; if that prompt is
+     * cancelled, the plain prompt (the phone's screen lock as its other button) asks instead.
+     */
+    fun prompt(activity: FragmentActivity, sealedPin: String? = null, onPin: (String) -> Unit = {}, onError: (String) -> Unit) {
         if (!on || !canUse(activity, mode)) {
             _unlocked.value = true
+            return
+        }
+        if (mode == LockMode.Fingerprint && sealedPin != null) {
+            PinVault.open(activity, sealedPin, "Unlock LabHUD") { pin ->
+                if (pin != null) { _unlocked.value = true; onPin(pin) }
+                else ask(activity, mode, onOk = { _unlocked.value = true }, onError = onError)
+            }
             return
         }
         ask(activity, mode, onOk = { _unlocked.value = true }, onError = onError)

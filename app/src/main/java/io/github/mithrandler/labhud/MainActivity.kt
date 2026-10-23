@@ -36,6 +36,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -125,7 +127,7 @@ class MainActivity : FragmentActivity() {
                 // the lock follows the stored choice before anything is shown, and asks by itself
                 settings?.let { AppLock.mode = it.lockMode }
                 LaunchedEffect(servers != null && settings != null) { if (servers != null && settings != null) ready = true }
-                LaunchedEffect(unlocked, settings?.lockMode) { if (settings != null && !unlocked) AppLock.prompt(this@MainActivity) {} }
+                LaunchedEffect(unlocked, settings?.lockMode) { if (settings != null && !unlocked) openApp() }
                 when {
                     servers == null || settings == null -> Column(Modifier.fillMaxSize().background(Lab.bg)) {}
                     !unlocked -> LockScreen()
@@ -149,6 +151,15 @@ class MainActivity : FragmentActivity() {
         nav.open(Routes.settings("security"))
     }
 
+    /** Opens the app with one fingerprint; with the wall's PIN sealed, the same touch unlocks the buttons too. */
+    private fun openApp() {
+        val repo = (application as LabHudApp).repo
+        lifecycleScope.launch {
+            val sealed = repo.store.currentNow()?.id?.let { repo.store.sealedPin(it) }
+            AppLock.prompt(this@MainActivity, sealed, onPin = { pin -> lifecycleScope.launch { repo.unlock(pin) } }) {}
+        }
+    }
+
     @Composable
     private fun LockScreen() {
         Column(
@@ -163,7 +174,7 @@ class MainActivity : FragmentActivity() {
                 Text("LabHUD is locked", fontSize = LabScale.textWallNum)
             }
             Spacer(Modifier.height(LabScale.space6))
-            Button(onClick = { AppLock.prompt(this@MainActivity) {} }) { Text("Unlock") }
+            Button(onClick = { openApp() }) { Text("Unlock") }
         }
     }
 

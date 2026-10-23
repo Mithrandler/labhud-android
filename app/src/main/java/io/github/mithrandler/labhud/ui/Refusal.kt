@@ -8,6 +8,7 @@ import io.github.mithrandler.labhud.data.Rights
  * rights it last saw, so it can say what to do: sign in as the admin, or unlock with the PIN.
  */
 fun refusalText(error: String, rights: Rights): String = when {
+    error == "locked" -> "Locked. Unlock with the PIN, then try again."
     error.isNotBlank() && error != "forbidden" -> error
     !rights.admin -> "This phone only looks. Sign in as the admin in Settings > Account."
     rights.pin -> "Locked. Unlock with the PIN, then try again."
@@ -15,4 +16,4 @@ fun refusalText(error: String, rights: Rights): String = when {
 }
 
 /** True for the answer a stale or missing sign-in gets, so the screen reads the rights again. */
-fun isRefusal(error: String): Boolean = error.isBlank() || error == "forbidden"
+fun isRefusal(error: String): Boolean = error.isBlank() || error == "forbidden" || error == "locked"

@@ -41,7 +41,9 @@ class Gate(private val repo: LabRepository, private val scope: CoroutineScope) {
     fun press(run: () -> Unit) {
         when {
             !repo.rights.value.admin -> notAdmin = true
-            repo.mayPress() -> run()
+            repo.mayPress() -> scope.launch {   // a held PIN renews the ticket by itself (repo.api)
+                if (!repo.rights.value.pin || repo.renewTicket()) run() else asking = run
+            }
             else -> asking = run
         }
     }
@@ -74,6 +76,8 @@ fun GateDialogs(gate: Gate, onSignIn: () -> Unit) {
     var error by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
     val canFinger = remember { PinVault.available(activity) }
+    // the PIN dialog waits for the fingerprint when one holds the PIN: never both at once
+    var typing by remember { mutableStateOf(false) }
     var keepIt by remember { mutableStateOf(canFinger) }
 
     fun done() {
@@ -83,15 +87,14 @@ fun GateDialogs(gate: Gate, onSignIn: () -> Unit) {
 
     // a fingerprint first, when it holds the PIN already
     LaunchedEffect(Unit) {
-        val id = gate.serverId() ?: return@LaunchedEffect
-        val sealed = gate.sealed(id) ?: return@LaunchedEffect
+        val id = gate.serverId()
+        val sealed = id?.let { gate.sealed(it) }
+        if (id == null || sealed == null) { typing = true; return@LaunchedEffect }
         PinVault.open(activity, sealed) { opened ->
-            if (opened == null) return@open
-            busy = true
+            if (opened == null) { typing = true; return@open }
             gate.launch {
                 val e = gate.unlock(opened)
-                busy = false
-                if (e == null) done() else { gate.keep(id, null); error = "The PIN changed: type the new one." }
+                if (e == null) done() else { gate.keep(id, null); error = "The PIN changed: type the new one."; typing = true }
             }
         }
     }
@@ -111,12 +114,13 @@ fun GateDialogs(gate: Gate, onSignIn: () -> Unit) {
         }
     }
 
+    if (!typing) return
     AlertDialog(
         onDismissRequest = { gate.asking = null },
         title = { Text("The wall's PIN") },
         text = {
             Column {
-                Text("LabHUD has a PIN: the buttons stay open for 2 minutes after it.", fontSize = LabScale.textMd, color = Lab.sub)
+                Text("LabHUD has a PIN: asked once, the buttons then stay open while the app is open.", fontSize = LabScale.textMd, color = Lab.sub)
                 OutlinedTextField(
                     pin, { pin = it.filter(Char::isDigit).take(8) },
                     singleLine = true, label = { Text("PIN") },

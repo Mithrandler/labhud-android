@@ -1,5 +1,6 @@
 package io.github.mithrandler.labhud.data
 
+import kotlinx.coroutines.sync.withLock
 import android.content.Context
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -69,6 +70,9 @@ class LabRepository(private val context: Context, val store: ServerStore) {
     private var ticket: String? = null
     private var ticketUntil = 0L
     private var ticketIdle = 120_000L
+    /** The PIN that opened the ticket, in memory only: it renews the ticket silently until the app locks again ([lockNow]). */
+    private var heldPin: String? = null
+    private val renewing = kotlinx.coroutines.sync.Mutex()
     private var job: Job? = null
     /** run() was asked for (app in front and unlocked); a new or other server restarts it. */
     private var wanted = false
@@ -82,7 +86,7 @@ class LabRepository(private val context: Context, val store: ServerStore) {
                     _rights.value = Rights()
                     _sparks.value = emptyMap()
                     _uptime.value = null
-                    dropTicket()
+                    lockNow()
                 }
                 _server.value = s
                 _state.value = s?.let { cached(it.id) }
@@ -107,6 +111,7 @@ class LabRepository(private val context: Context, val store: ServerStore) {
         sideJob = scope.launch {
             // the cards' sparklines (one request a minute) and uptime (every 5 minutes), as the server offers them
             launch { _info.collectLatest { i -> pollSide(i?.trends?.isNotEmpty() == true, 60_000) { api()?.sparks()?.series?.let { _sparks.value = it } }.also { if (i?.trends.isNullOrEmpty()) _sparks.value = emptyMap() } } }
+            launch { pollSide(true, 60_000) { heartbeat() } }
             launch { _info.collectLatest { i -> pollSide(i?.uptime == true, 5 * 60_000) { api()?.uptime(false)?.let { _uptime.value = it } } } }
         }
         job = scope.launch {
@@ -172,27 +177,56 @@ class LabRepository(private val context: Context, val store: ServerStore) {
     }
 
     suspend fun api(s: Server? = null): LabApi? {
-        val server = s ?: store.currentNow() ?: return null
-        val token = store.token(server.id) ?: return null
-        return LabApi(server.url, token, server.fingerprint, if (s == null || s.id == _server.value?.id) liveTicket() else null)
+        val own = s == null || s.id == _server.value?.id
+        if (own && _rights.value.pin) renewTicket()
+        return rawApi(s, own)
     }
 
-    /** True when a button may go now: signed in as the admin, and no PIN or a live ticket. */
-    fun mayPress(): Boolean = _rights.value.admin && (!_rights.value.pin || liveTicket() != null)
+    private suspend fun rawApi(s: Server?, withTicket: Boolean): LabApi? {
+        val server = s ?: store.currentNow() ?: return null
+        val token = store.token(server.id) ?: return null
+        return LabApi(server.url, token, server.fingerprint, if (withTicket) liveTicket() else null)
+    }
 
+    /** True when a button may go now: signed in as the admin, and no PIN, a live ticket or the PIN held to renew it. */
+    fun mayPress(): Boolean = _rights.value.admin && (!_rights.value.pin || liveTicket() != null || heldPin != null)
+
+    /** The ticket as the app last saw the server hold it. Using it does not extend it: only the server's own answer does ([heartbeat]). */
     private fun liveTicket(): String? {
-        val now = android.os.SystemClock.elapsedRealtime()
         val t = ticket ?: return null
-        if (now > ticketUntil) { dropTicket(); return null }
-        ticketUntil = now + ticketIdle   // each use keeps it, as on the display
+        if (android.os.SystemClock.elapsedRealtime() > ticketUntil) { ticket = null; return null }
         return t
+    }
+
+    /** A live ticket, opened again with the held PIN when it ran out; false when only the person can (no PIN held). */
+    suspend fun renewTicket(): Boolean = renewing.withLock {
+        if (liveTicket() != null) return@withLock true
+        val pin = heldPin ?: return@withLock false
+        unlock(pin) == null
+    }
+
+    /** labhud said "locked" although the ticket looked alive: forget it, and renew it if the PIN is held. */
+    suspend fun recoverTicket(): Boolean {
+        ticket = null
+        return renewTicket()
+    }
+
+    /** Every minute while the app is in front: any request keeps the ticket alive on the server, and the answer says if it still is. */
+    private suspend fun heartbeat() {
+        if (!_rights.value.admin || !_rights.value.pin) return
+        val i = runCatching { liveTicket()?.let { rawApi(null, true)?.info() } }.getOrNull()
+        if (i?.unlocked == true) ticketUntil = android.os.SystemClock.elapsedRealtime() + ticketIdle
+        else { ticket = null; renewTicket() }
     }
 
     /** The live unlock ticket, for the wall page in Wall mode (it is the same PIN, the same idle time). Null without one. */
     fun unlockTicket(): String? = liveTicket()
 
     /** Locks the buttons again at once (the ticket is forgotten); the admin sign-in stays. */
-    fun lockNow() = dropTicket()
+    fun lockNow() {
+        heldPin = null
+        dropTicket()
+    }
 
     private fun dropTicket() {
         ticket = null
@@ -201,11 +235,12 @@ class LabRepository(private val context: Context, val store: ServerStore) {
 
     /** The display's PIN for a ticket; null when it worked, else what labhud said. */
     suspend fun unlock(pin: String): String? {
-        val api = api() ?: return "No server paired."
+        val api = rawApi(null, false) ?: return "No server paired."
         val r = runCatching { api.unlock(pin) }.getOrElse { return it.message ?: "Could not reach LabHUD." }
         if (!r.ok) return if (r.wait > 0) "Wrong PIN. Wait ${r.wait.toInt() + 1} s." else r.error.ifBlank { "Wrong PIN." }
         ticketIdle = r.idle * 1000L
         ticket = r.ticket
+        heldPin = pin
         ticketUntil = android.os.SystemClock.elapsedRealtime() + ticketIdle
         r.user?.let { u -> _rights.value = _rights.value.copy(user = u) }
         return null
@@ -219,7 +254,7 @@ class LabRepository(private val context: Context, val store: ServerStore) {
         val api = api() ?: return "No server paired."
         val r = runCatching { api.setPin(old, new) }.getOrElse { return it.message ?: "Could not reach LabHUD." }
         if (!r.ok) return if (r.wait > 0) "Wrong PIN. Wait ${r.wait.toInt() + 1} s." else r.error.ifBlank { "Refused." }
-        dropTicket()
+        lockNow()
         refreshRights()
         if (new != null) unlock(new)
         return null
@@ -237,7 +272,7 @@ class LabRepository(private val context: Context, val store: ServerStore) {
     suspend fun signOut(): String? {
         val api = api() ?: return "No server paired."
         val r = runCatching { api.adminLogout() }.getOrElse { return it.message ?: "Could not reach LabHUD." }
-        dropTicket()
+        lockNow()
         _rights.value = Rights(false, r.pin)
         return null
     }

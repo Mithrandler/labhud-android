@@ -68,11 +68,11 @@ object PinVault {
     }
 
     /** Opens a sealed PIN with a fingerprint; [done] gets it, or null (cancelled, voided). */
-    fun open(activity: FragmentActivity, sealed: String, done: (String?) -> Unit) {
+    fun open(activity: FragmentActivity, sealed: String, title: String = "Unlock the buttons", done: (String?) -> Unit) {
         val raw = runCatching { Base64.decode(sealed, Base64.NO_WRAP) }.getOrNull() ?: return done(null)
         if (raw.size < 13) return done(null)
         val c = cipher(Cipher.DECRYPT_MODE, raw.copyOfRange(0, 12)) ?: return done(null)
-        prompt(activity, "Unlock the buttons", c) { ok ->
+        prompt(activity, title, c) { ok ->
             done(ok?.let { runCatching { String(it.doFinal(raw, 12, raw.size - 12)) }.getOrNull() })
         }
     }

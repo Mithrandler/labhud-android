@@ -116,7 +116,10 @@ fun ZoneScreen(repo: LabRepository, bar: BarNav, onSignIn: () -> Unit) {
     /** A call to labhud: a session that ended or a refusal the PIN may mend goes back to the start button. */
     suspend fun ask(call: suspend LabApi.() -> ZoneAnswer): ZoneAnswer {
         val api = repo.api() ?: return ZoneAnswer(error = "No server paired.")
-        val r = runCatching { api.call() }.getOrElse { if (it is CancellationException) throw it; ZoneAnswer(error = it.message ?: "Could not reach LabHUD.") }
+        var r = runCatching { api.call() }.getOrElse { if (it is CancellationException) throw it; ZoneAnswer(error = it.message ?: "Could not reach LabHUD.") }
+        if (!r.ok && r.error == "locked" && repo.recoverTicket()) {   // the ticket ran out on the server: renew it with the held PIN and ask again
+            r = repo.api()?.let { a -> runCatching { a.call() }.getOrNull() } ?: r
+        }
         if (r.resume || (!r.ok && r.error == "forbidden")) session = false
         return r
     }

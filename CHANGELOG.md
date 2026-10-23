@@ -6,6 +6,14 @@ All notable changes to LabHUD for Android. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- Buttons no longer answer "forbidden" after a few minutes of only reading: the unlock ticket is no longer extended by the app alone, a heartbeat keeps it alive on the server while the app is in front, and a "locked" answer renews it and repeats the call.
+
+### Changed
+
+- One unlock per opening: the fingerprint that opens the app also opens the sealed wall PIN; the PIN dialog waits for the fingerprint instead of showing beside it. After 5 minutes in the background everything locks again.
+
 ## [0.1.29] - 2026-10-23
 
 ### Changed

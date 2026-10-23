@@ -57,6 +57,7 @@ class LabHudApp : Application() {
                 foreground.value = false
             }
         })
+        AppLock.onIdleExpired = { repo.lockNow() }
         scope.launch { store.settings.collect { AppLock.mode = it.lockMode } }
         Push.channels(this)
         // a server paired after Instant was chosen gets this phone's push endpoint too
