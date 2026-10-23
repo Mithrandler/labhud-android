@@ -262,8 +262,7 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
                                 TextButton(onClick = { week = w }) { Text(label, color = if (week == w) Lab.title else Lab.muted) }
                             }
                         }
-                        if (week) UptimeDays(up.cards.getValue(c.id), Modifier.padding(top = LabScale.space1))
-                        else UptimeBar(up.cards.getValue(c.id), Modifier.fillMaxWidth().padding(top = LabScale.space1).height(LabScale.dotTile), slices = 48)
+                        UptimeBar(up.cards.getValue(c.id), Modifier.fillMaxWidth().padding(top = LabScale.space1).height(LabScale.dotTile), slices = if (week) 84 else 48)
                         if ((up.coverage[c.id] ?: 100.0) < 99.95) Text("Grey: LabHUD itself was off then, so it does not know.",
                             fontSize = LabScale.textSm, color = Lab.muted, modifier = Modifier.padding(top = LabScale.space2))
                     }
@@ -393,27 +392,17 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
                 }
             })
         }
-        // the chosen tab is kept by its name: the list gains tabs as the card's answer arrives, and the index would land on another one
-        var tabName by rememberSaveable { mutableStateOf<String?>(null) }
-        val names = tabs.map { it.name }
-        val pager = rememberPagerState(initialPage = names.indexOf(tabName).coerceAtLeast(0)) { tabs.size }
-        LaunchedEffect(names) { names.indexOf(tabName).takeIf { it >= 0 && it != pager.currentPage }?.let { pager.scrollToPage(it) } }
-        LaunchedEffect(pager.settledPage) { names.getOrNull(pager.settledPage)?.let { tabName = it } }
+        // one page, no tabs: every section in a single column, the Overview first, a small title over each of the others
         Column(Modifier.padding(pad).fillMaxSize()) {
-            if (tabs.size > 1) androidx.compose.material3.ScrollableTabRow(
-                selectedTabIndex = pager.currentPage.coerceAtMost(tabs.size - 1), containerColor = Lab.bg, edgePadding = LabScale.space2,
-            ) {
+            // the page is a column of facts: on a wide screen it stays 640 dp wide in the middle
+            val wide = LocalConfiguration.current.screenWidthDp
+            val side = if (wide > 672) ((wide - 640) / 2).dp else LabScale.space4
+            LazyColumn(Modifier.fillMaxSize(), contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = side, vertical = LabScale.space4),
+                verticalArrangement = Arrangement.spacedBy(LabScale.space3)) {
                 tabs.forEachIndexed { i, t ->
-                    androidx.compose.material3.Tab(selected = pager.currentPage == i, onClick = { scope.launch { pager.scrollToPage(i) } },
-                        text = { Text(t.name, maxLines = 1, color = if (pager.currentPage == i) Lab.title else Lab.muted) })
+                    if (i > 0) item(key = "title-${t.name}") { Text(t.name.uppercase(), style = Heading, modifier = Modifier.padding(top = LabScale.space3)) }
+                    t.body(this)
                 }
-            }
-            HorizontalPager(pager, Modifier.fillMaxSize(), key = { tabs.getOrNull(it)?.name ?: it }) { i ->
-                // the Overview is a column of facts: on a wide screen it stays 640 dp wide in the middle
-                val wide = LocalConfiguration.current.screenWidthDp
-                val side = if (tabs.getOrNull(i)?.narrow == true && wide > 672) ((wide - 640) / 2).dp else LabScale.space4
-                LazyColumn(Modifier.fillMaxSize(), contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = side, vertical = LabScale.space4),
-                    verticalArrangement = Arrangement.spacedBy(LabScale.space3)) { tabs.getOrNull(i)?.body?.invoke(this) }
             }
         }
     }

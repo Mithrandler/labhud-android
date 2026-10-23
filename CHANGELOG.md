@@ -6,6 +6,8 @@ All notable changes to LabHUD for Android. The format follows
 
 ## [Unreleased]
 
+- A card is one page, no tabs: the overview, lists, History and the rest in one column. Uptime is one bar for 24 h and 7 d (the day squares are gone).
+
 ### Added
 
 - Servers lists the Docker hosts as a table (health, name, containers, CPU, RAM, updates, agent); a container with a newer image shows "update"; Update all, Host packages, Clean and Reboot on a host's Containers tab.
