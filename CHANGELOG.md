@@ -6,6 +6,8 @@ All notable changes to LabHUD for Android. The format follows
 
 ## [Unreleased]
 
+- A group tile with nothing wrong says a green "OK" instead of "0" and "all fine".
+
 - A card is one page, no tabs: the overview, lists, History and the rest in one column. Uptime is one bar for 24 h and 7 d (the day squares are gone).
 
 ### Added

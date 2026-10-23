@@ -118,8 +118,8 @@ internal fun GroupSummaryTile(g: GroupTile, server: Server?, modifier: Modifier 
                 Spacer(Modifier.width(LabScale.space1))
                 Box(Modifier.size(LabScale.dotTile).clip(CircleShape).background(color))
             }
-            Text("$count", fontSize = LabScale.textWallNum, fontWeight = FontWeight.SemiBold, color = color, maxLines = 1)
-            Text(if (who.isEmpty()) "all fine" else who.take(2).joinToString(", ") + if (who.size > 2) " +${who.size - 2}" else "",
+            Text(if (count > 0) "$count" else "OK", fontSize = LabScale.textWallNum, fontWeight = FontWeight.SemiBold, color = color, maxLines = 1)
+            Text(if (count == 0) "" else who.take(2).joinToString(", ") + if (who.size > 2) " +${who.size - 2}" else "",
                 fontSize = LabScale.textWallMin, color = Lab.sub, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
