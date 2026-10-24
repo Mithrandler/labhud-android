@@ -6,6 +6,19 @@ All notable changes to LabHUD for Android. The format follows
 
 ## [Unreleased]
 
+## [0.1.36] - 2026-10-24
+
+### Added
+
+- **Themes: Paper, Terminal and Glass**, and a phone-only choice of the HUD base (Settings > Appearance > HUD look).
+- **Servers: the hosts are a tree** (a column at the side in landscape, a drawer from the title in portrait).
+- **Servers: a Config tab on a container** (restart policy, ports, volumes, variables as write-only values; needs labhud 0.1.22 and agent 0.1.13).
+
+### Fixed
+
+- The drawer no longer opens by itself after Unlock, is not composed in landscape, and a long host name keeps its chevron.
+- Status: a push recomposes only the pages whose numbers moved.
+
 ## [0.1.34] - 2026-10-24
 
 ### Added
