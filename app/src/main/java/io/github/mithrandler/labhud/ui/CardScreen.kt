@@ -115,7 +115,6 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
     var ask by remember { mutableStateOf<Action?>(null) }
     var askMaint by remember { mutableStateOf(false) }
     var openBox by remember { mutableStateOf<io.github.mithrandler.labhud.data.Container?>(null) }
-    var stackPick by rememberSaveable { mutableStateOf<String?>(null) }
     val snack = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -274,32 +273,22 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
                 item(key = "guests") { PagedGrid(guests, cols, rows = 2) { g -> MiniCard(g, server, Modifier.weight(1f)) { if (g.agent.isNotEmpty()) onServers(g.agent) else onCard(g.id) } } }
             })
             if (stacks.isNotEmpty()) add(CTab("Containers") {
-                // one stack at a time (chips when there are several), its containers a few to a page
-                val picked = stacks.firstOrNull { it.key == stackPick } ?: stacks.first()
-                val (project, members) = picked
-                if (stacks.size > 1) item(key = "stacks") {
-                    FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(LabScale.space2), verticalArrangement = Arrangement.spacedBy(LabScale.space2)) {
-                        stacks.forEach { (name, list) ->
-                            androidx.compose.material3.FilterChip(selected = name == project, onClick = { stackPick = name },
-                                label = { Text((name.ifEmpty { "other" }) + " ${list.count { it.up }}/${list.size}") },
-                                colors = androidx.compose.material3.FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = Lab.accent.copy(alpha = 0.2f), selectedLabelColor = Lab.title))
-                        }
-                    }
-                }
-                if (project.isNotEmpty()) item(key = "head") {
-                    val restarts = members.filter { it.up }.map { m -> m.actions.firstOrNull { it.name.endsWith("-restart") } }
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Text(project.uppercase(), style = Heading, modifier = Modifier.weight(1f))
-                        Text("${members.count { it.up }}/${members.size} running", fontSize = LabScale.textSm, color = Lab.muted)
-                        if (rights.admin && restarts.isNotEmpty() && restarts.all { it != null }) {
-                            TextButton(onClick = { gate.press { askStack = project to restarts.filterNotNull() } }) {
-                                Text("Restart stack", fontSize = LabScale.textSm, color = Lab.accent)
+                // every stack, one under the other, each with its own title: the page scrolls, nothing is hidden behind a chip
+                stacks.forEach { (project, members) ->
+                    item(key = "head-$project") {
+                        val restarts = members.filter { it.up }.map { m -> m.actions.firstOrNull { it.name.endsWith("-restart") } }
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Text((project.ifEmpty { "other" }).uppercase(), style = Heading, modifier = Modifier.weight(1f))
+                            Text("${members.count { it.up }}/${members.size} running", fontSize = LabScale.textSm, color = Lab.muted)
+                            if (project.isNotEmpty() && rights.admin && restarts.isNotEmpty() && restarts.all { it != null }) {
+                                TextButton(onClick = { gate.press { askStack = project to restarts.filterNotNull() } }) {
+                                    Text("Restart stack", fontSize = LabScale.textSm, color = Lab.accent)
+                                }
                             }
                         }
                     }
+                    item(key = "boxes-$project") { PagedGrid(members, cols, rows = 3) { b -> ContainerCell(b, server, Modifier.weight(1f)) { openBox = b } } }
                 }
-                item(key = "boxes-$project") { PagedGrid(members, cols, rows = 3) { b -> ContainerCell(b, server, Modifier.weight(1f)) { openBox = b } } }
             })
             secs.filterNot { it.title.lowercase() in smallTitles }.forEach { s ->
                 val name = s.title.replaceFirstChar { it.uppercase() }.let { if (it == "History") "Events" else it }
