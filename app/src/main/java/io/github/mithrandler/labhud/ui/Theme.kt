@@ -16,6 +16,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontFamily
@@ -142,6 +143,7 @@ private val fallbackLight = lightColorScheme(
  */
 private fun hudOf(board: BoardTheme): Pair<ColorScheme, LabPalette> {
     if (board == BoardTheme()) return hudScheme to hudPalette
+    if (board.ownAccent) return ownBaseOf(board.base)
     val (accent, title) = board.accentArgb.let { Color(it.first) to Color(it.second) }
     val bg = if (board.grey) HudGrey.bg else Hud.bg
     val card = if (board.grey) HudGrey.card else Hud.card
@@ -157,6 +159,30 @@ private fun hudOf(board: BoardTheme): Pair<ColorScheme, LabPalette> {
         surfaceContainerHighest = line, outline = border, outlineVariant = line,
     )
     return scheme to palette
+}
+
+/** Paper, Terminal and Glass: a whole palette each (tokens.json), with its own accent; the Material scheme is made from it. */
+private fun ownBaseOf(base: String): Pair<ColorScheme, LabPalette> {
+    val (p, onAccent) = when (base) {
+        "paper" -> LabPalette(HudPaper.bg, HudPaper.card, HudPaper.block, HudPaper.line, HudPaper.border, HudPaper.text, HudPaper.sub, HudPaper.muted,
+            HudPaper.accent, HudPaper.title, HudPaper.onTitle, HudPaper.green, HudPaper.warn, HudPaper.red, HudPaper.redBg, HudPaper.redText, HudPaper.infoBg) to HudPaper.onAccent
+        "terminal" -> LabPalette(HudTerminal.bg, HudTerminal.card, HudTerminal.block, HudTerminal.line, HudTerminal.border, HudTerminal.text, HudTerminal.sub, HudTerminal.muted,
+            HudTerminal.accent, HudTerminal.title, HudTerminal.onTitle, HudTerminal.green, HudTerminal.warn, HudTerminal.red, HudTerminal.redBg, HudTerminal.redText, HudTerminal.infoBg) to HudTerminal.onAccent
+        else -> LabPalette(HudGlass.bg, HudGlass.card, HudGlass.block, HudGlass.line, HudGlass.border, HudGlass.text, HudGlass.sub, HudGlass.muted,
+            HudGlass.accent, HudGlass.title, HudGlass.onTitle, HudGlass.green, HudGlass.warn, HudGlass.red, HudGlass.redBg, HudGlass.redText, HudGlass.infoBg) to HudGlass.onAccent
+    }
+    // the card colour of Glass is translucent: the Material containers take it over the ground, flat
+    fun flat(c: Color) = c.compositeOver(p.bg)
+    val common = { cs: ColorScheme -> cs.copy(
+        primary = p.accent, onPrimary = onAccent, onPrimaryContainer = p.title, secondary = p.title,
+        background = p.bg, onBackground = p.text, surface = p.bg, onSurface = p.text,
+        surfaceVariant = flat(p.card), onSurfaceVariant = p.sub, surfaceContainerLowest = p.bg,
+        surfaceContainerLow = flat(p.card), surfaceContainer = flat(p.card), surfaceContainerHigh = flat(p.block),
+        surfaceContainerHighest = flat(p.line), outline = flat(p.border), outlineVariant = flat(p.line),
+        secondaryContainer = p.accent.copy(alpha = 0.22f).compositeOver(p.bg), onSecondaryContainer = p.text,
+        error = p.red,
+    ) }
+    return (if (base == "paper") common(lightColorScheme()) else common(hudScheme)) to p
 }
 
 /** The roles from a Material scheme; the status colours are labhud's own, darker on a light ground. */
@@ -206,7 +232,7 @@ fun LabTheme(mode: ThemeMode = ThemeMode.Hud, board: BoardTheme = BoardTheme(), 
     val density = LocalDensity.current
     val scaled = remember(density, textScale) { Density(density.density, density.fontScale * textScaleOf(textScale) / 100f) }
     CompositionLocalProvider(LocalDensity provides scaled) {
-        MaterialTheme(colorScheme = scheme, typography = if (mono) monoType else type, content = content)
+        MaterialTheme(colorScheme = scheme, typography = if (mono || (mode == ThemeMode.Hud && board.mono)) monoType else type, content = content)
     }
 }
 

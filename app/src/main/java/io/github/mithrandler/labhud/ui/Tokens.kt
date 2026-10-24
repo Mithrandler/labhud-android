@@ -1,4 +1,4 @@
-// Written by labhud's design/build.py from its design/tokens.json (c6de0593bc66): edit there, not here.
+// Written by labhud's design/build.py from its design/tokens.json (cbcdec0ab902): edit there, not here.
 package io.github.mithrandler.labhud.ui
 
 import androidx.compose.ui.graphics.Color
@@ -62,6 +62,72 @@ object HudGrey {
     val line = Color(0xFF333844)
     /** card edges */
     val border = Color(0xFF454C59)
+}
+
+/** The "Paper" board: every colour the app asks of a base. */
+object HudPaper {
+    val bg = Color(0xFFF6F3EC)
+    val card = Color(0xFFFFFFFF)
+    val block = Color(0xFFEFEBE2)
+    val line = Color(0xFFE2DDD0)
+    val border = Color(0xFFCFC8B6)
+    val text = Color(0xFF1C1B18)
+    val sub = Color(0xFF55524A)
+    val muted = Color(0xFF8A8577)
+    val accent = Color(0xFF1F4FD8)
+    val title = Color(0xFF1A3FB0)
+    val onTitle = Color(0xFFFFFFFF)
+    val green = Color(0xFF1F8A3B)
+    val warn = Color(0xFFB25E00)
+    val red = Color(0xFFC62828)
+    val redBg = Color(0xFFFDE8E6)
+    val redText = Color(0xFF7A1612)
+    val infoBg = Color(0xFFE9EEFB)
+    val onAccent = Color(0xFFFFFFFF)
+}
+
+/** The "Terminal" board: every colour the app asks of a base. */
+object HudTerminal {
+    val bg = Color(0xFF050805)
+    val card = Color(0xFF0A110A)
+    val block = Color(0xFF0F1A0F)
+    val line = Color(0xFF16301A)
+    val border = Color(0xFF1F4A26)
+    val text = Color(0xFFC8F7C5)
+    val sub = Color(0xFF7FBF7A)
+    val muted = Color(0xFF4F7D4B)
+    val accent = Color(0xFF33FF66)
+    val title = Color(0xFFFFB000)
+    val onTitle = Color(0xFF000000)
+    val green = Color(0xFF33FF66)
+    val warn = Color(0xFFFFB000)
+    val red = Color(0xFFFF4D4D)
+    val redBg = Color(0xFF2A0A0A)
+    val redText = Color(0xFFFFC9C9)
+    val infoBg = Color(0xFF0A1A0E)
+    val onAccent = Color(0xFF001A06)
+}
+
+/** The "Glass" board: every colour the app asks of a base. */
+object HudGlass {
+    val bg = Color(0xFF0B1220)
+    val card = Color(0x12FFFFFF)
+    val block = Color(0x1FFFFFFF)
+    val line = Color(0x1FFFFFFF)
+    val border = Color(0x33FFFFFF)
+    val text = Color(0xFFF2F6FF)
+    val sub = Color(0xFFB9C4DD)
+    val muted = Color(0xFF7F8DB0)
+    val accent = Color(0xFF7AA2FF)
+    val title = Color(0xFF9BB8FF)
+    val onTitle = Color(0xFF07102A)
+    val green = Color(0xFF3DDC84)
+    val warn = Color(0xFFFFB454)
+    val red = Color(0xFFFF6B6B)
+    val redBg = Color(0xFF3A1020)
+    val redText = Color(0xFFFFD6DD)
+    val infoBg = Color(0x0FFFFFFF)
+    val onAccent = Color(0xFF07102A)
 }
 
 /** The fallback Material schemes (no wallpaper colours to take, before Android 12): labhud's blue on neutral greys. */

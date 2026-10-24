@@ -48,6 +48,8 @@ data class AppSettings(
     /** Text size in percent (85 to 130, steps of 5) and whether the font is the monospace one: this phone only, like the theme. */
     val textScale: Int = 100,
     val monoFont: Boolean = false,
+    /** The HUD base this phone uses instead of the board's (oled, grey, paper, terminal, glass); null follows the board. */
+    val baseOverride: String? = null,
     /** What this phone opens as (the wall page has its own, [wallGlance]). */
     val phoneView: io.github.mithrandler.labhud.ui.ViewChoice = io.github.mithrandler.labhud.ui.ViewChoice.Auto,
     /** Wall mode dims the screen in a window of the night. */
@@ -74,6 +76,7 @@ class ServerStore(private val context: Context) {
     private val themeKey = stringPreferencesKey("theme_mode")
     private val textScaleKey = intPreferencesKey("text_scale")
     private val monoKey = booleanPreferencesKey("mono_font")
+    private val baseOverrideKey = stringPreferencesKey("base_override")
     private val phoneViewKey = stringPreferencesKey("phone_view")
     private val screenOnKey = booleanPreferencesKey("screen_schedule")
     private val screenFromKey = androidx.datastore.preferences.core.intPreferencesKey("screen_from")
@@ -105,7 +108,7 @@ class ServerStore(private val context: Context) {
         AppSettings(lockMode = mode, wallOnBoot = p[wallBootKey] ?: false, wallGlance = p[wallGlanceKey] ?: true,
             notify = p[notifyKey]?.let { runCatching { NotifyMode.valueOf(it) }.getOrNull() } ?: NotifyMode.Off,
             theme = p[themeKey]?.let { runCatching { ThemeMode.valueOf(it) }.getOrNull() } ?: ThemeMode.Hud,
-            textScale = io.github.mithrandler.labhud.ui.textScaleOf(p[textScaleKey] ?: 100), monoFont = p[monoKey] ?: false,
+            textScale = io.github.mithrandler.labhud.ui.textScaleOf(p[textScaleKey] ?: 100), monoFont = p[monoKey] ?: false, baseOverride = p[baseOverrideKey],
             phoneView = p[phoneViewKey]?.let { runCatching { io.github.mithrandler.labhud.ui.ViewChoice.valueOf(it) }.getOrNull() }
                 ?: io.github.mithrandler.labhud.ui.ViewChoice.Auto,
             screen = io.github.mithrandler.labhud.wall.ScreenSchedule().let { d ->
@@ -170,6 +173,7 @@ class ServerStore(private val context: Context) {
     suspend fun setTheme(mode: ThemeMode) = context.store.edit { it[themeKey] = mode.name }
     suspend fun setTextScale(percent: Int) = context.store.edit { it[textScaleKey] = io.github.mithrandler.labhud.ui.textScaleOf(percent) }
     suspend fun setMonoFont(on: Boolean) = context.store.edit { it[monoKey] = on }
+    suspend fun setBaseOverride(base: String?) = context.store.edit { if (base == null) it.remove(baseOverrideKey) else it[baseOverrideKey] = base }
     suspend fun setWallOnBoot(on: Boolean) = context.store.edit { it[wallBootKey] = on }
     suspend fun setWallGlance(on: Boolean) = context.store.edit { it[wallGlanceKey] = on }
     suspend fun setScreen(v: io.github.mithrandler.labhud.wall.ScreenSchedule) = context.store.edit {

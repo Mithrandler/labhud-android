@@ -144,6 +144,19 @@ fun ThemeSection(repo: LabRepository, nav: SettingsNav) {
             }
         }
         item {
+            val bases = listOf(null to "Board", "oled" to "OLED", "grey" to "Grey", "paper" to "Paper", "terminal" to "Terminal", "glass" to "Glass")
+            Panel("HUD look", summary = bases.first { it.first == settings.baseOverride }.second) {
+                Text("The base of the HUD theme on this phone: the board's (⚙ > Dashboard), or one of your own. Paper is light, Terminal is monospace.",
+                    fontSize = LabScale.textSm, color = Lab.muted)
+                androidx.compose.foundation.layout.FlowRow(Modifier.fillMaxWidth().padding(top = LabScale.space2),
+                    horizontalArrangement = Arrangement.spacedBy(LabScale.space2)) {
+                    bases.forEach { (key, label) ->
+                        FilterChip(selected = settings.baseOverride == key, onClick = { scope.launch { repo.store.setBaseOverride(key) } }, label = { Text(label) })
+                    }
+                }
+            }
+        }
+        item {
             Panel("Text", summary = "${settings.textScale}%" + if (settings.monoFont) " · monospace" else "") {
                 Text("The font and its size in this app, on this phone only. The wall page keeps its own.", fontSize = LabScale.textSm, color = Lab.muted)
                 Row(Modifier.fillMaxWidth().padding(top = LabScale.space2), horizontalArrangement = Arrangement.spacedBy(LabScale.space2)) {

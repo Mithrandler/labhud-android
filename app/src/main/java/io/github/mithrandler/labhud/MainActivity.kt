@@ -80,6 +80,7 @@ import io.github.mithrandler.labhud.ui.LabTheme
 import io.github.mithrandler.labhud.ui.isDarkTheme
 import io.github.mithrandler.labhud.data.AppSettings
 import io.github.mithrandler.labhud.data.BoardTheme
+import io.github.mithrandler.labhud.data.ThemeMode
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import androidx.compose.runtime.DisposableEffect
@@ -111,7 +112,12 @@ class MainActivity : FragmentActivity() {
         })
         setContent {
             val look by repo.store.settings.collectAsStateWithLifecycle(initialValue = AppSettings())
-            val darkBars = isDarkTheme(look.theme)
+            val boardOf by remember { repo.state.map { it?.theme ?: BoardTheme() }.distinctUntilChanged() }
+                .collectAsStateWithLifecycle(initialValue = BoardTheme())
+            // this phone's own base, if it chose one, over the board's
+            val board = look.baseOverride?.let { boardOf.copy(base = it) } ?: boardOf
+            // Paper is a light ground: dark icons in the bars, as in the Light theme
+            val darkBars = isDarkTheme(look.theme) && !(look.theme == ThemeMode.Hud && board.light)
             DisposableEffect(darkBars) {
                 enableEdgeToEdge(
                     statusBarStyle = if (darkBars) SystemBarStyle.dark(android.graphics.Color.TRANSPARENT) else SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT),
@@ -119,8 +125,6 @@ class MainActivity : FragmentActivity() {
                 )
                 onDispose {}
             }
-            val board by remember { repo.state.map { it?.theme ?: BoardTheme() }.distinctUntilChanged() }
-                .collectAsStateWithLifecycle(initialValue = BoardTheme())
             LabTheme(look.theme, board, look.textScale, look.monoFont) {
                 val unlocked by AppLock.unlocked.collectAsStateWithLifecycle()
                 val servers by repo.store.servers.collectAsStateWithLifecycle(initialValue = null)

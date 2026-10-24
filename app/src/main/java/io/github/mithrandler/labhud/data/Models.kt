@@ -372,7 +372,7 @@ data class Alert(
 )
 
 /**
- * The board's theme (labhud 0.1.1, [display] base and accent): `base` is "oled" or "grey", `accent` a
+ * The board's theme (labhud 0.1.1, [display] base and accent): `base` is "oled", "grey", "paper", "terminal" or "glass", `accent` a
  * name from [ACCENTS] or "#rrggbb". The app's HUD look follows it; the Material themes keep the phone's.
  */
 @Serializable
@@ -380,6 +380,12 @@ data class BoardTheme(val base: String = "oled", val accent: String = "blue") {
     /** The accent and title colours as 0xAARRGGBB: a preset's pair, a custom colour for both, else blue's. */
     val accentArgb: Pair<Long, Long> get() = ACCENTS[accent] ?: customArgb(accent) ?: ACCENTS.getValue("blue")
     val grey: Boolean get() = base == "grey"
+    /** Paper is a light ground: dark system-bar icons, a light Material scheme. */
+    val light: Boolean get() = base == "paper"
+    /** Terminal is set in a monospace font, whatever the phone's own font choice. */
+    val mono: Boolean get() = base == "terminal"
+    /** The bases that bring an accent of their own: the accent presets (made for a dark ground) do not apply to them. */
+    val ownAccent: Boolean get() = base == "paper" || base == "terminal" || base == "glass"
 
     companion object {
         private val ACCENTS = mapOf(

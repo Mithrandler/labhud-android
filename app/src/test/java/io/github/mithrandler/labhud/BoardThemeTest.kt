@@ -36,4 +36,34 @@ class BoardThemeTest {
         assertEquals(BoardTheme().accentArgb, BoardTheme("oled", "teal").accentArgb)
         assertEquals(BoardTheme().accentArgb, BoardTheme("oled", "#abc").accentArgb)
     }
+
+    @Test fun lightIsTrueOnlyForPaper() {
+        assertTrue(BoardTheme("paper", "blue").light)
+        assertFalse(BoardTheme("oled", "blue").light)
+        assertFalse(BoardTheme("grey", "blue").light)
+        assertFalse(BoardTheme("terminal", "blue").light)
+        assertFalse(BoardTheme("glass", "blue").light)
+    }
+
+    @Test fun monoIsTrueOnlyForTerminal() {
+        assertTrue(BoardTheme("terminal", "blue").mono)
+        assertFalse(BoardTheme("paper", "blue").mono)
+        assertFalse(BoardTheme("oled", "blue").mono)
+        assertFalse(BoardTheme("grey", "blue").mono)
+        assertFalse(BoardTheme("glass", "blue").mono)
+    }
+
+    @Test fun ownAccentPerBase() {
+        assertTrue(BoardTheme("paper", "blue").ownAccent)
+        assertTrue(BoardTheme("terminal", "blue").ownAccent)
+        assertTrue(BoardTheme("glass", "blue").ownAccent)
+        assertFalse(BoardTheme("oled", "blue").ownAccent)
+        assertFalse(BoardTheme("grey", "blue").ownAccent)
+    }
+
+    @Test fun decodingTerminalTheme() {
+        val theme = LabJson.decodeFromString<BoardTheme>("""{"base": "terminal", "accent": "blue"}""")
+        assertEquals(BoardTheme("terminal", "blue"), theme)
+        assertTrue(theme.mono)
+    }
 }
