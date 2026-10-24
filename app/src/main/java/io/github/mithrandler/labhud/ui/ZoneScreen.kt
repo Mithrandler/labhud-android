@@ -123,6 +123,7 @@ fun ZoneScreen(repo: LabRepository, bar: BarNav, onSignIn: () -> Unit) {
     var tab by rememberSaveable { mutableStateOf("containers") }
     val wide = LocalConfiguration.current.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
     val drawer = androidx.compose.material3.rememberDrawerState(androidx.compose.material3.DrawerValue.Closed)
+    LaunchedEffect(wide) { if (wide) drawer.snapTo(androidx.compose.material3.DrawerValue.Closed) }   // a drawer left open before a turn must not cover the wide layout
     LaunchedEffect(ZoneTarget.host) { if (ZoneTarget.host.isNotEmpty()) { host = ZoneTarget.host; ZoneTarget.host = "" } }
     var tick by remember { mutableStateOf(0) }
 
@@ -160,16 +161,17 @@ fun ZoneScreen(repo: LabRepository, bar: BarNav, onSignIn: () -> Unit) {
     val pick: (String, String) -> Unit = { h, t -> host = h; tab = t; scope.launch { drawer.close() } }
     androidx.compose.material3.ModalNavigationDrawer(
         drawerState = drawer, gesturesEnabled = !wide && tree != null,
-        drawerContent = { if (tree != null) androidx.compose.material3.ModalDrawerSheet(drawerContainerColor = Lab.bg) {
+        // the sheet is always there (its width does not wait for the hosts): a drawer that first has no content starts at an offset that reads as open
+        drawerContent = { if (!wide) androidx.compose.material3.ModalDrawerSheet(drawerContainerColor = Lab.bg) { if (tree != null) {
             Text("Servers", fontSize = LabScale.textMd, color = Lab.title, modifier = Modifier.padding(LabScale.space4))
             HostTree(tree, host, tab, TABS, pick)
-        } },
+        } } },
     ) {
     Scaffold(
         modifier = Modifier.labBarScroll(barScroll), containerColor = Lab.bg,
         topBar = { MainTopBar(repo, bar, title = {
             Row(Modifier.clickable(enabled = !wide && tree != null) { scope.launch { drawer.open() } }, verticalAlignment = Alignment.CenterVertically) {
-                Text(if (host.isEmpty()) "Servers" else host)
+                if (host.isEmpty()) Text("Servers") else Text(host, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
                 if (!wide && tree != null) Icon(LabIcons.chevronDown, "Hosts", tint = Lab.muted, modifier = Modifier.size(LabScale.iconCard))
             }
         }, onBack = if (host.isEmpty()) null else ({ host = "" })) },
