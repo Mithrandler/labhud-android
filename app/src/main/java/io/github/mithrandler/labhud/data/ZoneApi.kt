@@ -57,6 +57,14 @@ data class ZoneInspect(
     val env: List<String> = emptyList(), val labels: Map<String, String> = emptyMap(), val health: String = "", val command: String = "",
 )
 
+/** A container's editable settings: the variables are names only (a value is only ever written). */
+@Serializable
+data class ZoneSettings(
+    val managed: String = "", val self: Boolean = false, val restart: String = "no",
+    val ports: List<String> = emptyList(), val volumes: List<String> = emptyList(), val env: List<String> = emptyList(),
+    @SerialName("other_mounts") val otherMounts: Int = 0,
+)
+
 @Serializable
 data class ZoneStats(
     val cpu: Double = 0.0, val mem: Double = 0.0,
@@ -154,6 +162,7 @@ data class ZoneAnswer(
     val started: List<String> = emptyList(),
     val text: String = "",
     val inspect: ZoneInspect? = null,
+    val settings: ZoneSettings? = null,
     val stats: ZoneStats? = null,
     val id: String = "",
     val data: String = "",
@@ -295,6 +304,21 @@ suspend fun LabApi.zoneContainers(agent: String) = zone("containers") { put("age
 suspend fun LabApi.zoneAction(agent: String, name: String, verb: String) = zone("action", 60) { put("agent", agent); put("name", name); put("verb", verb) }
 suspend fun LabApi.zoneLogs(agent: String, name: String) = zone("logs", 35) { put("agent", agent); put("name", name) }
 suspend fun LabApi.zoneInspect(agent: String, name: String) = zone("inspect", 35) { put("agent", agent); put("name", name) }
+suspend fun LabApi.zoneSettings(agent: String, name: String) = zone("config", 35) { put("agent", agent); put("name", name) }
+/** [envSet] values are written, never read back; null lists stay as they are. [confirm] is the name typed. */
+suspend fun LabApi.zoneReconfigure(
+    agent: String, name: String, confirm: String, envSet: Map<String, String>, envUnset: List<String>,
+    ports: List<String>?, volumes: List<String>?, restart: String?,
+) = zone("reconfigure", 340) {
+    put("agent", agent); put("name", name); put("confirm", confirm)
+    put("change", buildJsonObject {
+        if (envSet.isNotEmpty()) put("env_set", buildJsonObject { envSet.forEach { (k, v) -> put(k, v) } })
+        if (envUnset.isNotEmpty()) put("env_unset", buildJsonArray { envUnset.forEach { add(it) } })
+        if (ports != null) put("ports", buildJsonArray { ports.forEach { add(it) } })
+        if (volumes != null) put("volumes", buildJsonArray { volumes.forEach { add(it) } })
+        if (restart != null) put("restart", restart)
+    })
+}
 suspend fun LabApi.zoneStats(agent: String, name: String) = zone("stats", 35) { put("agent", agent); put("name", name) }
 suspend fun LabApi.zoneOpen(agent: String, kind: String, name: String, cols: Int = 80, rows: Int = 24) =
     zone("stream-open") { put("agent", agent); put("kind", kind); put("name", name); put("cols", cols); put("rows", rows) }

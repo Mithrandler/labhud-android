@@ -427,12 +427,14 @@ private fun ContainerSheet(host: String, c: ZoneContainer, ask: suspend (suspend
         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(LabScale.space2)) {
             FilterChip(view == "logs", { view = "logs" }, label = { Text("Logs live") })
             FilterChip(view == "inspect", { view = "inspect" }, label = { Text("Inspect") })
+            FilterChip(view == "config", { view = "config" }, label = { Text("Config") })
             FilterChip(view == "stats", { view = "stats" }, label = { Text("Stats") })
             FilterChip(view == "shell", { view = "shell" }, enabled = c.shell, label = { Text("Shell") })
         }
         Spacer(Modifier.size(LabScale.space2))
         when (view) {
             "inspect" -> InspectView(host, c.name, ask)
+            "config" -> ConfigView(host, c.name, ask, onChanged)
             "stats" -> StatsView(host, c.name, ask)
             "shell" -> ShellView(host, c.name, repo, ask)
             else -> LogView(host, c.name, repo, ask)
