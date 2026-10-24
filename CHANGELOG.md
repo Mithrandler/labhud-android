@@ -6,6 +6,25 @@ All notable changes to LabHUD for Android. The format follows
 
 ## [Unreleased]
 
+## [0.1.34] - 2026-10-24
+
+### Added
+
+- **The bell can bring back what you dismissed**: "Show N dismissed" under the list. A dismissal had no way back until the item cleared.
+- The search sheet opens with the cursor in the field.
+
+### Changed
+
+- **Swiping between the Status pages no longer stalls.** A page cost about 100 ms to build the first time you reached it; the pages are now composed one at a time in the background. On a Pixel 6a the 95th percentile frame went from 117 ms to 29 ms.
+- **Landscape**: the tab column starts at the screen edge and leaves a gap only where the camera hole is (it used to reserve the whole cutout inset, about 130 px); the rings of a card share one row instead of needing a scroll; the Settings list is 720 dp wide, centred, and its hints may take two lines.
+- Status: a line a two-cell host leaves short is filled by the next small tile of the section; three columns in portrait whatever the keyboard does; a tile's status dot sits in its corner so a long name ("SYNOLOGY") is no longer cut, and a game's long name shrinks before it is cut.
+- Servers: the filter and the buttons of Images, Volumes and Networks scroll away with the list; the hint on Volumes and Networks says that images, volumes and networks share one "Unused images" tick.
+- Dashboard: a games page reads "the game servers" instead of "0 cards".
+
+### Fixed
+
+- **An offline host looked quiet.** Its Overview showed 0 containers, 0% CPU and 0% RAM; it now shows dashes, says the host is offline on Containers, and disables the actions that cannot reach it.
+
 ## [0.1.33] - 2026-10-24
 
 ### Fixed
