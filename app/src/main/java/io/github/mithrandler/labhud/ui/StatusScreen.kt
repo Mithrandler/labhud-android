@@ -172,10 +172,17 @@ fun StatusScreen(
                 // offline: the last numbers stay, dimmed, so they are not taken for live ones
                 // a swipe is not the pager's own: the top half moves between the pages (General, Network...), the bottom half between
                 // the screens of a page (the dots), so each hand has one place to go (see the gesture on the Column below)
+                // A page costs ~100 ms to build, which a swipe used to wait for. After the first one is up, the others are composed one at a
+                // time in the background (every 600 ms), so by the time a hand reaches for them they are all there.
+                var ahead by remember { mutableIntStateOf(1) }
+                LaunchedEffect(pages.size) { for (n in 2 until pages.size) { delay(600); ahead = n } }
                 HorizontalPager(pager, Modifier.fillMaxSize().alpha(if (conn is Conn.Offline) 0.5f else 1f), userScrollEnabled = false,
+                    beyondViewportPageCount = ahead.coerceAtMost((pages.size - 1).coerceAtLeast(0)),
                     key = { pages.getOrNull(it)?.id ?: it }) { index ->
                     val page = pages.getOrNull(index)
-                    androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxSize()) {
+                    // a plain Box, not BoxWithConstraints: that one subcomposes its content again (and lays the whole page out again) on every
+                    // live update, which was most of the ~70 ms a push cost while two pages were on screen
+                    androidx.compose.foundation.layout.Box(Modifier.fillMaxSize()) {
                         // equal cells, the same gap between them and to the edges: 4 to a row in landscape, 3 in portrait (the page's own `columns` may cap it)
                         val gapDp = LabScale.wallGap
                         // the screen's orientation, not this box's shape: an open keyboard shortens the box in portrait, and 4 squeezed columns appeared

@@ -402,12 +402,14 @@ fun MiniCard(c: Card, server: Server?, modifier: Modifier = Modifier, chip: Stri
         shadowElevation = if (Lab.hud) 0.dp else LabScale.hairline,
     ) {
         // the same three places as every wall tile (HostTile, GroupSummaryTile): name on top, the one number, one line at the bottom
-        Column(Modifier.padding(horizontal = LabScale.space3, vertical = LabScale.space2), verticalArrangement = Arrangement.SpaceBetween) {
+        // the status dot sits in the tile's corner, in the padding, not in the name's row: three tiles to a phone row left the
+        // name 55 dp, and "SYNOLOGY" was cut to "SYNOLO…"
+        Box(Modifier.fillMaxSize()) {
+        Column(Modifier.fillMaxSize().padding(start = LabScale.space3, end = LabScale.space3, top = LabScale.space2, bottom = LabScale.space2), verticalArrangement = Arrangement.SpaceBetween) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 CardIcon(c, server, LabScale.iconTile)
                 Spacer(Modifier.width(LabScale.space2))
                 FitText(c.name, LabScale.textWallName, FontWeight.SemiBold, Modifier.weight(1f), minSize = LabScale.textWallMin)
-                if (c.status != null || c.bad != null) { Spacer(Modifier.width(LabScale.space1)); StatusDot(c, LabScale.dotTile.value.toInt()) }
             }
             val head = c.headline()
             val word = statusWord(c)
@@ -432,6 +434,10 @@ fun MiniCard(c: Card, server: Server?, modifier: Modifier = Modifier, chip: Stri
                 else -> word.ifEmpty { listOfNotNull(up, chip?.substringBefore(" ")).joinToString(" · ") }
             }
             Text(if (low) " " else line.ifEmpty { " " }, fontSize = LabScale.textWallMin, color = if (c.status == "down") Lab.red else Lab.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+        if (c.status != null || c.bad != null) Box(Modifier.align(Alignment.TopEnd).padding(top = LabScale.space2 + LabScale.iconTile / 2 - LabScale.dotTile / 2, end = LabScale.space1)) {
+            StatusDot(c, LabScale.dotTile.value.toInt())
+        }
         }
     }
 }

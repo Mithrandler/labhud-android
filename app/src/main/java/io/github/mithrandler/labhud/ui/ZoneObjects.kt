@@ -238,7 +238,7 @@ internal fun VolumesTab(h: ZoneHost, ask: ZoneAsk, gate: Gate) {
             item(key = "head") {
                 Column {
                     OutlinedTextField(query, { query = it.take(60) }, singleLine = true, label = { Text("Filter") }, modifier = Modifier.fillMaxWidth().padding(top = LabScale.space2))
-                    Said(message.ifEmpty { said })
+                    Said(tickHint(message, "volumes").ifEmpty { said })
                     if (rows == null && message.isEmpty()) Text("Loading…", color = Lab.muted, modifier = Modifier.padding(top = LabScale.space2))
                 }
             }
@@ -342,7 +342,7 @@ internal fun NetworksTab(h: ZoneHost, ask: ZoneAsk, gate: Gate) {
             item(key = "head") {
                 Column {
                     OutlinedTextField(query, { query = it.take(60) }, singleLine = true, label = { Text("Filter") }, modifier = Modifier.fillMaxWidth().padding(top = LabScale.space2))
-                    Said(message.ifEmpty { said })
+                    Said(tickHint(message, "networks").ifEmpty { said })
                     if (rows == null && message.isEmpty()) Text("Loading…", color = Lab.muted, modifier = Modifier.padding(top = LabScale.space2))
                 }
             }
@@ -400,3 +400,10 @@ internal fun LabSheet(onClose: () -> Unit, content: @Composable () -> Unit) {
         }
     }
 }
+
+/**
+ * The server's refusal names the host's "Unused images" tick, which is also what lets labhud ask for its volumes and networks:
+ * on those tabs the same tick is said so, instead of a word about images.
+ */
+private fun tickHint(message: String, what: String) =
+    if (message.contains("Unused images")) "Images, volumes and networks share one tick: tick “Unused images” for this host in Settings > Hosts and agents to see its $what." else message

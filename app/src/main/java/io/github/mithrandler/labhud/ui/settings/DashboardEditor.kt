@@ -59,7 +59,8 @@ fun LazyListScope.pagesList(pages: List<LayoutPage>, enabled: Boolean, onChange:
                 Row(Modifier.fillMaxWidth().clickable { onOpen(p.id) }.padding(vertical = LabScale.space1), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text(p.title, fontWeight = FontWeight.Medium, fontSize = LabScale.textMd, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text("${p.groups.size} groups · ${p.groups.sumOf { it.cards.size }} cards", fontSize = LabScale.textSm, color = Lab.muted)
+                        // a games page holds game servers, not cards
+                        Text(if (p.games) "the game servers" else "${p.groups.size} groups · ${p.groups.sumOf { it.cards.size }} cards", fontSize = LabScale.textSm, color = Lab.muted)
                     }
                     Arrows(up = enabled && i > 0, down = enabled && i < pages.lastIndex,
                         onUp = { onChange(pages.movePage(p.id, -1)) }, onDown = { onChange(pages.movePage(p.id, 1)) })
