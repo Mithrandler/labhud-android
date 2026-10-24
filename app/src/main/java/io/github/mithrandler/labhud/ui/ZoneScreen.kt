@@ -120,6 +120,9 @@ fun ZoneScreen(repo: LabRepository, bar: BarNav, onSignIn: () -> Unit) {
     var hosts by remember { mutableStateOf<List<ZoneHost>?>(null) }
     var message by remember { mutableStateOf("") }
     var host by rememberSaveable { mutableStateOf("") }
+    var tab by rememberSaveable { mutableStateOf("containers") }
+    val wide = LocalConfiguration.current.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
+    val drawer = androidx.compose.material3.rememberDrawerState(androidx.compose.material3.DrawerValue.Closed)
     LaunchedEffect(ZoneTarget.host) { if (ZoneTarget.host.isNotEmpty()) { host = ZoneTarget.host; ZoneTarget.host = "" } }
     var tick by remember { mutableStateOf(0) }
 
@@ -152,18 +155,40 @@ fun ZoneScreen(repo: LabRepository, bar: BarNav, onSignIn: () -> Unit) {
     BackHandler(host.isNotEmpty()) { host = "" }
 
     val barScroll = rememberLabBarScroll()
+    // the tree of hosts and their tabs: a column at the side when the screen is wide, a drawer on a narrow one (open it from the title)
+    val tree = hosts?.takeIf { session && rights.admin && it.any { h -> h.docker } }
+    val pick: (String, String) -> Unit = { h, t -> host = h; tab = t; scope.launch { drawer.close() } }
+    androidx.compose.material3.ModalNavigationDrawer(
+        drawerState = drawer, gesturesEnabled = !wide && tree != null,
+        drawerContent = { if (tree != null) androidx.compose.material3.ModalDrawerSheet(drawerContainerColor = Lab.bg) {
+            Text("Servers", fontSize = LabScale.textMd, color = Lab.title, modifier = Modifier.padding(LabScale.space4))
+            HostTree(tree, host, tab, TABS, pick)
+        } },
+    ) {
     Scaffold(
         modifier = Modifier.labBarScroll(barScroll), containerColor = Lab.bg,
-        topBar = { MainTopBar(repo, bar, title = { Text(if (host.isEmpty()) "Servers" else host) }, onBack = if (host.isEmpty()) null else ({ host = "" })) },
+        topBar = { MainTopBar(repo, bar, title = {
+            Row(Modifier.clickable(enabled = !wide && tree != null) { scope.launch { drawer.open() } }, verticalAlignment = Alignment.CenterVertically) {
+                Text(if (host.isEmpty()) "Servers" else host)
+                if (!wide && tree != null) Icon(LabIcons.chevronDown, "Hosts", tint = Lab.muted, modifier = Modifier.size(LabScale.iconCard))
+            }
+        }, onBack = if (host.isEmpty()) null else ({ host = "" })) },
     ) { pad ->
-        Column(Modifier.padding(pad).fillMaxSize()) {
-            when {
-                !rights.admin -> Notice("Servers is for the admin.", "Sign in", onSignIn)
-                !session -> Notice(message.ifEmpty { "Servers needs the PIN again." }, "Unlock") { start() }
-                host.isEmpty() -> HostList(hosts, message, onOpen = { host = it }, onRefresh = { tick++ })
-                else -> hosts?.firstOrNull { it.name == host }?.let { h -> HostScreen(h, ::ask, repo, gate) } ?: run { host = "" }
+        Row(Modifier.padding(pad).fillMaxSize()) {
+            if (wide && tree != null) {
+                HostTree(tree, host, tab, TABS, pick, Modifier.width(LabScale.cellW + LabScale.space6))
+                androidx.compose.material3.VerticalDivider(color = Lab.line)
+            }
+            Column(Modifier.weight(1f).fillMaxSize()) {
+                when {
+                    !rights.admin -> Notice("Servers is for the admin.", "Sign in", onSignIn)
+                    !session -> Notice(message.ifEmpty { "Servers needs the PIN again." }, "Unlock") { start() }
+                    host.isEmpty() -> HostList(hosts, message, onOpen = { host = it }, onRefresh = { tick++ })
+                    else -> hosts?.firstOrNull { it.name == host }?.let { h -> HostScreen(h, tab, { tab = it }, wide && tree != null, ::ask, repo, gate) } ?: run { host = "" }
+                }
             }
         }
+    }
     }
     GateDialogs(gate, onSignIn)
 }
@@ -227,8 +252,7 @@ private fun HostCell(text: String, width: androidx.compose.ui.unit.Dp, color: an
 private val TABS = listOf("overview" to "Overview", "containers" to "Containers", "stacks" to "Stacks", "images" to "Images", "volumes" to "Volumes", "networks" to "Networks", "vms" to "VMs & LXC", "host" to "Host")
 
 @Composable
-private fun HostScreen(h: ZoneHost, ask: suspend (suspend LabApi.() -> ZoneAnswer) -> ZoneAnswer, repo: LabRepository, gate: Gate) {
-    var tab by rememberSaveable { mutableStateOf("containers") }
+private fun HostScreen(h: ZoneHost, tab: String, onTab: (String) -> Unit, treeShown: Boolean, ask: suspend (suspend LabApi.() -> ZoneAnswer) -> ZoneAnswer, repo: LabRepository, gate: Gate) {
     val wide = LocalConfiguration.current.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
     @Composable fun content() = when (tab) {
         "overview" -> Overview(h)
@@ -241,14 +265,16 @@ private fun HostScreen(h: ZoneHost, ask: suspend (suspend LabApi.() -> ZoneAnswe
         else -> ContainersTab(h, ask, repo, gate)
     }
     val tabs = TABS.filter { it.first != "vms" || h.pve }
-    if (wide) Row(Modifier.fillMaxSize()) {
+    // the tree at the side already lists the tabs: only the content is left
+    if (treeShown) Box(Modifier.fillMaxSize()) { content() }
+    else if (wide) Row(Modifier.fillMaxSize()) {
         Column(Modifier.width(LabScale.cellW).verticalScroll(rememberScrollState()).padding(LabScale.space2), verticalArrangement = Arrangement.spacedBy(LabScale.space1)) {
-            tabs.forEach { (id, label) -> FilterChip(selected = tab == id, onClick = { tab = id }, label = { Text(label) }, modifier = Modifier.fillMaxWidth()) }
+            tabs.forEach { (id, label) -> FilterChip(selected = tab == id, onClick = { onTab(id) }, label = { Text(label) }, modifier = Modifier.fillMaxWidth()) }
         }
         Box(Modifier.weight(1f)) { content() }
     } else Column(Modifier.fillMaxSize()) {
         Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = LabScale.space4), horizontalArrangement = Arrangement.spacedBy(LabScale.space2)) {
-            tabs.forEach { (id, label) -> FilterChip(selected = tab == id, onClick = { tab = id }, label = { Text(label) }) }
+            tabs.forEach { (id, label) -> FilterChip(selected = tab == id, onClick = { onTab(id) }, label = { Text(label) }) }
         }
         Box(Modifier.weight(1f)) { content() }
     }
