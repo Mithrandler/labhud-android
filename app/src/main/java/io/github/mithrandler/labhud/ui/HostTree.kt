@@ -93,7 +93,7 @@ internal fun HostTree(
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             if (current) {
-                                Box(Modifier.width(2.dp).height(LabScale.space6).background(Lab.accent))
+                                Box(Modifier.width(LabScale.space1 / 2).height(LabScale.space6).background(Lab.accent))
                                 Spacer(Modifier.width(LabScale.space2))
                             }
                             Text(
