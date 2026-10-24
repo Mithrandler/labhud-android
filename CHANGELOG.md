@@ -6,6 +6,12 @@ All notable changes to LabHUD for Android. The format follows
 
 ## [Unreleased]
 
+## [0.1.32] - 2026-10-24
+
+### Fixed
+
+- **A host's containers were shown one stack at a time**: the chips (arr, media, other) hid every stack but the picked one, so the rest looked missing. All stacks are now listed one under the other, each with its title, its count and "Restart stack"; the page scrolls.
+
 ## [0.1.31] - 2026-10-24
 
 ### Added
