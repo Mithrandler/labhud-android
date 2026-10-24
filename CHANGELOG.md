@@ -6,6 +6,17 @@ All notable changes to LabHUD for Android. The format follows
 
 ## [Unreleased]
 
+## [0.1.37] - 2026-10-24
+
+### Added
+
+- **Servers: Proxmox nodes without Docker are listed**, with Overview, VMs & LXC and Host; an off one that another agent can wake has a Wake button (needs labhud 0.1.23).
+- **Servers: Move a guest to another node** (live for a running VM, a restart for an LXC; optionally under another number); the sheet says its console opens on the web.
+
+### Changed
+
+- **Servers: the title no longer has a chevron or a drawer** of hosts: it repeated the list below, and a host has its own tabs.
+
 ## [0.1.36] - 2026-10-24
 
 ### Added
