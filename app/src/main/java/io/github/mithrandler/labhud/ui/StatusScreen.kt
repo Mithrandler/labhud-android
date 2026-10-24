@@ -179,7 +179,7 @@ fun StatusScreen(
                         // equal cells, the same gap between them and to the edges: 4 to a row in landscape, 3 in portrait (the page's own `columns` may cap it)
                         val gapDp = LabScale.wallGap
                         val cols = (if (maxWidth > maxHeight) 4 else 3).let { n -> page?.columns?.takeIf { it > 0 }?.coerceAtMost(n) ?: n }
-                        val slots = if (page == null) emptyList() else buildSlots(page, index == 0, byId, favs)
+                        val slots = if (page == null) emptyList() else fillGaps(buildSlots(page, index == 0, byId, favs), cols)
                         androidx.compose.runtime.CompositionLocalProvider(LocalTileH provides LabScale.wallTileMax) {
                             val tile = LocalTileH.current.value
                             // the whole screen scrolls up and down, and a swipe anywhere moves between the pages

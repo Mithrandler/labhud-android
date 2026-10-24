@@ -1,4 +1,4 @@
-// Written by labhud's design/build.py from its design/tokens.json (71328ee1e0d9): edit there, not here.
+// Written by labhud's design/build.py from its design/tokens.json (c6de0593bc66): edit there, not here.
 package io.github.mithrandler.labhud.ui
 
 import androidx.compose.ui.graphics.Color
@@ -195,6 +195,8 @@ object LabScale {
     val navH = 44.dp
     /** a navigation rail's width */
     val navW = 56.dp
+    /** the widest a list of settings gets, so a landscape screen does not stretch it */
+    val listW = 720.dp
     /** a number cell's width on a host screen */
     val cellW = 150.dp
     /** the tallest a short scrolling block gets (a file, a log excerpt) */

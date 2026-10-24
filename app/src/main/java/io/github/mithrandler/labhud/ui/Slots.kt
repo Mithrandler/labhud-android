@@ -96,3 +96,29 @@ internal fun buildSlots(page: Page, first: Boolean, byId: Map<String, Card>, fav
     }
     return out
 }
+
+/**
+ * A line the next tile does not fit in is not left with a hole: the first later tile of the same section that does fit takes its place
+ * (a two-cell host after another leaves one cell, a small tile fills it). A title ends the section, so nothing crosses it.
+ */
+internal fun fillGaps(slots: List<Slot>, cols: Int): List<Slot> {
+    if (cols < 2) return slots
+    val rest = slots.toMutableList()
+    val out = mutableListOf<Slot>()
+    var used = 0
+    while (rest.isNotEmpty()) {
+        val next = rest.first()
+        val span = next.span(cols)
+        if (next.title != null || used + span <= cols || used == 0) {
+            rest.removeAt(0)
+            out += next
+            used = if (next.title != null) 0 else (used + span) % cols
+            continue
+        }
+        val end = rest.indexOfFirst { it.title != null }.let { if (it < 0) rest.size else it }
+        val pick = (1 until end).firstOrNull { used + rest[it].span(cols) <= cols }
+        if (pick == null) used = 0
+        else { out += rest.removeAt(pick); used = (used + out.last().span(cols)) % cols }
+    }
+    return out
+}

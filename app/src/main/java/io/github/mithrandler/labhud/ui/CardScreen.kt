@@ -206,7 +206,8 @@ fun CardScreen(repo: LabRepository, id: String, onBack: () -> Unit, onHistory: (
                 val gauges = gaugesOf(c, own)
                 if (gauges.size >= 2 || c.type == "proxmox" && gauges.isNotEmpty()) item {
                     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(LabScale.space3)) {
-                        MachineGauges(gauges)
+                        // the viewport's height, not the list's (unbounded): in landscape the rings then share one row instead of needing a scroll
+                        MachineGauges(gauges, Modifier.heightIn(max = (LocalConfiguration.current.screenHeightDp - 190).dp))
                         val facts = others.filter { c.guestCounts.isEmpty() || it.label.uppercase() !in c.guestCounts.keys.map { k -> k.uppercase() } }
                             .filter { c.gpus.isEmpty() || !(it.format == "celsius" && "gpu" in (it.label + it.key).lowercase()) } +
                             listOfNotNull(c.guest?.uptime?.let { Metric(label = "up", value = upText(it)) }) +

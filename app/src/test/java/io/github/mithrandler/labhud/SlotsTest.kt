@@ -8,6 +8,7 @@ import io.github.mithrandler.labhud.data.Page
 import io.github.mithrandler.labhud.ui.Slot
 import io.github.mithrandler.labhud.ui.TITLE_H
 import io.github.mithrandler.labhud.ui.buildSlots
+import io.github.mithrandler.labhud.ui.fillGaps
 import io.github.mithrandler.labhud.ui.headline
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -94,5 +95,19 @@ class SlotsTest {
         assertEquals(4, t.span(4)); assertEquals(TITLE_H, t.height(112f), 0f)
         assertEquals(132f, Slot("c", card("h"), mini = true).height(132f), 0f)
         assertEquals(132f, Slot("h", host("h", "h"), wide = true).height(132f), 0f)
+    }
+
+    @Test fun aSmallTileFillsTheCellALonelyHostLeavesAndNothingCrossesATitle() {
+        fun keys(vararg sl: Slot) = fillGaps(sl.toList(), 3).map { it.key }
+        val h1 = Slot("h1", card("h1"), wide = true); val h2 = Slot("h2", card("h2"), wide = true)
+        val a = Slot("a", card("a"), mini = true); val b = Slot("b", card("b"), mini = true); val c = Slot("c", card("c"), mini = true)
+        // two hosts of two cells in three columns: the first small tile goes up beside the first host
+        assertEquals(listOf("h1", "a", "h2", "b", "c"), keys(h1, h2, a, b, c))
+        // already full lines stay as they are
+        assertEquals(listOf("a", "b", "c", "h1"), keys(a, b, c, h1))
+        // no small tile in the section: the hole stays (the title below is not reached over)
+        assertEquals(listOf("h1", "h2", "t", "a"), keys(h1, h2, Slot("t", title = "Favorites"), a))
+        // four columns: two hosts fit side by side, nothing moves
+        assertEquals(listOf("h1", "h2", "a"), fillGaps(listOf(h1, h2, a), 4).map { it.key })
     }
 }

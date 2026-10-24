@@ -7,6 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -68,8 +69,10 @@ fun SettingsScreen(repo: LabRepository, bar: BarNav, onOpen: (String) -> Unit, s
             MainTopBar(repo, bar, title = { Text("Settings") }, onBack = onBack)
         },
     ) { pad ->
+        // a list as wide as a landscape screen has a lot of nothing between a title and its chevron: it stays readable
+        androidx.compose.foundation.layout.Box(Modifier.padding(pad).fillMaxSize(), contentAlignment = Alignment.TopCenter) {
         LazyColumn(
-            Modifier.padding(pad).fillMaxSize(),
+            Modifier.widthIn(max = LabScale.listW).fillMaxSize(),
             contentPadding = PaddingValues(LabScale.space4),
             verticalArrangement = Arrangement.spacedBy(LabScale.space3),
         ) {
@@ -97,6 +100,7 @@ fun SettingsScreen(repo: LabRepository, bar: BarNav, onOpen: (String) -> Unit, s
                     modifier = Modifier.padding(top = LabScale.space4))
             }
         }
+        }
     }
 
     if (signingIn) SignInDialog(repo, onDone = { signingIn = false })
@@ -117,7 +121,7 @@ private fun SectionGroup(rows: List<Section>, favs: Set<String>, onOpen: (String
                     Spacer(Modifier.width(LabScale.space3))
                     Column(Modifier.weight(1f)) {
                         Text(s.title, fontWeight = FontWeight.Medium, fontSize = LabScale.textMd, color = Lab.text)
-                        Text(s.hint, fontSize = LabScale.textSm, color = Lab.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(s.hint, fontSize = LabScale.textSm, color = Lab.muted, maxLines = 2, overflow = TextOverflow.Ellipsis)
                     }
                     Text(if (s.id in favs) "★" else "☆", fontSize = LabScale.textWallNum, color = if (s.id in favs) Lab.title else Lab.muted,
                         modifier = Modifier.clickable { onStar(s.id) }.padding(horizontal = LabScale.space2, vertical = LabScale.space1))
