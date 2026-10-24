@@ -20,6 +20,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.displayCutout
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -59,10 +65,31 @@ fun CompactTabs(tabs: List<Triple<String, String, ImageVector>>, current: String
             }
         }
     }
-    if (vertical) Column(
-        Modifier.fillMaxHeight().background(Lab.card).windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Start + WindowInsetsSides.Vertical)).width(LabScale.navW),
-        verticalArrangement = Arrangement.spacedBy(LabScale.space2, Alignment.CenterVertically), horizontalAlignment = Alignment.CenterHorizontally,
-    ) { tabs.forEach { (r, l, i) -> item(r, l, i, Modifier.size(width = LabScale.navW, height = LabScale.navH)) } }
+    if (vertical) {
+        // The camera hole sits on one short edge, at half height. The inset the system reports for it is as tall as the whole
+        // screen, so honouring it wastes a wide strip: instead the column starts at the edge and leaves a gap only where the
+        // hole is (a few tabs above it, the rest below).
+        val view = LocalView.current
+        val density = LocalDensity.current
+        val cutoutStart = WindowInsets.displayCutout.getLeft(density, LocalLayoutDirection.current)
+        val holeGap = remember(cutoutStart, LocalConfiguration.current.orientation) {
+            if (cutoutStart <= 0) 0.dp else {
+                val rects = androidx.core.view.ViewCompat.getRootWindowInsets(view)?.displayCutout?.boundingRects.orEmpty()
+                val hole = rects.firstOrNull { it.left <= 0 && it.right < view.width / 2 }
+                if (hole == null) 0.dp else with(density) { hole.height().toDp() } + LabScale.space2 * 2
+            }
+        }
+        Column(
+            Modifier.fillMaxHeight().background(Lab.card).windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Vertical)).width(LabScale.navW),
+            verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            tabs.forEachIndexed { n, (r, l, i) ->
+                if (holeGap > 0.dp && n == tabs.size / 2) Spacer(Modifier.height(holeGap))
+                else if (n > 0) Spacer(Modifier.height(LabScale.space2))
+                item(r, l, i, Modifier.size(width = LabScale.navW, height = LabScale.navH))
+            }
+        }
+    }
     else Row(
         Modifier.fillMaxWidth().background(Lab.card).windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal)).height(LabScale.navH),
         horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically,
