@@ -6,6 +6,12 @@ All notable changes to LabHUD for Android. The format follows
 
 ## [Unreleased]
 
+## [0.1.33] - 2026-10-24
+
+### Fixed
+
+- **Lists did not scroll on Servers, Devices, Activity and Settings.** Their Scaffold carried a collapse-on-scroll behavior for a top bar that is now fixed; with no bar to measure it believed it could fold away forever and swallowed every swipe up. A pinned behavior takes nothing from the list. Checked on a real phone: n100docker's 30 containers scroll from top to bottom, in portrait and landscape.
+
 ## [0.1.32] - 2026-10-24
 
 ### Fixed
