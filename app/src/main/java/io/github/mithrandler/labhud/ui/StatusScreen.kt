@@ -180,54 +180,72 @@ fun StatusScreen(
                     beyondViewportPageCount = ahead.coerceAtMost((pages.size - 1).coerceAtLeast(0)),
                     key = { pages.getOrNull(it)?.id ?: it }) { index ->
                     val page = pages.getOrNull(index)
-                    // a plain Box, not BoxWithConstraints: that one subcomposes its content again (and lays the whole page out again) on every
-                    // live update, which was most of the ~70 ms a push cost while two pages were on screen
-                    androidx.compose.foundation.layout.Box(Modifier.fillMaxSize()) {
-                        // equal cells, the same gap between them and to the edges: 4 to a row in landscape, 3 in portrait (the page's own `columns` may cap it)
-                        val gapDp = LabScale.wallGap
-                        // the screen's orientation, not this box's shape: an open keyboard shortens the box in portrait, and 4 squeezed columns appeared
-                        val landscape = androidx.compose.ui.platform.LocalConfiguration.current.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
-                        val cols = (if (landscape) 4 else 3).let { n -> page?.columns?.takeIf { it > 0 }?.coerceAtMost(n) ?: n }
-                        val slots = if (page == null) emptyList() else fillGaps(buildSlots(page, index == 0, byId, favs), cols)
-                        androidx.compose.runtime.CompositionLocalProvider(LocalTileH provides LabScale.wallTileMax) {
-                            val tile = LocalTileH.current.value
-                            // the whole screen scrolls up and down, and a swipe anywhere moves between the pages
-                            Column(Modifier.fillMaxSize().pointerInput(index, pages.size) {
-                                var total = 0f
-                                detectHorizontalDragGestures(
-                                    onDragStart = { total = 0f },
-                                    onDragCancel = { total = 0f },
-                                    onDragEnd = {
-                                        val step = swipeStep(total, size.width.toFloat())
-                                        if (step != 0) scope.launch { pager.animateScrollToPage((pager.currentPage + step).coerceIn(0, pages.size - 1)) }
-                                    },
-                                    onHorizontalDrag = { _, dx -> total += dx },
-                                )
-                            }) {
-                                LazyVerticalGrid(
-                                    androidx.compose.foundation.lazy.grid.GridCells.Fixed(cols),
-                                    Modifier.weight(1f).fillMaxWidth(),
-                                    contentPadding = PaddingValues(gapDp),
-                                    horizontalArrangement = Arrangement.spacedBy(gapDp),
-                                    verticalArrangement = Arrangement.spacedBy(gapDp),
-                                ) {
-                                    if (page == null) return@LazyVerticalGrid
-                                    if (slots.isEmpty() && page.games) item(span = { GridItemSpan(maxLineSpan) }) { Text("No game servers known yet.", color = Lab.muted) }
-                                    slots.forEach { sl ->
-                                        val c = sl.card
-                                        sl.title?.let { t -> item(key = sl.key, span = { GridItemSpan(maxLineSpan) }) { SectionTitle(t, sl.bad) } }
-                                        sl.group?.let { g -> item(key = sl.key) { GroupSummaryTile(g, server) { onGroup(g.id) } } }
-                                        if (c != null) item(key = sl.key, span = { GridItemSpan(sl.span(maxLineSpan)) }) {
-                                            if (sl.wide) HostTile(c, server) { onCard(c.id) }
-                                            else MiniCard(c, server, chip = boxChips[c.id]) { onCard(c.id) }
-                                        }
-                                        val g = sl.game
-                                        if (g != null) item(key = sl.key, span = { GridItemSpan(sl.span(maxLineSpan)) }) { GameTile(g, server) { if (g.id.isNotEmpty()) onGame(g.id) } }
-                                    }
-                                }
-                            }
-                        }
+                    // the page is its own composable with parameters that compare equal while its numbers have not moved: a push that
+                    // changes one host recomposes the page that shows it, not every page composed ahead
+                    val landscape = androidx.compose.ui.platform.LocalConfiguration.current.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
+                    val cols = (if (landscape) 4 else 3).let { n -> page?.columns?.takeIf { it > 0 }?.coerceAtMost(n) ?: n }
+                    // remember(key) compares by equals(), so while the slots are equal the first instance stays and the page below is skipped
+                    val built = if (page == null) emptyList() else fillGaps(buildSlots(page, index == 0, byId, favs), cols)
+                    val slots = remember(built) { built }
+                    val pageChips = slots.mapNotNull { sl -> sl.card?.id?.let { id -> boxChips[id]?.let { id to it } } }.toMap()
+                    val chipsHere = remember(pageChips) { pageChips }
+                    StatusPage(slots, cols, page?.games == true, server, chipsHere,
+                        index, pages.size, pager, onCard, onGame, onGroup)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun StatusPage(
+    slots: List<Slot>,
+    cols: Int,
+    games: Boolean,
+    server: Server?,
+    boxChips: Map<String, String>,
+    index: Int,
+    pageCount: Int,
+    pager: androidx.compose.foundation.pager.PagerState,
+    onCard: (String) -> Unit,
+    onGame: (String) -> Unit,
+    onGroup: (String) -> Unit,
+) {
+    val scope = rememberCoroutineScope()
+    // equal cells, the same gap between them and to the edges: 4 to a row in landscape, 3 in portrait (the page's own `columns` may cap it)
+    val gapDp = LabScale.wallGap
+    androidx.compose.runtime.CompositionLocalProvider(LocalTileH provides LabScale.wallTileMax) {
+        // the whole screen scrolls up and down, and a swipe anywhere moves between the pages
+        Column(Modifier.fillMaxSize().pointerInput(index, pageCount) {
+            var total = 0f
+            detectHorizontalDragGestures(
+                onDragStart = { total = 0f },
+                onDragCancel = { total = 0f },
+                onDragEnd = {
+                    val step = swipeStep(total, size.width.toFloat())
+                    if (step != 0) scope.launch { pager.animateScrollToPage((pager.currentPage + step).coerceIn(0, pageCount - 1)) }
+                },
+                onHorizontalDrag = { _, dx -> total += dx },
+            )
+        }) {
+            LazyVerticalGrid(
+                androidx.compose.foundation.lazy.grid.GridCells.Fixed(cols),
+                Modifier.weight(1f).fillMaxWidth(),
+                contentPadding = PaddingValues(gapDp),
+                horizontalArrangement = Arrangement.spacedBy(gapDp),
+                verticalArrangement = Arrangement.spacedBy(gapDp),
+            ) {
+                if (slots.isEmpty() && games) item(span = { GridItemSpan(maxLineSpan) }) { Text("No game servers known yet.", color = Lab.muted) }
+                slots.forEach { sl ->
+                    val c = sl.card
+                    sl.title?.let { t -> item(key = sl.key, span = { GridItemSpan(maxLineSpan) }) { SectionTitle(t, sl.bad) } }
+                    sl.group?.let { g -> item(key = sl.key) { GroupSummaryTile(g, server) { onGroup(g.id) } } }
+                    if (c != null) item(key = sl.key, span = { GridItemSpan(sl.span(maxLineSpan)) }) {
+                        if (sl.wide) HostTile(c, server) { onCard(c.id) }
+                        else MiniCard(c, server, chip = boxChips[c.id]) { onCard(c.id) }
                     }
+                    val g = sl.game
+                    if (g != null) item(key = sl.key, span = { GridItemSpan(sl.span(maxLineSpan)) }) { GameTile(g, server) { if (g.id.isNotEmpty()) onGame(g.id) } }
                 }
             }
         }
