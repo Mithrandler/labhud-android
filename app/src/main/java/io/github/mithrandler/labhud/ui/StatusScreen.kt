@@ -178,7 +178,9 @@ fun StatusScreen(
                     androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxSize()) {
                         // equal cells, the same gap between them and to the edges: 4 to a row in landscape, 3 in portrait (the page's own `columns` may cap it)
                         val gapDp = LabScale.wallGap
-                        val cols = (if (maxWidth > maxHeight) 4 else 3).let { n -> page?.columns?.takeIf { it > 0 }?.coerceAtMost(n) ?: n }
+                        // the screen's orientation, not this box's shape: an open keyboard shortens the box in portrait, and 4 squeezed columns appeared
+                        val landscape = androidx.compose.ui.platform.LocalConfiguration.current.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
+                        val cols = (if (landscape) 4 else 3).let { n -> page?.columns?.takeIf { it > 0 }?.coerceAtMost(n) ?: n }
                         val slots = if (page == null) emptyList() else fillGaps(buildSlots(page, index == 0, byId, favs), cols)
                         androidx.compose.runtime.CompositionLocalProvider(LocalTileH provides LabScale.wallTileMax) {
                             val tile = LocalTileH.current.value
@@ -241,7 +243,8 @@ private fun GameTile(g: GameServer, server: Server?, onClick: () -> Unit) {
                 Spacer(Modifier.width(LabScale.space2))
                 NamedIcon(g.icon, LabIcons.games, server, LabScale.iconCard)
                 Spacer(Modifier.width(LabScale.space2))
-                Text(g.name.ifEmpty { g.title }, fontWeight = FontWeight.SemiBold, fontSize = LabScale.textMd, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                // three to a row on a phone: a long name shrinks (the line under it says it whole) before it is cut
+                FitText(g.name.ifEmpty { g.title }, LabScale.textMd, FontWeight.SemiBold, Modifier.weight(1f), minSize = LabScale.textWallMin)
             }
             Text(g.title, fontSize = LabScale.textSm, color = Lab.muted, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = LabScale.space2))
             Text(g.line, fontSize = LabScale.textSm, color = if (g.running) Lab.text else Lab.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -293,6 +296,8 @@ fun BellContent(st: LabState, bell: BellItems, onCard: (String) -> Unit, modifie
                 IconButton(onClick = { bell.dismiss(c) }) { Icon(LabIcons.close, "Dismiss", tint = Lab.muted, modifier = Modifier.size(LabScale.iconCard)) }
             }
         }
+        // a dismissal is on this phone only, and can be taken back
+        if (bell.hidden > 0) TextButton(onClick = { bell.restoreAll() }, modifier = Modifier.padding(top = LabScale.space2)) { Text("Show ${bell.hidden} dismissed") }
     }
 }
 

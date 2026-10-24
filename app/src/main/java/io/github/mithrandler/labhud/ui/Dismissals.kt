@@ -16,13 +16,16 @@ import kotlinx.coroutines.launch
 /**
  * What the bell shows once the person has sent some of it away. Dismissing is on this phone only: it hides an alert or a problem
  * from the bell and from its badge, it does not touch the server. A dismissed item that clears is forgotten, so it comes back
- * if it happens again.
+ * if it happens again; [hidden] counts the ones still hidden, and [restoreAll] brings them back at once.
  */
 class BellItems(
     val alerts: List<Alert>,
     val problems: List<Card>,
+    val hidden: Int,
+    private val restore: () -> Unit,
     private val dismissKeys: (Collection<String>) -> Unit,
 ) {
+    fun restoreAll() = restore()
     val count: Int get() = alerts.size + problems.size
     fun dismiss(alert: Alert) = dismissKeys(listOf(alertKey(alert)))
     fun dismiss(card: Card) = dismissKeys(listOf(problemKey(card)))
@@ -47,5 +50,8 @@ fun rememberBell(repo: LabRepository, st: LabState?): BellItems {
         val kept = gone.intersect(active)
         if (kept != gone) repo.store.setDismissed(id, kept)
     }
-    return BellItems(alerts, problems) { keys -> if (id != null) scope.launch { repo.store.setDismissed(id, gone + keys) } }
+    val live = st?.alerts.orEmpty().map(::alertKey).toSet() + st?.problems.orEmpty().map { "p:$it" }
+    return BellItems(alerts, problems, hidden = gone.intersect(live).size, restore = { if (id != null) scope.launch { repo.store.setDismissed(id, emptySet()) } }) { keys ->
+        if (id != null) scope.launch { repo.store.setDismissed(id, gone + keys) }
+    }
 }

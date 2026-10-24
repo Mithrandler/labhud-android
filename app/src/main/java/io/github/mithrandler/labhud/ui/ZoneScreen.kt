@@ -270,9 +270,10 @@ internal fun Cell(label: String, big: String, sub: String = "", modifier: Modifi
 private fun Overview(h: ZoneHost) {
     FlowRow(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(LabScale.space4), horizontalArrangement = Arrangement.spacedBy(LabScale.space3), verticalArrangement = Arrangement.spacedBy(LabScale.space3)) {
         Cell("Status", if (h.online) "Online" else "Offline", if (h.version.isNotEmpty()) "agent ${h.version}" else "", Modifier.width(LabScale.cellW))
-        Cell("Containers", "${h.containers.running} / ${h.containers.total}", "running / all", Modifier.width(LabScale.cellW))
-        Cell("CPU", "${h.cpu.toInt()}%", "", Modifier.width(LabScale.cellW))
-        Cell("Memory", "${h.mem.toInt()}%", "", Modifier.width(LabScale.cellW))
+        // an agent that does not answer measured nothing: a dash, not zeros that look like a quiet machine
+        Cell("Containers", if (h.online) "${h.containers.running} / ${h.containers.total}" else "—", "running / all", Modifier.width(LabScale.cellW))
+        Cell("CPU", if (h.online) "${h.cpu.toInt()}%" else "—", "", Modifier.width(LabScale.cellW))
+        Cell("Memory", if (h.online) "${h.mem.toInt()}%" else "—", "", Modifier.width(LabScale.cellW))
         if (h.update) Cell("Agent", "Update", "a newer agent is out", Modifier.width(LabScale.cellW))
     }
 }
@@ -327,12 +328,13 @@ private fun ContainersTab(h: ZoneHost, ask: suspend (suspend LabApi.() -> ZoneAn
                 Column {
                 Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(top = LabScale.space2), horizontalArrangement = Arrangement.spacedBy(LabScale.space2)) {
                         OutlinedButton(enabled = waiting > 0, onClick = { gate.press { bulk = "update-all" } }) { Text("Update all ($waiting)") }
-                        OutlinedButton(onClick = { gate.press { bulk = "packages" } }) { Text("Host packages") }
-                        OutlinedButton(onClick = { gate.press { bulk = "clean" } }) { Text("Clean") }
-                        OutlinedButton(onClick = { gate.press { bulk = "reboot" } }) { Text("Reboot", color = Lab.red) }
+                        OutlinedButton(enabled = h.online, onClick = { gate.press { bulk = "packages" } }) { Text("Host packages") }
+                        OutlinedButton(enabled = h.online, onClick = { gate.press { bulk = "clean" } }) { Text("Clean") }
+                        OutlinedButton(enabled = h.online, onClick = { gate.press { bulk = "reboot" } }) { Text("Reboot", color = Lab.red) }
                     }
                     Said(said)
                     OutlinedTextField(query, { query = it.take(60) }, singleLine = true, label = { Text("Filter") }, modifier = Modifier.fillMaxWidth().padding(top = LabScale.space2))
+                    if (!h.online) Text("${h.name} is offline: its agent does not answer, so there is nothing to show or do.", color = Lab.warn, fontSize = LabScale.textSm, modifier = Modifier.padding(top = LabScale.space2))
                     if (message.isNotEmpty()) Text(message, color = Lab.warn, fontSize = LabScale.textSm, modifier = Modifier.padding(top = LabScale.space2))
                     if (rows == null) Text("Loading…", color = Lab.muted, modifier = Modifier.padding(top = LabScale.space3))
                 }

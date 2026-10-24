@@ -139,20 +139,23 @@ internal fun ImagesTab(h: ZoneHost, ask: ZoneAsk, gate: Gate) {
     var said by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
     Loaded(h.name, ask, { fresh -> zoneImages(h.name, fresh) }, { it.images }) { rows, message, refresh ->
-        Column(Modifier.fillMaxSize().padding(horizontal = LabScale.space4)) {
-            OutlinedTextField(query, { query = it.take(60) }, singleLine = true, label = { Text("Filter") }, modifier = Modifier.fillMaxWidth().padding(top = LabScale.space2))
-            Row(Modifier.horizontalScroll(rememberScrollState()).padding(vertical = LabScale.space2), horizontalArrangement = Arrangement.spacedBy(LabScale.space2)) {
-                OutlinedButton(onClick = { pulling = true }) { Text("Pull image…") }
-                OutlinedButton(onClick = { cleaning = "images" }) { Text("Clean unused") }
-                OutlinedButton(onClick = { cleaning = "dangling" }) { Text("Clean untagged") }
-            }
-            Said(message.ifEmpty { said })
-            if (rows == null && message.isEmpty()) Text("Loading…", color = Lab.muted)
-            LazyColumn(Modifier.fillMaxSize()) {
-                items(rows.orEmpty().filteredImages(query), key = { it.id }) { i ->
-                    Row2(i.title() + if (i.tags.size > 1) "  +${i.tags.size - 1}" else "", usedText(i.used, i.usedBy) + if (i.dangling) " · untagged" else "", bytesText(i.size.toDouble()),
-                        cveText(i.scan), tone = if (i.used == 0) 1 else 0, rightSubColor = cveColor(i.scan)) { open = i.id }
+        LazyColumn(Modifier.fillMaxSize().padding(horizontal = LabScale.space4)) {
+            // the filter and the buttons scroll away with the list, so a short screen still reaches every row
+            item(key = "head") {
+                Column {
+                    OutlinedTextField(query, { query = it.take(60) }, singleLine = true, label = { Text("Filter") }, modifier = Modifier.fillMaxWidth().padding(top = LabScale.space2))
+                    Row(Modifier.horizontalScroll(rememberScrollState()).padding(vertical = LabScale.space2), horizontalArrangement = Arrangement.spacedBy(LabScale.space2)) {
+                        OutlinedButton(onClick = { pulling = true }) { Text("Pull image…") }
+                        OutlinedButton(onClick = { cleaning = "images" }) { Text("Clean unused") }
+                        OutlinedButton(onClick = { cleaning = "dangling" }) { Text("Clean untagged") }
+                    }
+                    Said(message.ifEmpty { said })
+                    if (rows == null && message.isEmpty()) Text("Loading…", color = Lab.muted)
                 }
+            }
+            items(rows.orEmpty().filteredImages(query), key = { it.id }) { i ->
+                Row2(i.title() + if (i.tags.size > 1) "  +${i.tags.size - 1}" else "", usedText(i.used, i.usedBy) + if (i.dangling) " · untagged" else "", bytesText(i.size.toDouble()),
+                    cveText(i.scan), tone = if (i.used == 0) 1 else 0, rightSubColor = cveColor(i.scan)) { open = i.id }
             }
         }
         val img = rows?.firstOrNull { it.id == open }
@@ -230,14 +233,17 @@ internal fun VolumesTab(h: ZoneHost, ask: ZoneAsk, gate: Gate) {
     var open by remember { mutableStateOf<String?>(null) }
     var said by remember { mutableStateOf("") }
     Loaded(h.name, ask, { fresh -> zoneVolumes(h.name, fresh) }, { it.volumes }) { rows, message, refresh ->
-        Column(Modifier.fillMaxSize().padding(horizontal = LabScale.space4)) {
-            OutlinedTextField(query, { query = it.take(60) }, singleLine = true, label = { Text("Filter") }, modifier = Modifier.fillMaxWidth().padding(top = LabScale.space2))
-            Said(message.ifEmpty { said })
-            if (rows == null && message.isEmpty()) Text("Loading…", color = Lab.muted, modifier = Modifier.padding(top = LabScale.space2))
-            LazyColumn(Modifier.fillMaxSize()) {
-                items(rows.orEmpty().filteredVolumes(query), key = { it.name }) { v ->
-                    Row2(v.name, usedText(v.used, v.usedBy), volumeSize(v.size), if (v.browse) "browsable" else "", tone = if (v.used == 0) 1 else 0) { open = v.name }
+        LazyColumn(Modifier.fillMaxSize().padding(horizontal = LabScale.space4)) {
+            // the filter and the buttons scroll away with the list, so a short screen still reaches every row
+            item(key = "head") {
+                Column {
+                    OutlinedTextField(query, { query = it.take(60) }, singleLine = true, label = { Text("Filter") }, modifier = Modifier.fillMaxWidth().padding(top = LabScale.space2))
+                    Said(message.ifEmpty { said })
+                    if (rows == null && message.isEmpty()) Text("Loading…", color = Lab.muted, modifier = Modifier.padding(top = LabScale.space2))
                 }
+            }
+            items(rows.orEmpty().filteredVolumes(query), key = { it.name }) { v ->
+                Row2(v.name, usedText(v.used, v.usedBy), volumeSize(v.size), if (v.browse) "browsable" else "", tone = if (v.used == 0) 1 else 0) { open = v.name }
             }
         }
         val vol = rows?.firstOrNull { it.name == open }
@@ -331,18 +337,21 @@ internal fun NetworksTab(h: ZoneHost, ask: ZoneAsk, gate: Gate) {
     var open by remember { mutableStateOf<String?>(null) }
     var said by remember { mutableStateOf("") }
     Loaded(h.name, ask, { fresh -> zoneNetworks(h.name, fresh) }, { it.networks }) { rows, message, refresh ->
-        Column(Modifier.fillMaxSize().padding(horizontal = LabScale.space4)) {
-            OutlinedTextField(query, { query = it.take(60) }, singleLine = true, label = { Text("Filter") }, modifier = Modifier.fillMaxWidth().padding(top = LabScale.space2))
-            Said(message.ifEmpty { said })
-            if (rows == null && message.isEmpty()) Text("Loading…", color = Lab.muted, modifier = Modifier.padding(top = LabScale.space2))
-            LazyColumn(Modifier.fillMaxSize()) {
-                items(rows.orEmpty().filteredNetworks(query), key = { it.name }) { n ->
-                    Column {
-                        Row2(n.name, usedText(n.used, n.usedBy), n.driver, if (n.builtin) "built in" else "") { open = n.name }
-                        val on = n.usedBy.take(12)   // the tree: what is on the network; the IPs are in its sheet
-                        on.forEachIndexed { i, c -> Text((if (i == on.size - 1 && on.size >= n.used) "└ " else "├ ") + c, fontSize = LabScale.textSm, color = Lab.muted, modifier = Modifier.padding(start = LabScale.space4)) }
-                        if (n.used > on.size) Text("… +${n.used - on.size}", fontSize = LabScale.textSm, color = Lab.muted, modifier = Modifier.padding(start = LabScale.space4))
-                    }
+        LazyColumn(Modifier.fillMaxSize().padding(horizontal = LabScale.space4)) {
+            // the filter and the buttons scroll away with the list, so a short screen still reaches every row
+            item(key = "head") {
+                Column {
+                    OutlinedTextField(query, { query = it.take(60) }, singleLine = true, label = { Text("Filter") }, modifier = Modifier.fillMaxWidth().padding(top = LabScale.space2))
+                    Said(message.ifEmpty { said })
+                    if (rows == null && message.isEmpty()) Text("Loading…", color = Lab.muted, modifier = Modifier.padding(top = LabScale.space2))
+                }
+            }
+            items(rows.orEmpty().filteredNetworks(query), key = { it.name }) { n ->
+                Column {
+                    Row2(n.name, usedText(n.used, n.usedBy), n.driver, if (n.builtin) "built in" else "") { open = n.name }
+                    val on = n.usedBy.take(12)   // the tree: what is on the network; the IPs are in its sheet
+                    on.forEachIndexed { i, c -> Text((if (i == on.size - 1 && on.size >= n.used) "└ " else "├ ") + c, fontSize = LabScale.textSm, color = Lab.muted, modifier = Modifier.padding(start = LabScale.space4)) }
+                    if (n.used > on.size) Text("… +${n.used - on.size}", fontSize = LabScale.textSm, color = Lab.muted, modifier = Modifier.padding(start = LabScale.space4))
                 }
             }
         }

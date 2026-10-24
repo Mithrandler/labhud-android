@@ -21,6 +21,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
@@ -158,7 +159,10 @@ fun PaletteSheet(
     }
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Lab.card) {
         Column(Modifier.fillMaxWidth().padding(start = LabScale.space4, end = LabScale.space4, bottom = LabScale.space8)) {
-            OutlinedTextField(q, { q = it }, Modifier.fillMaxWidth(), singleLine = true,
+            // the keyboard is what the sheet is for: it opens with the cursor in the field
+            val focus = remember { androidx.compose.ui.focus.FocusRequester() }
+            androidx.compose.runtime.LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
+            OutlinedTextField(q, { q = it }, Modifier.fillMaxWidth().focusRequester(focus), singleLine = true,
                 placeholder = { Text(if (admin) "Search, > for commands" else "Search the cards and pages") },
                 leadingIcon = { Icon(LabIcons.search, null) },
                 // Enter runs the first hit, as on the wall
