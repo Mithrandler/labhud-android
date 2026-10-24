@@ -37,6 +37,7 @@ import io.github.mithrandler.labhud.data.ZoneHost
 import io.github.mithrandler.labhud.data.bytesText
 import io.github.mithrandler.labhud.data.kind
 import io.github.mithrandler.labhud.data.line
+import io.github.mithrandler.labhud.data.newIdOk
 import io.github.mithrandler.labhud.data.ordered
 import io.github.mithrandler.labhud.data.refusal
 import io.github.mithrandler.labhud.data.snapConfirmWord
@@ -46,6 +47,7 @@ import io.github.mithrandler.labhud.data.versionText
 import io.github.mithrandler.labhud.data.zoneGuestAct
 import io.github.mithrandler.labhud.data.zoneGuestBackups
 import io.github.mithrandler.labhud.data.zoneGuestConfig
+import io.github.mithrandler.labhud.data.zoneGuestMigrate
 import io.github.mithrandler.labhud.data.zoneGuestSnapshots
 import io.github.mithrandler.labhud.data.zoneGuestTasks
 import io.github.mithrandler.labhud.data.zoneGuests
@@ -66,10 +68,11 @@ internal fun GuestsTab(h: ZoneHost, ask: ZoneAsk, gate: Gate) {
     var tick by remember(h.name) { mutableIntStateOf(0) }
     var enabled by remember(h.name) { mutableStateOf(true) }
     var rows by remember(h.name) { mutableStateOf<List<ZoneGuest>?>(null) }
+    var peers by remember(h.name) { mutableStateOf<List<String>>(emptyList()) }
     var message by remember(h.name) { mutableStateOf("") }
     LaunchedEffect(h.name, tick) {
         val r = ask { zoneGuests(h.name) }
-        if (r.ok) { rows = r.guests; enabled = r.enabled; message = "" } else message = r.refusal()
+        if (r.ok) { rows = r.guests; peers = r.peers; enabled = r.enabled; message = "" } else message = r.refusal()
     }
     Column(Modifier.fillMaxSize().padding(horizontal = LabScale.space4)) {
         Row(Modifier.padding(top = LabScale.space2)) { OutlinedButton(onClick = { tick++ }) { Text("Refresh") } }
@@ -85,7 +88,7 @@ internal fun GuestsTab(h: ZoneHost, ask: ZoneAsk, gate: Gate) {
             }
         }
     }
-    open?.let { g -> LabSheet(onClose = { open = null }) { GuestSheet(h.name, g, ask, gate, onChanged = { tick++ }) } }
+    open?.let { g -> LabSheet(onClose = { open = null }) { GuestSheet(h.name, g, peers, ask, gate, onChanged = { tick++ }) } }
 }
 
 @Composable
@@ -101,7 +104,25 @@ private fun SnapshotDialog(guest: String, onDismiss: () -> Unit, onOk: (String) 
 }
 
 @Composable
-private fun GuestSheet(host: String, g: ZoneGuest, ask: ZoneAsk, gate: Gate, onChanged: () -> Unit) {
+private fun MoveDialog(g: ZoneGuest, peers: List<String>, onDismiss: () -> Unit, onOk: (peer: String, mode: String, newId: String) -> Unit) {
+    var peer by remember { mutableStateOf(peers.firstOrNull().orEmpty()) }
+    val mode = if (g.running) "online" else "offline"   // a running guest moves live (an LXC restarts there); a stopped one stays stopped
+    var newId by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onDismiss, title = { Text("Move ${g.name} to another node") },
+        text = { Column(verticalArrangement = Arrangement.spacedBy(LabScale.space2)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(LabScale.space2)) { peers.forEach { p -> FilterChip(selected = peer == p, onClick = { peer = p }, label = { Text(p) }) } }
+            if (g.running) Text(if (g.type == "lxc") "It restarts on the other node." else "It keeps running while it moves.", fontSize = LabScale.textSm, color = Lab.sub)
+            OutlinedTextField(newId, { newId = it.filter(Char::isDigit).take(9) }, label = { Text("Number there (empty: ${g.id})") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            Text("The copy is made on the other node. The original stays here, locked as “migrate”: remove it after you have checked the copy.", fontSize = LabScale.textSm, color = Lab.sub)
+        } },
+        confirmButton = { TextButton(enabled = peer.isNotEmpty() && newIdOk(newId), onClick = { onOk(peer, mode, newId) }) { Text("Move") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    )
+}
+
+@Composable
+private fun GuestSheet(host: String, g: ZoneGuest, peers: List<String>, ask: ZoneAsk, gate: Gate, onChanged: () -> Unit) {
     val scope = rememberCoroutineScope()
     var tab by remember(g.id) { mutableStateOf("config") }
     var said by remember(g.id) { mutableStateOf("") }
@@ -109,6 +130,7 @@ private fun GuestSheet(host: String, g: ZoneGuest, ask: ZoneAsk, gate: Gate, onC
     var busy by remember(g.id) { mutableStateOf(false) }
     var shutting by remember(g.id) { mutableStateOf(false) }
     var making by remember(g.id) { mutableStateOf(false) }
+    var moving by remember(g.id) { mutableStateOf(false) }
     var again by remember(g.id) { mutableIntStateOf(0) }          // the snapshot list asks again after a change
 
     fun run(label: String, call: suspend LabApi.() -> ZoneAnswer, after: () -> Unit = {}) = gate.press {
@@ -128,7 +150,9 @@ private fun GuestSheet(host: String, g: ZoneGuest, ask: ZoneAsk, gate: Gate, onC
             OutlinedButton(enabled = "start" in g.can && !g.running && !busy, onClick = { run("Start", { zoneGuestAct(host, g.id, "start") }) }) { Text("Start") }
             OutlinedButton(enabled = "shutdown" in g.can && g.running && !busy, onClick = { shutting = true }) { Text("Shut down", color = Lab.red) }
             OutlinedButton(enabled = "reboot" in g.can && g.running && !busy, onClick = { run("Reboot", { zoneGuestAct(host, g.id, "reboot") }) }) { Text("Reboot") }
+            if (g.moves) OutlinedButton(enabled = !busy, onClick = { moving = true }) { Text("Move") }
         }
+        if (g.console) Text("Its console opens in Servers on the web (the app has no terminal).", fontSize = LabScale.textSm, color = Lab.muted)
         Row(horizontalArrangement = Arrangement.spacedBy(LabScale.space2)) {
             GUEST_TABS.forEach { (id, label) -> FilterChip(selected = tab == id, onClick = { tab = id }, label = { Text(label) }) }
         }
@@ -177,6 +201,18 @@ private fun GuestSheet(host: String, g: ZoneGuest, ask: ZoneAsk, gate: Gate, onC
         if (said.isNotEmpty()) Text(said, color = if (bad) Lab.red else Lab.sub, fontSize = LabScale.textSm)
     }
     if (shutting) TypedConfirm("Shut down ${g.name}?", g.name, "Shut down", onOk = { run("Shut down", { zoneGuestAct(host, g.id, "shutdown") }) }, onDismiss = { shutting = false })
+    if (moving) MoveDialog(g, peers, onDismiss = { moving = false }) { peer, mode, newId ->
+        moving = false
+        // the move runs on the host for as long as it takes: the answer is only that it started (labhud says when it ends)
+        gate.press {
+            busy = true; said = "Moving…"; bad = false
+            scope.launch {
+                val r = ask { zoneGuestMigrate(host, g.id, peer, mode, newId) }
+                if (r.ok) said = "The move started. It runs on the host and can take a long time; Tasks shows it, and labhud says when it ends." else { said = "Move: ${r.refusal()}"; bad = true }
+                busy = false
+            }
+        }
+    }
     if (making) SnapshotDialog(g.name, onDismiss = { making = false }) { name -> making = false; run("Snapshot", { zoneSnapCreate(host, g.id, name) }) { again++ } }
 }
 

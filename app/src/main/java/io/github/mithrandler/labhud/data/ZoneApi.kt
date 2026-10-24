@@ -22,6 +22,8 @@ data class ZoneHost(
     val update: Boolean = false,
     val docker: Boolean = false,
     val pve: Boolean = false,
+    /** Off, and another online agent has its address ticked: Wake can be pressed. */
+    val wake: Boolean = false,
     val containers: ZoneCount = ZoneCount(),
     val cpu: Double = 0.0,
     val mem: Double = 0.0,
@@ -133,6 +135,10 @@ data class ZoneGuest(
     val ticked: Boolean = false,
     /** The verbs it may be sent (start, shutdown, reboot). */
     val can: List<String> = emptyList(),
+    /** Its console opens in Servers on the web (the app has no terminal). */
+    val console: Boolean = false,
+    /** A peer node is set and the guest may be moved to it. */
+    val moves: Boolean = false,
 )
 
 @Serializable
@@ -188,6 +194,8 @@ data class ZoneAnswer(
     val output: String = "",
     val node: String = "",
     val guests: List<ZoneGuest> = emptyList(),
+    /** guests: the nodes a guest may be moved to. */
+    val peers: List<String> = emptyList(),
     val config: List<ZoneConfigLine> = emptyList(),
     val snapshots: List<ZoneSnapshot> = emptyList(),
     val backups: List<ZoneBackup> = emptyList(),
@@ -361,6 +369,10 @@ suspend fun LabApi.zoneGuestSnapshots(agent: String, id: String) = zone("guest-s
 suspend fun LabApi.zoneGuestBackups(agent: String, id: String) = zone("guest-backups", 45) { put("agent", agent); put("id", id) }
 suspend fun LabApi.zoneGuestTasks(agent: String, id: String) = zone("guest-tasks", 45) { put("agent", agent); put("id", id) }
 /** [verb] is start, shutdown or reboot. */
+/** [peer] is one of the host's peers, [mode] online or offline, [newId] the guest's number on the other node (empty: the same). */
+suspend fun LabApi.zoneGuestMigrate(agent: String, id: String, peer: String, mode: String, newId: String) =
+    zone("guest-migrate", 35) { put("agent", agent); put("id", id); put("peer", peer); put("mode", mode); if (newId.isNotEmpty()) put("new_id", newId.toInt()) }
+suspend fun LabApi.zoneWake(agent: String) = zone("wake", 40) { put("agent", agent) }
 suspend fun LabApi.zoneGuestAct(agent: String, id: String, verb: String) = zone("guest-act", 60) { put("agent", agent); put("id", id); put("verb", verb) }
 suspend fun LabApi.zoneSnapCreate(agent: String, id: String, name: String) = zone("snap-create", 340) { put("agent", agent); put("id", id); put("name", name) }
 /** [confirm] is the guest's name. */
@@ -397,8 +409,21 @@ fun ZoneHost.tone(): Int = when {
     else -> 0
 }
 
-/** "3 / 14" for a host, "–" when it is offline. */
-fun ZoneHost.line(): String = if (online) "${containers.running} / ${containers.total}" else "–"
+/** "3 / 14" for a host, "node" for a Proxmox node without Docker, "–" when it is offline. */
+fun ZoneHost.line(): String = if (!online) "–" else if (!docker) "node" else "${containers.running} / ${containers.total}"
+
+/** Servers lists the Docker hosts and the Proxmox nodes. */
+fun ZoneHost.listed(): Boolean = docker || pve
+
+/** Whether the tab is for this host: the Docker tabs for a Docker host, VMs & LXC for a node, the rest for all. */
+fun ZoneHost.has(tab: String): Boolean = when (tab) {
+    "overview", "host" -> true
+    "vms" -> pve
+    else -> docker
+}
+
+/** The number a guest gets on the other node: empty (the same) or 100 and up. */
+fun newIdOk(s: String): Boolean = s.isEmpty() || Regex("[1-9][0-9]{2,8}").matches(s)
 
 /** 845 MB, 1.4 GB: base 1024, one decimal under 100. */
 fun bytesText(n: Double): String {

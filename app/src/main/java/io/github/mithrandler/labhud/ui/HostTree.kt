@@ -22,7 +22,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.mithrandler.labhud.data.ZoneHost
+import io.github.mithrandler.labhud.data.has
 import io.github.mithrandler.labhud.data.line
+import io.github.mithrandler.labhud.data.listed
 import io.github.mithrandler.labhud.data.tone
 
 /**
@@ -37,7 +39,7 @@ internal fun HostTree(
     onPick: (host: String, tab: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val dockerHosts = hosts.filter { it.docker }
+    val dockerHosts = hosts.filter { it.listed() }
     LazyColumn(
         modifier = modifier,
         contentPadding = PaddingValues(LabScale.space2),
@@ -78,7 +80,7 @@ internal fun HostTree(
             }
             if (h.name == host) {
                 tabs.forEach { (id, label) ->
-                    if (id == "vms" && !h.pve) return@forEach
+                    if (!h.has(id)) return@forEach
                     item(key = "${h.name}/$id") {
                         val current = id == tab
                         Row(

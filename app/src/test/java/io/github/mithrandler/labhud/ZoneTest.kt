@@ -18,7 +18,9 @@ import io.github.mithrandler.labhud.data.title
 import io.github.mithrandler.labhud.data.usedText
 import io.github.mithrandler.labhud.data.volumeSize
 import io.github.mithrandler.labhud.data.filtered
+import io.github.mithrandler.labhud.data.has
 import io.github.mithrandler.labhud.data.line
+import io.github.mithrandler.labhud.data.listed
 import io.github.mithrandler.labhud.data.ordered
 import io.github.mithrandler.labhud.data.plainTerminal
 import io.github.mithrandler.labhud.data.refusal
@@ -87,7 +89,7 @@ class ZoneTest {
     }
 
     @Test fun aHostLine() {
-        assertEquals("6 / 7", ZoneHost(online = true, containers = ZoneCount(6, 7)).line())
+        assertEquals("6 / 7", ZoneHost(online = true, docker = true, containers = ZoneCount(6, 7)).line())
         assertEquals("–", ZoneHost(online = false, containers = ZoneCount(6, 7)).line())
     }
 
@@ -256,6 +258,44 @@ class ZoneObjectsTest {
         assertEquals("VM · stopped", ordered[2].line())
         assertEquals("template · stopped", ordered[3].line())
         assertEquals("vm/101/x", io.github.mithrandler.labhud.data.ZoneBackup(volid = "pbs:backup/vm/101/x").title())
+    }
+
+    @Test fun aProxmoxNodeWithoutDockerIsListedWithItsOwnTabsAndCanBeWoken() {
+        val d = LabJson.decodeFromString<ZoneAnswer>(
+            """{"ok":true,"hosts":[{"name":"n100docker","online":true,"docker":true,"containers":{"running":3,"total":4}},
+                {"name":"pve","online":false,"pve":true,"wake":true},
+                {"name":"pve2","online":true,"pve":true},
+                {"name":"nas","online":true}]}""").hosts
+        val h = d.associateBy { it.name }
+        assertEquals(listOf("n100docker", "pve", "pve2"), d.filter { it.listed() }.map { it.name })   // nas is neither
+        assertEquals(true, h.getValue("pve").wake)
+        assertEquals(false, h.getValue("pve2").wake)
+        assertEquals("node", h.getValue("pve2").line())
+        assertEquals("–", h.getValue("pve").line())
+        assertEquals("3 / 4", h.getValue("n100docker").line())
+        for (tab in listOf("containers", "stacks", "images", "volumes", "networks")) {
+            assertEquals(tab, true, h.getValue("n100docker").has(tab))
+            assertEquals(tab, false, h.getValue("pve2").has(tab))
+        }
+        assertEquals(true, h.getValue("pve2").has("vms"))
+        assertEquals(false, h.getValue("n100docker").has("vms"))
+        for (tab in listOf("overview", "host")) assertEquals(true, h.getValue("pve2").has(tab))
+    }
+
+    @Test fun theGuestsSayWhatTheyMayDoAndWhereTheyMayGo() {
+        val r = LabJson.decodeFromString<ZoneAnswer>(
+            """{"ok":true,"enabled":true,"peers":["pve"],"guests":[
+                {"id":"101","name":"pbs","running":true,"ticked":true,"console":true,"moves":true},
+                {"id":"113","name":"web","ticked":true}]}""")
+        assertEquals(listOf("pve"), r.peers)
+        assertEquals(listOf(true, true), r.guests.map { it.console && it.moves }.take(1) + r.guests.map { it.console || it.moves }.take(1))
+        assertEquals(false, r.guests[1].moves)
+        assertEquals(emptyList<String>(), LabJson.decodeFromString<ZoneAnswer>("""{"ok":true}""").peers)
+    }
+
+    @Test fun aGuestNumberOnTheOtherNodeIsEmptyOr100AndUp() {
+        for (ok in listOf("", "100", "995", "123456789")) assertEquals(ok, true, io.github.mithrandler.labhud.data.newIdOk(ok))
+        for (bad in listOf("1", "99", "0123", "12a", "1234567890", " 100")) assertEquals(bad, false, io.github.mithrandler.labhud.data.newIdOk(bad))
     }
 
     @Test fun theUpdateCheckSpeaksPlainly() {

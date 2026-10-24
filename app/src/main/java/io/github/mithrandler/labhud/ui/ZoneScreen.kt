@@ -68,7 +68,10 @@ import io.github.mithrandler.labhud.data.ZoneContainer
 import io.github.mithrandler.labhud.data.ZoneHost
 import io.github.mithrandler.labhud.data.bytesText
 import io.github.mithrandler.labhud.data.filtered
+import io.github.mithrandler.labhud.data.has
 import io.github.mithrandler.labhud.data.line
+import io.github.mithrandler.labhud.data.listed
+import io.github.mithrandler.labhud.data.zoneWake
 import io.github.mithrandler.labhud.data.plainTerminal
 import io.github.mithrandler.labhud.data.refusal
 import io.github.mithrandler.labhud.data.status
@@ -122,8 +125,6 @@ fun ZoneScreen(repo: LabRepository, bar: BarNav, onSignIn: () -> Unit) {
     var host by rememberSaveable { mutableStateOf("") }
     var tab by rememberSaveable { mutableStateOf("containers") }
     val wide = LocalConfiguration.current.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
-    val drawer = androidx.compose.material3.rememberDrawerState(androidx.compose.material3.DrawerValue.Closed)
-    LaunchedEffect(wide) { if (wide) drawer.snapTo(androidx.compose.material3.DrawerValue.Closed) }   // a drawer left open before a turn must not cover the wide layout
     LaunchedEffect(ZoneTarget.host) { if (ZoneTarget.host.isNotEmpty()) { host = ZoneTarget.host; ZoneTarget.host = "" } }
     var tick by remember { mutableStateOf(0) }
 
@@ -156,24 +157,13 @@ fun ZoneScreen(repo: LabRepository, bar: BarNav, onSignIn: () -> Unit) {
     BackHandler(host.isNotEmpty()) { host = "" }
 
     val barScroll = rememberLabBarScroll()
-    // the tree of hosts and their tabs: a column at the side when the screen is wide, a drawer on a narrow one (open it from the title)
-    val tree = hosts?.takeIf { session && rights.admin && it.any { h -> h.docker } }
-    val pick: (String, String) -> Unit = { h, t -> host = h; tab = t; scope.launch { drawer.close() } }
-    androidx.compose.material3.ModalNavigationDrawer(
-        drawerState = drawer, gesturesEnabled = !wide && tree != null,
-        // the sheet is always there (its width does not wait for the hosts): a drawer that first has no content starts at an offset that reads as open
-        drawerContent = { if (!wide) androidx.compose.material3.ModalDrawerSheet(drawerContainerColor = Lab.bg) { if (tree != null) {
-            Text("Servers", fontSize = LabScale.textMd, color = Lab.title, modifier = Modifier.padding(LabScale.space4))
-            HostTree(tree, host, tab, TABS, pick)
-        } } },
-    ) {
+    // the tree of hosts and their tabs: a column at the side when the screen is wide; a narrow screen has the list and the host's own tabs
+    val tree = hosts?.takeIf { session && rights.admin && it.any { h -> h.listed() } }
+    val pick: (String, String) -> Unit = { h, t -> host = h; tab = t }
     Scaffold(
         modifier = Modifier.labBarScroll(barScroll), containerColor = Lab.bg,
         topBar = { MainTopBar(repo, bar, title = {
-            Row(Modifier.clickable(enabled = !wide && tree != null) { scope.launch { drawer.open() } }, verticalAlignment = Alignment.CenterVertically) {
-                if (host.isEmpty()) Text("Servers") else Text(host, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
-                if (!wide && tree != null) Icon(LabIcons.chevronDown, "Hosts", tint = Lab.muted, modifier = Modifier.size(LabScale.iconCard))
-            }
+            if (host.isEmpty()) Text("Servers") else Text(host, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }, onBack = if (host.isEmpty()) null else ({ host = "" })) },
     ) { pad ->
         Row(Modifier.padding(pad).fillMaxSize()) {
@@ -190,7 +180,6 @@ fun ZoneScreen(repo: LabRepository, bar: BarNav, onSignIn: () -> Unit) {
                 }
             }
         }
-    }
     }
     GateDialogs(gate, onSignIn)
 }
@@ -210,7 +199,7 @@ internal fun Dot(tone: Int, size: Int = 10) {
 
 @Composable
 private fun HostList(hosts: List<ZoneHost>?, message: String, onOpen: (String) -> Unit, onRefresh: () -> Unit) {
-    val docker = hosts?.filter { it.docker }
+    val docker = hosts?.filter { it.listed() }
     LazyColumn(Modifier.fillMaxSize(), contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = LabScale.space4, vertical = LabScale.space2)) {
         if (message.isNotEmpty()) item { Text(message, color = Lab.warn, fontSize = LabScale.textSm, modifier = Modifier.padding(bottom = LabScale.space2)) }
         if (docker == null) item { Text("Loading…", color = Lab.muted) }
@@ -256,8 +245,8 @@ private val TABS = listOf("overview" to "Overview", "containers" to "Containers"
 @Composable
 private fun HostScreen(h: ZoneHost, tab: String, onTab: (String) -> Unit, treeShown: Boolean, ask: suspend (suspend LabApi.() -> ZoneAnswer) -> ZoneAnswer, repo: LabRepository, gate: Gate) {
     val wide = LocalConfiguration.current.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
-    @Composable fun content() = when (tab) {
-        "overview" -> Overview(h)
+    @Composable fun content() = when (if (h.has(tab)) tab else "overview") {
+        "overview" -> Overview(h, ask, gate)
         "stacks" -> StacksTab(h, ask, gate)
         "images" -> ImagesTab(h, ask, gate)
         "volumes" -> VolumesTab(h, ask, gate)
@@ -266,7 +255,7 @@ private fun HostScreen(h: ZoneHost, tab: String, onTab: (String) -> Unit, treeSh
         "host" -> HostTab(h, ask, gate)
         else -> ContainersTab(h, ask, repo, gate)
     }
-    val tabs = TABS.filter { it.first != "vms" || h.pve }
+    val tabs = TABS.filter { h.has(it.first) }
     // the tree at the side already lists the tabs: only the content is left
     if (treeShown) Box(Modifier.fillMaxSize()) { content() }
     else if (wide) Row(Modifier.fillMaxSize()) {
@@ -295,14 +284,36 @@ internal fun Cell(label: String, big: String, sub: String = "", modifier: Modifi
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun Overview(h: ZoneHost) {
-    FlowRow(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(LabScale.space4), horizontalArrangement = Arrangement.spacedBy(LabScale.space3), verticalArrangement = Arrangement.spacedBy(LabScale.space3)) {
+private fun Overview(h: ZoneHost, ask: ZoneAsk, gate: Gate) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(LabScale.space4), verticalArrangement = Arrangement.spacedBy(LabScale.space3)) {
+    FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(LabScale.space3), verticalArrangement = Arrangement.spacedBy(LabScale.space3)) {
         Cell("Status", if (h.online) "Online" else "Offline", if (h.version.isNotEmpty()) "agent ${h.version}" else "", Modifier.width(LabScale.cellW))
         // an agent that does not answer measured nothing: a dash, not zeros that look like a quiet machine
-        Cell("Containers", if (h.online) "${h.containers.running} / ${h.containers.total}" else "—", "running / all", Modifier.width(LabScale.cellW))
+        if (h.docker) Cell("Containers", if (h.online) "${h.containers.running} / ${h.containers.total}" else "—", "running / all", Modifier.width(LabScale.cellW))
         Cell("CPU", if (h.online) "${h.cpu.toInt()}%" else "—", "", Modifier.width(LabScale.cellW))
         Cell("Memory", if (h.online) "${h.mem.toInt()}%" else "—", "", Modifier.width(LabScale.cellW))
         if (h.update) Cell("Agent", "Update", "a newer agent is out", Modifier.width(LabScale.cellW))
+    }
+    if (h.wake) WakeBar(h, ask, gate)
+    }
+}
+
+/** An off host that another online agent can wake with a magic packet (its address ticked there for Wake). */
+@Composable
+private fun WakeBar(h: ZoneHost, ask: ZoneAsk, gate: Gate) {
+    val scope = rememberCoroutineScope()
+    var said by remember(h.name) { mutableStateOf("") }
+    var bad by remember(h.name) { mutableStateOf(false) }
+    Column(verticalArrangement = Arrangement.spacedBy(LabScale.space2)) {
+        Text("${h.name} is off. Another agent on its network can wake it.", color = Lab.sub, fontSize = LabScale.textSm)
+        Button(onClick = { gate.press {
+            said = "Sending the magic packet…"; bad = false
+            scope.launch {
+                val r = ask { zoneWake(h.name) }
+                if (r.ok) said = "Sent. The host needs a minute to start and its agent to connect." else { said = "Wake: ${r.refusal()}"; bad = true }
+            }
+        } }) { Text("Wake") }
+        if (said.isNotEmpty()) Text(said, color = if (bad) Lab.red else Lab.sub, fontSize = LabScale.textSm)
     }
 }
 
