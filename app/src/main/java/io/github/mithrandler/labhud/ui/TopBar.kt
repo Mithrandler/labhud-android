@@ -7,16 +7,19 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 
-/** What a screen with a [LabTopBar] scrolls: the large bar folds into the small one as the list goes up. */
+/**
+ * What a screen with a [LabTopBar] scrolls: nothing. The bar is the small one at a fixed height; a pinned behavior never
+ * takes a scroll from the list (an exit-until-collapsed one, with no bar to measure, swallowed every swipe up).
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun rememberLabBarScroll(): TopAppBarScrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+fun rememberLabBarScroll(): TopAppBarScrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
 
-/** For the Scaffold of a screen with a [LabTopBar]. */
+/** Kept for the Scaffold of each screen: it adds no nested scroll, so the list under the bar gets every gesture. */
 @OptIn(ExperimentalMaterial3Api::class)
-fun Modifier.labBarScroll(scroll: TopAppBarScrollBehavior): Modifier = nestedScroll(scroll.nestedScrollConnection)
+@Suppress("UNUSED_PARAMETER")
+fun Modifier.labBarScroll(scroll: TopAppBarScrollBehavior): Modifier = this
 
 /**
  * The top bar of every screen: the small one, the same height everywhere (the large Material one that
